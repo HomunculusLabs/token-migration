@@ -1,0 +1,4 @@
+push plan at block 51948272: 6338 leaves, 0 already claimed, 6338 to push in 53 batches
+  largest batch: 8,489,592 gas (cap 16,777,216), 92,228 bytes (cap 131,072)
+  cost at base fee 7 wei: L2 447,169,680 gas = 3130187760 wei, L1 upper 149576717145092 wei, total 149579847332852 wei
+  wrote kit/output/push-plan/plan.json + 53 batch files

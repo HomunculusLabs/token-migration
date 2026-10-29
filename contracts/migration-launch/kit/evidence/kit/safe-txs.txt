@@ -1,0 +1,281 @@
+# kit safe-txs: the rehearsal on a private anvil forked from the pinned Base fork
+# fork: Base mainnet (chainId 8453), pinned block 51935583
+# small real-holder cohort: every 100th eligible holder of fullscale-260929 cohort.json (64 holders)
+
+$ python3.14 kit/launch.py deploy-plan --rehearsal --rpc <shared read-only fork>
+tokenImplementation  0x23092cCf5D386cC9C4278af50DcF07fC03AFEc9E  (python CREATE2 matches)
+token                0xbF42Bac232d1586EF2C04031e1aF4c09aDe8770D  (python CREATE2 matches)
+vault                0xe8332013a2930C412b0F578fE17dD9C74a358726  (python CREATE2 matches)
+settler              0xDE699eb4ba0b3340261ff8109F424BC88024F1ED  (python CREATE2 matches)
+hook                 0x4D7cF9C85c072D9F8f55623774362b21493BE044  (python CREATE2 matches)
+safe                 0xfaAaadF79b178ca2e3B0833ee08c7592a97728C9  (python CREATE2 matches)
+hook flags           0x2044 (exactly BEFORE_INITIALIZE | AFTER_SWAP | AFTER_SWAP_RETURNS_DELTA)
+DeployDryRun: every deployment landed at its predicted address with the decided settings
+wrote kit/output/deploy/{resolved,plan,basescan,deployment,summary}.json + dry-run.txt
+[exit 0]
+
+$ python3.14 kit/rehearse.py deploy --rpc <private anvil>
+tokenImplementation  0x23092cCf5D386cC9C4278af50DcF07fC03AFEc9E
+token                0xbF42Bac232d1586EF2C04031e1aF4c09aDe8770D
+vault                0xe8332013a2930C412b0F578fE17dD9C74a358726
+settler              0xDE699eb4ba0b3340261ff8109F424BC88024F1ED
+hook                 0x4D7cF9C85c072D9F8f55623774362b21493BE044
+safe                 0xfaAaadF79b178ca2e3B0833ee08c7592a97728C9
+deployed at block 51935589
+[exit 0]
+
+$ python3.14 kit/rehearse.py deposit --rpc <private anvil> --cohort kit/output/cohort-small/cohort.json
+64 holders deposited 233445856781546855472040255 v1 (= cohort eligibleTotal); approve + deposit gas 7879992, avg 123124 per holder
+last deposit block 51935717
+[exit 0]
+
+$ python3.14 kit/rehearse.py close --rpc <private anvil>
+deposit window closed: block 51935718 t=1790833314 > deadline 1790833313
+[exit 0]
+
+$ python3.14 kit/launch.py snapshot --rehearsal --block 51935718 --vault 0xe8332013a2930C412b0F578fE17dD9C74a358726 --rpc <private anvil>
+snapshot at block 51935718: 64 leaves, total 233445856781546855472040255, root 0xf211ba15f54e722076f1200b5dd7de25c3c7d91a36aaa2b6392e362ce0b910e2
+  VerifyTree: OK
+  VerifyTreeBulk: OK
+  python: OK
+  wrote kit/output/snapshot/51935718/{deposits.csv,tree.json,tree.csv,snapshot.json}
+[exit 0]
+
+## commitRoot: simulate only (the fork is reverted), twice; the outputs must be byte-identical
+
+$ python3.14 kit/safe_txs.py commit-root --tree kit/output/snapshot/51935718/tree.json --deployment kit/output/deploy/deployment.json --safe-nonce 0 --rpc <private anvil> --rehearsal
+commitRoot: safeTxHash 0xa60322e1138806c4a0ee4aaa084f02df9fac7bba8bb78ef8ab4b1cabe439a798 (Safe 0xfaAaadF79b178ca2e3B0833ee08c7592a97728C9, nonce 0, CALL to 0xe8332013a2930C412b0F578fE17dD9C74a358726)
+  ok  Safe 0xfaAaadF79b178ca2e3B0833ee08c7592a97728C9: singleton Safe 1.4.1, 2-of-3, next nonce 0
+  ok  Safe domainSeparator() == python EIP-712 domain {chainId, verifyingContract}
+  ok  deployment: vault.owner() == safe
+  ok  deployment: vault.V1() == params v1
+  ok  deployment: vault.V2() == v2
+  ok  deployment: settler.SAFE() == safe
+  ok  deployment: settler.V1() == params v1
+  ok  deployment: settler.V2() == v2
+  ok  deployment: settler.WETH() == params weth
+  ok  deployment: settler.POOL_MANAGER() == params poolManager
+  ok  deployment: settler.POSITION_MANAGER() == params positionManager
+  ok  deployment: settler.V3_TAIL() == params v3Tail
+  ok  deployment: settler.OLD_POOL_ID() == params oldPool.poolId
+  ok  deployment: settler.LP_FEE() == successorPool.lpFee
+  ok  deployment: settler.TICK_SPACING() == successorPool.tickSpacing
+  ok  deployment: hook address carries exactly the 0x2044 flags
+  ok  deployment: hook.INITIALIZER() == settler
+  ok  deployment: v2 MINTER_ROLE is held by the Safe
+  ok  tree: 64 leaves fold to root 0xf211ba15f54e722076f1200b5dd7de25c3c7d91a36aaa2b6392e362ce0b910e2, total 233445856781546855472040255 (pure-Python keccak)
+  ok  tree total == vault net ledger x rate / 10 000 = 233445856781546855472040255 (the pro-rata check)
+  ok  fork time 1790833314 is inside the commit window (1790833313, 1791092513]
+  ok  commitRoot calldata == cast calldata
+  ok  safeTxHash: python EIP-712 == Safe.getTransactionHash on the fork
+  ok  executed through the Safe (approveHash x2 + execTransaction): vault root and totalClaimable == the tree, phase Committed
+  wrote kit/output/safe-txs/commitRoot.{json,calldata.txt,safeTxHash.txt,safe-tx.json}
+[exit 0]
+rerun byte-identical: commitRoot.json
+rerun byte-identical: commitRoot.calldata.txt
+rerun byte-identical: commitRoot.safeTxHash.txt
+rerun byte-identical: commitRoot.safe-tx.json
+safe nonce after simulate-only: 0; vault root 0x0000000000000000000000000000000000000000000000000000000000000000
+
+## commitRoot: execute and keep (the launch batch needs the committed state)
+
+$ python3.14 kit/safe_txs.py commit-root --tree kit/output/snapshot/51935718/tree.json --deployment kit/output/deploy/deployment.json --safe-nonce 0 --rpc <private anvil> --rehearsal --execute-on-private-fork
+commitRoot: safeTxHash 0xa60322e1138806c4a0ee4aaa084f02df9fac7bba8bb78ef8ab4b1cabe439a798 (Safe 0xfaAaadF79b178ca2e3B0833ee08c7592a97728C9, nonce 0, CALL to 0xe8332013a2930C412b0F578fE17dD9C74a358726)
+  ok  Safe 0xfaAaadF79b178ca2e3B0833ee08c7592a97728C9: singleton Safe 1.4.1, 2-of-3, next nonce 0
+  ok  Safe domainSeparator() == python EIP-712 domain {chainId, verifyingContract}
+  ok  deployment: vault.owner() == safe
+  ok  deployment: vault.V1() == params v1
+  ok  deployment: vault.V2() == v2
+  ok  deployment: settler.SAFE() == safe
+  ok  deployment: settler.V1() == params v1
+  ok  deployment: settler.V2() == v2
+  ok  deployment: settler.WETH() == params weth
+  ok  deployment: settler.POOL_MANAGER() == params poolManager
+  ok  deployment: settler.POSITION_MANAGER() == params positionManager
+  ok  deployment: settler.V3_TAIL() == params v3Tail
+  ok  deployment: settler.OLD_POOL_ID() == params oldPool.poolId
+  ok  deployment: settler.LP_FEE() == successorPool.lpFee
+  ok  deployment: settler.TICK_SPACING() == successorPool.tickSpacing
+  ok  deployment: hook address carries exactly the 0x2044 flags
+  ok  deployment: hook.INITIALIZER() == settler
+  ok  deployment: v2 MINTER_ROLE is held by the Safe
+  ok  tree: 64 leaves fold to root 0xf211ba15f54e722076f1200b5dd7de25c3c7d91a36aaa2b6392e362ce0b910e2, total 233445856781546855472040255 (pure-Python keccak)
+  ok  tree total == vault net ledger x rate / 10 000 = 233445856781546855472040255 (the pro-rata check)
+  ok  fork time 1790833314 is inside the commit window (1790833313, 1791092513]
+  ok  commitRoot calldata == cast calldata
+  ok  safeTxHash: python EIP-712 == Safe.getTransactionHash on the fork
+  ok  executed through the Safe (approveHash x2 + execTransaction): vault root and totalClaimable == the tree, phase Committed
+  wrote kit/output/safe-txs/commitRoot.{json,calldata.txt,safeTxHash.txt,safe-tx.json}
+[exit 0]
+safe nonce 1; vault phase 1 root 0xf211ba15f54e722076f1200b5dd7de25c3c7d91a36aaa2b6392e362ce0b910e2
+
+## launch batch: simulate-then-sign (the fork is reverted), twice; the outputs must be byte-identical
+
+$ python3.14 kit/safe_txs.py launch-batch --deployment kit/output/deploy/deployment.json --safe-nonce 1 --rpc <private anvil> --rehearsal
+launch-batch: safeTxHash 0xe5428e9ef4d38c1a3dbbab31381385c7dba1177ecb825d6c3ae8cec636cbcdb9 (Safe 0xfaAaadF79b178ca2e3B0833ee08c7592a97728C9, nonce 1, DELEGATECALL to 0x9641d764fc13c8B624c04430C7356C1C7C8102e2)
+  ok  Safe 0xfaAaadF79b178ca2e3B0833ee08c7592a97728C9: singleton Safe 1.4.1, 2-of-3, next nonce 1
+  ok  Safe domainSeparator() == python EIP-712 domain {chainId, verifyingContract}
+  ok  deployment: vault.owner() == safe
+  ok  deployment: vault.V1() == params v1
+  ok  deployment: vault.V2() == v2
+  ok  deployment: settler.SAFE() == safe
+  ok  deployment: settler.V1() == params v1
+  ok  deployment: settler.V2() == v2
+  ok  deployment: settler.WETH() == params weth
+  ok  deployment: settler.POOL_MANAGER() == params poolManager
+  ok  deployment: settler.POSITION_MANAGER() == params positionManager
+  ok  deployment: settler.V3_TAIL() == params v3Tail
+  ok  deployment: settler.OLD_POOL_ID() == params oldPool.poolId
+  ok  deployment: settler.LP_FEE() == successorPool.lpFee
+  ok  deployment: settler.TICK_SPACING() == successorPool.tickSpacing
+  ok  deployment: hook address carries exactly the 0x2044 flags
+  ok  deployment: hook.INITIALIZER() == settler
+  ok  deployment: v2 MINTER_ROLE is held by the Safe
+  ok  MultiSendCallOnly 0x9641d764fc13c8B624c04430C7356C1C7C8102e2: runtime code hash == params (Safe 1.4.1)
+  ok  from the vault: backing = totalClaimable() = 233445856781546855472040255; v1In = net ledger = 233445856781546855472040255 (v1 held 233445856781546855472040255)
+  ok  unconstrained run (minWethOut 0, budget = cap - supply - backing = 99766554143218453144527959745): executed, raised 5137762389789663983 WETH, used 223558493366493907358874323 v2; state reverted
+  ok  signed run executed through the Safe (approveHash + execTransaction, DELEGATECALL to MultiSendCallOnly) and passed:
+  ok    wethRaised 5137762389789663983 >= minWethOut 5112073577840715663
+  ok    wethRaised == the unconstrained run's (same pre-state)
+  ok    v2 used 223558493366493907358874323 <= budget 223782051859860401266233207
+  ok    vault.claimsActive() and verifySettlement(): fully funded, v2 held == backing, claimable == backing
+  ok    vault v1 left == v1 held - v1In (0)
+  ok    LP NFT 3097527 owned by the Safe
+  ok    the settler holds no v1, WETH or v2
+  ok    the successor pool opened at the signed price
+  ok    v2 supply == before + backing + budget
+  ok  all five inner calls and the multiSend wrapper == cast calldata
+  wrote kit/output/safe-txs/launch-batch.{json,calldata.txt,safeTxHash.txt,safe-tx.json}
+  simulation: raised 5137762389789663983 WETH, used 223558493366493907358874323 v2 -> signed minWethOut 5112073577840715663, v2 budget 223782051859860401266233207
+[exit 0]
+rerun byte-identical: launch-batch.json
+rerun byte-identical: launch-batch.calldata.txt
+rerun byte-identical: launch-batch.safeTxHash.txt
+rerun byte-identical: launch-batch.safe-tx.json
+rerun byte-identical: simulation.json
+safe nonce after simulate-only: 1; claimsActive false
+
+## refusals
+
+$ python3.14 kit/safe_txs.py launch-batch --deployment kit/output/deploy/deployment.json --safe-nonce 2 --rpc <private anvil> --rehearsal
+KIT STOP: --safe-nonce 2 but the Safe's next nonce is 1: a transaction can only be simulated at the Safe's current nonce (execute or reject the queued ones first)
+[exit 2]
+
+$ python3.14 kit/safe_txs.py launch-batch --deployment kit/output/deploy/deployment.json --safe-nonce 1 --rpc <private anvil> --params kit/params.rehearsal.json
+KIT STOP: params.rehearsal.json is rehearsal-only; pass --rehearsal to use it
+[exit 2]
+
+$ python3.14 kit/safe_txs.py commit-root --tree kit/output/snapshot/51935718/tree.json --deployment kit/output/deploy/deployment.json --safe-nonce 1 --rpc <private anvil> --rehearsal
+KIT STOP: the vault is not open or already has a root
+[exit 2]
+
+$ python3.14 kit/safe_txs.py launch-batch --deployment kit/output/deploy/deployment.json --safe-nonce 1 --rpc <shared read-only fork> --rehearsal
+KIT STOP: safe 0xfaAaadF79b178ca2e3B0833ee08c7592a97728C9: no code on the fork
+[exit 2]
+
+## launch batch: execute the signed transaction and keep it
+
+$ python3.14 kit/safe_txs.py launch-batch --deployment kit/output/deploy/deployment.json --safe-nonce 1 --rpc <private anvil> --rehearsal --execute-on-private-fork
+launch-batch: safeTxHash 0xe5428e9ef4d38c1a3dbbab31381385c7dba1177ecb825d6c3ae8cec636cbcdb9 (Safe 0xfaAaadF79b178ca2e3B0833ee08c7592a97728C9, nonce 1, DELEGATECALL to 0x9641d764fc13c8B624c04430C7356C1C7C8102e2)
+  ok  Safe 0xfaAaadF79b178ca2e3B0833ee08c7592a97728C9: singleton Safe 1.4.1, 2-of-3, next nonce 1
+  ok  Safe domainSeparator() == python EIP-712 domain {chainId, verifyingContract}
+  ok  deployment: vault.owner() == safe
+  ok  deployment: vault.V1() == params v1
+  ok  deployment: vault.V2() == v2
+  ok  deployment: settler.SAFE() == safe
+  ok  deployment: settler.V1() == params v1
+  ok  deployment: settler.V2() == v2
+  ok  deployment: settler.WETH() == params weth
+  ok  deployment: settler.POOL_MANAGER() == params poolManager
+  ok  deployment: settler.POSITION_MANAGER() == params positionManager
+  ok  deployment: settler.V3_TAIL() == params v3Tail
+  ok  deployment: settler.OLD_POOL_ID() == params oldPool.poolId
+  ok  deployment: settler.LP_FEE() == successorPool.lpFee
+  ok  deployment: settler.TICK_SPACING() == successorPool.tickSpacing
+  ok  deployment: hook address carries exactly the 0x2044 flags
+  ok  deployment: hook.INITIALIZER() == settler
+  ok  deployment: v2 MINTER_ROLE is held by the Safe
+  ok  MultiSendCallOnly 0x9641d764fc13c8B624c04430C7356C1C7C8102e2: runtime code hash == params (Safe 1.4.1)
+  ok  from the vault: backing = totalClaimable() = 233445856781546855472040255; v1In = net ledger = 233445856781546855472040255 (v1 held 233445856781546855472040255)
+  ok  unconstrained run (minWethOut 0, budget = cap - supply - backing = 99766554143218453144527959745): executed, raised 5137762389789663983 WETH, used 223558493366493907358874323 v2; state reverted
+  ok  signed run executed through the Safe (approveHash + execTransaction, DELEGATECALL to MultiSendCallOnly) and passed:
+  ok    wethRaised 5137762389789663983 >= minWethOut 5112073577840715663
+  ok    wethRaised == the unconstrained run's (same pre-state)
+  ok    v2 used 223558493366493907358874323 <= budget 223782051859860401266233207
+  ok    vault.claimsActive() and verifySettlement(): fully funded, v2 held == backing, claimable == backing
+  ok    vault v1 left == v1 held - v1In (0)
+  ok    LP NFT 3097527 owned by the Safe
+  ok    the settler holds no v1, WETH or v2
+  ok    the successor pool opened at the signed price
+  ok    v2 supply == before + backing + budget
+  ok  all five inner calls and the multiSend wrapper == cast calldata
+  wrote kit/output/safe-txs/launch-batch.{json,calldata.txt,safeTxHash.txt,safe-tx.json}
+  simulation: raised 5137762389789663983 WETH, used 223558493366493907358874323 v2 -> signed minWethOut 5112073577840715663, v2 budget 223782051859860401266233207
+[exit 0]
+the executed batch is the one the simulate-only runs produced (Tx Builder JSON identical)
+
+## independent post-state reads (cast, not the kit)
+safe nonce                 2
+vault claimsActive         true
+vault v2 held              233445856781546855472040255
+vault totalClaimable       233445856781546855472040255
+vault v1 held              0
+settler wethRaised         5137762389789663983
+settler v2Seeded           223558493366493907358874323
+LP NFT 3097527 owner      0xfaAaadF79b178ca2e3B0833ee08c7592a97728C9  (the Safe: 0xfaAaadF79b178ca2e3B0833ee08c7592a97728C9)
+settler v1/WETH/v2         0/0/0
+v2 totalSupply             457227908641407256738273462
+
+## outputs (sha256)
+dd6a5577f88d6b6c5e930fced389939fcfa2f6e3c52229bc5c107b61cef80b17  commitRoot.json
+1c859409e12375ac47f86eb629036025b51e5ef398bfe5e0597fda0abbbdeddd  commitRoot.calldata.txt
+dfcefc3262f5947ac12a45edb43b54843ed98cee8d09da6096488441b5a696b6  commitRoot.safeTxHash.txt
+6ee829f13de838aba059c4e49ac73d06b7897fd2ad1204ecdab4eaf72c7a66e1  launch-batch.json
+049f368286cad68c668f190167fe0b280169832ab636724bc4d7103d22e6fe9e  launch-batch.calldata.txt
+77e8800729e9b9a529972648a8df1e0f88c625cb6f7cf8fbb61beeb08c88f35d  launch-batch.safeTxHash.txt
+b1e93c05b5db4d75d4e0108d21cf242d2cdff57b33fe0314730322506641848e  simulation.json
+
+## simulation.json
+{
+  "forkBlock": {
+    "number": 51935721,
+    "hash": "0xb44227e7d99e93a8cb029551262fe7c3b9d56807e22f673823b9202db5a3c94a",
+    "timestamp": 1790833314
+  },
+  "fromVault": {
+    "backing": "233445856781546855472040255",
+    "v1In": "233445856781546855472040255",
+    "v1Held": "233445856781546855472040255"
+  },
+  "sale": {
+    "v1In": "233445856781546855472040255",
+    "tailIn": "23344585678154685547204025",
+    "tailLimit": "1461446703485210103287273052203988822378723970341",
+    "oldPoolId": "0xfc25fdd217e288d03a877f0b7d49e0bbe52b2288c88de929125062569fc7eb2a",
+    "oldSqrtPriceX96Before": "522622833624572954971583139164596"
+  },
+  "unconstrained": {
+    "minWethOut": "0",
+    "v2Budget": "99766554143218453144527959745",
+    "wethRaised": "5137762389789663983",
+    "wethSeeded": "5137757252027274194",
+    "v2Seeded": "223558493366493907358874323",
+    "positionId": "3097527",
+    "liquidity": "33890843461707997976840",
+    "oldSqrtPriceX96After": "539693736950524535148843584815783",
+    "gasUsed": 1125669
+  },
+  "rule": "minWethOut = wethRaised x 9950 / 10000; v2Budget = v2Seeded + v2Seeded x 10 / 10000 + 10 wei",
+  "signed": {
+    "minWethOut": "5112073577840715663",
+    "v2Budget": "223782051859860401266233207",
+    "safeTxHash": "0xe5428e9ef4d38c1a3dbbab31381385c7dba1177ecb825d6c3ae8cec636cbcdb9",
+    "wethRaised": "5137762389789663983",
+    "wethSeeded": "5137757252027274194",
+    "v2Seeded": "223558493366493907358874323",
+    "positionId": "3097527",
+    "liquidity": "33890843461707997976840",
+    "oldSqrtPriceX96After": "539693736950524535148843584815783",
+    "gasUsed": 1125741
+  }
+}

@@ -1,0 +1,11 @@
+# GREEN P3+P4 (ledger refunds) 2026-09-29T07:31:28Z  forge test --match-path test/regressions/LedgerRefunds.t.sol
+[PASS] test_P3_TimeoutRefundsPayTheLedgerNotTheRoot() (gas: 6131490)
+[PASS] test_P4_BonusRootCannotTurnRefundsIntoABankRun() (gas: 3088263)
+[PASS] test_RefundIsOncePerCredit() (gas: 2915203)
+Suite result: ok. 3 passed; 0 failed; 0 skipped; finished in 743.08µs (1.13ms CPU time)
+# full suite, excluding the not-yet-fixed regressions (P1/P1b/P2/P7, P5, P6)
+Suite result: ok. 3 passed; 0 failed; 0 skipped; finished in 3.01ms (1.30ms CPU time)
+Suite result: ok. 58 passed; 0 failed; 0 skipped; finished in 280.20ms (31.20ms CPU time)
+Suite result: ok. 6 passed; 0 failed; 0 skipped; finished in 3.02s (6.57s CPU time)
+Suite result: ok. 22 passed; 0 failed; 0 skipped; finished in 3.03s (4.23s CPU time)
+Ran 4 test suites in 3.03s (6.33s CPU time): 89 tests passed, 0 failed, 0 skipped (89 total tests)

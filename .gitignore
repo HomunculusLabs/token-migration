@@ -1,0 +1,18 @@
+node_modules/
+out/
+cache/
+broadcast/
+__pycache__/
+.pytest_cache/
+.kit-runs/
+.env
+.env.*
+!.env.example
+*.local
+
+# anvil lab
+anvil-lab/out/
+anvil-lab/cache/
+anvil-lab/scripts/__pycache__/
+anvil-lab/.env.fork
+anvil-lab/.env.local

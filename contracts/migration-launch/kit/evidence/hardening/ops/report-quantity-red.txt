@@ -1,0 +1,21 @@
+test_report_preserves_current_policy_without_guaranteeing_exit_value (test_report.ReportTests.test_report_preserves_current_policy_without_guaranteeing_exit_value) ... ok
+test_report_prices_gas_with_rpc_hex_or_decimal_base_fee (test_report.ReportTests.test_report_prices_gas_with_rpc_hex_or_decimal_base_fee) ...
+  test_report_prices_gas_with_rpc_hex_or_decimal_base_fee (test_report.ReportTests.test_report_prices_gas_with_rpc_hex_or_decimal_base_fee) (base_fee='0x4c4b40') ... ERROR
+
+======================================================================
+ERROR: test_report_prices_gas_with_rpc_hex_or_decimal_base_fee (test_report.ReportTests.test_report_prices_gas_with_rpc_hex_or_decimal_base_fee) (base_fee='0x4c4b40')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "$REPO/contracts/migration-launch/__tests__/kit/test_report.py", line 80, in test_report_prices_gas_with_rpc_hex_or_decimal_base_fee
+    text = self.render_report(base_fee)
+  File "$REPO/contracts/migration-launch/__tests__/kit/test_report.py", line 63, in render_report
+    report.main()
+    ~~~~~~~~~~~^^
+  File "$REPO/contracts/migration-launch/kit/report.py", line 219, in main
+    base_fee = int(pin_block["baseFeePerGas"])  # Base at the pin, not the rehearsal anvil's decayed base fee
+ValueError: invalid literal for int() with base 10: '0x4c4b40'
+
+----------------------------------------------------------------------
+Ran 2 tests in 0.010s
+
+FAILED (errors=1)

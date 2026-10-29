@@ -1,0 +1,20 @@
+{
+  "chainId": 8453,
+  "pin": 51935583,
+  "pinHash": "0x2a3d465ca7407d2373bce06a2741e104785fefd0d43db7574a8230a310caa1b6",
+  "pinTimestamp": 1790660513,
+  "tag": "finalized at selection (2026-09-29T06:16Z); safe=51936619, latest=51936628",
+  "checks": {
+    "v1TotalSupply": "100000000000000000000000000000",
+    "codeSizeAtPin": {
+      "SafeSingleton141": 23579,
+      "SafeProxyFactory141": 3054,
+      "MultiSendCallOnly141": 410,
+      "Multicall3": 3808,
+      "PoolManager": 24009,
+      "PositionManager": 23877,
+      "ArachnidCreate2Proxy_0x4e59b448": 69,
+      "CreateX_0xba5Ed": 11838
+    }
+  }
+}

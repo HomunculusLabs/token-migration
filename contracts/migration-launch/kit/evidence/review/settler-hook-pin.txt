@@ -1,0 +1,79 @@
+# §3.5 settler finding R1-2: the successor hook's fee and treasury are pinned (RED on 9ef1d6f5a's settler, GREEN after)
+# Fork: local anvil 127.0.0.1:18549, chainId 8453, block 51935583 (the kit pin).
+
+## RED: the regressions on the settler before the fix (a9d1e0544's src/MigrationSettler.sol, sha256 69b8fec5a1ba8ad9)
+$ forge test --match-contract SettlerOracleReviewForkTest --fork-url <local anvil>
+Ran 1 test suite in 1.16s (1.14s CPU time): 0 tests passed, 4 failed, 0 skipped (4 total tests)
+[FAIL: the settler opened the successor pool with a fee hook whose treasury is not the Safe] test_ORACLE_settler_AFeeHookPayingAnotherTreasuryIsRefused() (gas: 18939149)
+[FAIL: the settler opened the successor pool with a hook that charges no fee (the rehearsal stand-in)] test_ORACLE_settler_AHookWithoutTheFeeIsRefused() (gas: 18085613)
+[FAIL: the settler opened the successor pool with a hook that does not say where its fees go] test_ORACLE_settler_AHookThatHidesItsTreasuryIsRefused() (gas: 16014655)
+[FAIL: the settler opened the successor pool with a hook whose fee is not the decided 1.5%] test_ORACLE_settler_AHookDeclaringAnotherFeeIsRefused() (gas: 16031397)
+
+## GREEN: after the fix
+$ forge test --match-path 'test/fork/**' --fork-url <local anvil>
+
+Ran 6 test suites in 191.00ms (328.02ms CPU time): 21 tests passed, 0 failed, 1 skipped (22 total tests)
+[PASS] test_ExactOutputTakeFailsOnlyPast98Percent_V2AboveWeth() (gas: 31034775)
+[PASS] test_ExactOutputTakeFailsOnlyPast98Percent_V2BelowWeth() (gas: 82329702)
+[PASS] test_FrontRunInitRevertsTheWholeBatch() (gas: 12269319)
+[PASS] test_GatedHookRejectsAnOutsiderInitialize() (gas: 7662188)
+[PASS] test_LaunchAndTradeThroughTheRealHook() (gas: 16314324)
+[PASS] test_Launch_V2SortsAboveWeth() (gas: 11543689)
+[PASS] test_Launch_V2SortsBelowWeth() (gas: 11544517)
+[PASS] test_ORACLE_settler_AFeeHookPayingAnotherTreasuryIsRefused() (gas: 16782970)
+[PASS] test_ORACLE_settler_AHookDeclaringAnotherFeeIsRefused() (gas: 13876930)
+[PASS] test_ORACLE_settler_AHookThatHidesItsTreasuryIsRefused() (gas: 13859078)
+[PASS] test_ORACLE_settler_AHookWithoutTheFeeIsRefused() (gas: 15832309)
+[PASS] test_OnlyTheSafeCanSettle() (gas: 7577738)
+[PASS] test_S1_LaunchLeavesNoTokensOrApprovals() (gas: 11518360)
+[PASS] test_S2_DonationCannotBlockTheLaunch() (gas: 11572311)
+[PASS] test_S3_HookNotBoundToTheSettlerReverts() (gas: 11677914)
+[PASS] test_S3_NoSuccessorHookReverts() (gas: 11467431)
+[PASS] test_S3_WrongSuccessorFeeReverts() (gas: 11466761)
+[PASS] test_S3_WrongSuccessorTickSpacingReverts() (gas: 11466894)
+[PASS] test_S4_RivalOldPoolIsNotAVenue() (gas: 11986086)
+[PASS] test_SaleBelowTheSignedMinimumRevertsTheBatch() (gas: 12205972)
+[PASS] test_V2BudgetBelowTheSeedRevertsTheBatch() (gas: 12228886)
+[SKIP: skipped: this fork does not hold the closed rehearsal deposit window] setUp() (gas: 0)
+
+## mutants of the fix (scratch copy): each guard removed alone turns a named test red
+M1 no TREASURY comparison -> FAIL test_ORACLE_settler_AFeeHookPayingAnotherTreasuryIsRefused
+M2 no FEE_PIPS comparison -> FAIL test_ORACLE_settler_AHookDeclaringAnotherFeeIsRefused
+M3 TREASURY getter failure tolerated -> FAIL test_ORACLE_settler_AHookThatHidesItsTreasuryIsRefused
+M4 FEE_PIPS getter failure tolerated -> FAIL test_ORACLE_settler_AHookWithoutTheFeeIsRefused
+
+## the kit with the fixed settler (feeRecipient now a settler constructor argument; only settler + hook move)
+$ python3.14 kit/deploy_plan.py --rehearsal --rpc <local fork>   (run twice: every output byte-identical)
+tokenImplementation  0x23092cCf5D386cC9C4278af50DcF07fC03AFEc9E  (python CREATE2 matches)
+token                0xbF42Bac232d1586EF2C04031e1aF4c09aDe8770D  (python CREATE2 matches)
+vault                0x7242B0d4F1F67b54E4c2E809892c6410d1EcCe3F  (python CREATE2 matches)
+settler              0xbC5130C24De0dB26137c284aF753c660f9BffAC5  (python CREATE2 matches)
+hook                 0x0bE135901994c28BB2817F39fc7c4aD35584a044  (python CREATE2 matches)
+safe                 0xfaAaadF79b178ca2e3B0833ee08c7592a97728C9  (python CREATE2 matches)
+DeployDryRun: every deployment landed at its predicted address with the decided settings
+# fail-closed: a plan whose hook treasury is not the decided recipient
+Error: script failed: settler: fee recipient
+
+## full-scale rehearsal re-run with the fixed settler and hook (private anvil, 6,338 holders already deposited)
+$ python3.14 kit/rehearse.py deploy --rpc <private anvil>   (deploys only the new settler 0xbC5130C2…ffAC5 and hook 0x0bE13590…a044)
+$ python3.14 kit/rehearse.py close --rpc <private anvil>
+$ python3.14 kit/launch.py snapshot --rehearsal --block 51948268 --from-block 51935583 --vault 0x7242B0d4F1F67b54E4c2E809892c6410d1EcCe3F --rpc <private anvil> --log-chunk 2000
+snapshot at block 51948268: 6338 leaves, total 91050022387755487790277973417, root 0x703204306d075c428bc7a9436d6c50b5cbfcf96eb323fae2c0824d5954df79d4
+  VerifyTree: OK
+  VerifyTreeBulk: OK
+  python: OK
+  wrote kit/output/snapshot/51948268/{deposits.csv,tree.json,tree.csv,snapshot.json}
+$ SURPLUS_TREE=kit/output/snapshot/51948268/tree.json forge test --match-path 'test/fork/rehearsal/*' --fork-url <private anvil> -vv
+[PASS] test_00_TreeIsTheCohortAtOneToOne() (gas: 1174040403)
+[PASS] test_01_FullLifecycle() (gas: 7321579373)
+[PASS] test_02_SafeNeverCommitsSoThePreCommitTimeoutRefundsEveryone() (gas: 807366386)
+[PASS] test_03_NobodyActivatesSoTheExecutionTimeoutRefundsEveryone() (gas: 2424097691)
+[PASS] test_04_FrontRunPoolInitRevertsTheWholeBatch() (gas: 1148700826)
+[PASS] test_05_WithdrawalAfterTheDeadlineIsRejected() (gas: 59017)
+[PASS] test_06_PlainTransferToTheVaultIsRescued() (gas: 188172)
+Ran 1 test suite in 6.88s (6.84s CPU time): 7 tests passed, 0 failed, 0 skipped (7 total tests)
+exit=0
+
+## Nx gate
+$ npx nx run-many -t lint test build -p '@surplus/contracts.*' --skip-nx-cache
+NX   Successfully ran targets lint, test, build for 6 projects

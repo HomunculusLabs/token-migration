@@ -1,0 +1,37 @@
+# §SUR-768 public Base Sepolia deployment — 2026-10-09, chain 84532
+# real public-chain execution (not a fork): sweep, 5 deploys, kit verify, explorer verification, deposit exercise
+
+## funding + identity
+smoke wallet 0xE7A41c302581dbc88ee0c9F0CEb74ff64EbD6409 (9.0 ETH, nonce 0) -> 0.5 ETH to throwaway deployer 0x13e3f4661cf5d602eD356cdeB042Af8E2Cd90b93
+tx 0x40990228131e816e980832d08171542c11d6d2b63726c87941550e5ec2a5d2b6 status 1 (rehearsal-evidenced gas math: ~8M total, <0.03 ETH spent on deploys)
+throwaway keys (deployer + 3 owners + 2 testers) generated in-session; key material lives ONLY in kit/testnet/output/keys.json (mode 600, gitignored)
+
+## deploy (prepare.py validate -> preflight -> plan -> simulate; then 5 cast sends, explicit nonces after one auto-replace race)
+planHash e78bc3339f93e9ad1d11e12c23ecca9fd318e846 (regenerated post-413-fix; identical CREATE2 addresses, preflight pin preserved)
+safe            0x291fcB8E5d2656f5F0e2029Da48B02320cf81617  (2-of-3, Safe 1.4.1 L2, nonce 0)
+testnet v1      0x71fC0586728Ad61ED4BaB9e6f10D583b9e1de367  (TestnetV1: faucet 1000/call cap, 1M supply cap)
+v2 impl         0x6538f02767c33A3520580251bF84c48718c07e0B  (SurplusTokenV2BaseSepolia incl. mint limiter @ ca7afba22)
+v2 proxy        0xAD5b15948e9DD12a8932ca4688322132275745f1  (ERC1967)
+vault           0x0E6DF1D9Af7C4F7c2e2e282E67fbcA8977967140  (1:1 rateBps 10000, proRata, claimPeriod 0)
+
+## kit verify (prepare.py verify) — PASS
+runtime code byte-exact vs simulation for all 5 | safe owners = the 3 throwaway keys, threshold 2, version 1.4.1, nonce 0
+roles exclusively on the safe | zero unreviewed role grants | vault wiring (v1, v2, deadlines, rate) exact
+required the kit fix 4255590e7: public RPC 413s on 500-block eth_getLogs windows -> 100-block chunks
+
+## explorer verification (Etherscan V2 API, chainid 84532) — all Pass - Verified, read back
+TestnetV1 | SurplusTokenV2BaseSepolia (limiter visible in source) | ERC1967Proxy (ctor args ABI-encoded) | MigrationVault
+Safe needs none (canonical 1.4.1 singleton behind official proxy, auto-labelled)
+
+## deposit-phase exercise (alice 0x5a72CB009fCc6795d85b388906b2Ea6E68d2c2C5, bob 0xf198415A0DCE61F8580b9626f15070f5D153b231)
+alice: faucet 500 -> approve 500 -> deposit 400 (tx nonce 2; credited 400)
+bob:   faucet 250 -> approve 250 -> deposit 250 -> withdrawV1 50 pre-deadline (net 200)
+negatives reverted with exact custom errors: FaucetLimit (>1000 cap) | ZeroAmount (deposit 0) | ExcessiveWithdrawal(999e20, 250e20)
+conservation: net credits 400 + 200 = 600 V1 == vault holdings 600 exactly
+
+## windows (unix, read back from chain 2026-10-09)
+depositDeadline 1792432057 (2026-10-19T17:47:37Z) | commitDeadline 1792460937 (+8h) | executionWindow 3600s | validUntil 5d
+
+## outstanding
+ledger freeze -> snapshot -> 2-of-3 commit-root -> activate -> claims + double-claim rejection
+website /migrate journeys on these addresses | separate signer devices | reproducible runbook

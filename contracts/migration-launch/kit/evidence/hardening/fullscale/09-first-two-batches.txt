@@ -1,0 +1,11 @@
+push plan at block 51948272: 6338 leaves, 0 already claimed, 6338 to push in 53 batches
+  largest batch: 8,489,592 gas (cap 16,777,216), 92,228 bytes (cap 131,072)
+  cost at base fee 7 wei: L2 447,169,680 gas = 3130187760 wei, L1 upper 149576717145092 wei, total 149579847332852 wei
+  wrote kit/output/push-plan/plan.json + 53 batch files
+  plans/4ea91afb455f81c8db5763f6efc7f9dcaf0ca182bd5a0591c5f0092e68829dfc/batch-000.calldata: 119 actual claims, 0 unpaid (not receipt-based)
+  plans/4ea91afb455f81c8db5763f6efc7f9dcaf0ca182bd5a0591c5f0092e68829dfc/batch-001.calldata: 120 actual claims, 0 unpaid (not receipt-based)
+replanning after the executed batches:
+push plan at block 51948275: 6338 leaves, 240 already claimed, 6098 to push in 51 batches
+  largest batch: 8,472,492 gas (cap 16,777,216), 92,228 bytes (cap 131,072)
+  cost at base fee 7 wei: L2 429,330,504 gas = 3005313528 wei, L1 upper 143890681514210 wei, total 143893686827738 wei
+  wrote kit/output/push-plan/plan.json + 51 batch files

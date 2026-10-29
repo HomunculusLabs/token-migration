@@ -1,0 +1,6 @@
+out/
+cache/
+lib/
+broadcast/
+# Salt-miner output (script/MineHookSalt.s.sol); regenerate rather than commit.
+output/

@@ -1,0 +1,201 @@
+# fee-hook gates — 2026-09-29T10:51:36Z — code at 6e20f4b5e (contracts/fee-hook: 0 uncommitted files before this run)
+
+$ (cd contracts/fee-hook && forge build --deny warnings)
+Compiling 17 files with Solc 0.8.28
+Solc 0.8.28 finished in 1.30s
+Compiler run successful!
+# exit 0
+
+$ (cd contracts/fee-hook && forge test)
+No files changed, compilation skipped
+
+Ran 1 test for test/fork/SurplusFeeHookFork.t.sol:SurplusFeeHookForkV2Currency0Test
+[SKIP: skipped: fork suite: run the project's Nx `fork` target] setUp() (gas: 0)
+Suite result: ok. 0 passed; 0 failed; 1 skipped; finished in 356.33µs (0.00ns CPU time)
+
+Ran 1 test for test/fork/SurplusFeeHookFork.t.sol:SurplusFeeHookForkV2Currency1Test
+[SKIP: skipped: fork suite: run the project's Nx `fork` target] setUp() (gas: 0)
+Suite result: ok. 0 passed; 0 failed; 1 skipped; finished in 359.54µs (0.00ns CPU time)
+
+Ran 1 test for test/fork/HookReviewRegressions.t.sol:HookReviewRegressionsV2Currency0Test
+[SKIP: skipped: fork suite: run the project's Nx `fork` target] setUp() (gas: 0)
+Suite result: ok. 0 passed; 0 failed; 1 skipped; finished in 491.62µs (0.00ns CPU time)
+
+Ran 1 test for test/fork/HookReviewRegressions.t.sol:HookReviewRegressionsV2Currency1Test
+[SKIP: skipped: fork suite: run the project's Nx `fork` target] setUp() (gas: 0)
+Suite result: ok. 0 passed; 0 failed; 1 skipped; finished in 451.29µs (0.00ns CPU time)
+
+Ran 6 tests for test/HookReviewRegressions.t.sol:HookReviewRegressionsTest
+[PASS] test_H3_BeforeInitializeRejectsCallersOtherThanThePoolManager() (gas: 18537)
+[PASS] test_H3_BeforeInitializeRejectsEveryKeyButTheOfficialOne() (gas: 38149)
+[PASS] test_H3_BeforeInitializeRejectsSendersOtherThanTheInitializer() (gas: 23822)
+[PASS] test_H3_ConstructorRejectsZeroAddressesAndUnsortedCurrencies() (gas: 56500)
+[PASS] test_H3_ConstructorRequiresExactlyTheGatedFlagBits() (gas: 31200)
+[PASS] test_H3_LaunchParametersAreImmutablesThatSurviveEtch() (gas: 30948)
+Suite result: ok. 6 passed; 0 failed; 0 skipped; finished in 1.15ms (1.53ms CPU time)
+
+Ran 15 tests for test/SurplusFeeHook.t.sol:SurplusFeeHookTest
+[PASS] testFuzz_ChargesExactlyTheFeeOnTheUnspecifiedCurrency(bool,bool,uint256,uint256) (runs: 512, μ: 154147, ~: 164702)
+[PASS] test_AfterSwapRejectsNonManager() (gas: 16599)
+[PASS] test_ExactInOneForZeroChargesToken0() (gas: 156904)
+[PASS] test_ExactInZeroForOneChargesToken1() (gas: 156898)
+[PASS] test_FeeConstantsMatchSpec() (gas: 6509)
+[PASS] test_FeeSplitsIntoHalvesWithTheOddWeiToBuyback() (gas: 151871)
+[PASS] test_H1_ExactOutOneForZeroChargesTheInputToken1() (gas: 156943)
+[PASS] test_H1_ExactOutZeroForOneChargesTheInputToken0() (gas: 156968)
+[PASS] test_H2_AfterSwapTakesWithoutSyncing() (gas: 255235)
+[PASS] test_H4_WithdrawalInACurrencyWithoutCodeReverts() (gas: 130681)
+[PASS] test_H4_WithdrawalToTheZeroAddressReverts() (gas: 205539)
+[PASS] test_OwedAndPaidAreTrackedPerCurrencyAndHalf() (gas: 445833)
+[PASS] test_RejectsNativeEth() (gas: 14733)
+[PASS] test_WithdrawalRevertsWhenTheTokenFailsAndBooksNothing() (gas: 485855)
+[PASS] test_WithdrawalsAreTreasuryOnly() (gas: 163355)
+Suite result: ok. 15 passed; 0 failed; 0 skipped; finished in 10.48ms (14.92ms CPU time)
+
+Ran 5 tests for test/MineHookSalt.t.sol:MineHookSaltTest
+[PASS] test_MinedSaltDeploysAtThePredictedAddressAndPassesTheFlagCheck() (gas: 1532600)
+[PASS] test_MinedSaltDeploysThroughTheCreate2Proxy() (gas: 3601665)
+[PASS] test_MinedSaltIsTheSmallestMatchFromTheStart() (gas: 29114083)
+[PASS] test_MinerRevertsWhenNoSaltMatchesWithinTheBudget() (gas: 5581457)
+[PASS] test_ScriptWritesTheSaltJson() (gas: 7959755)
+Suite result: ok. 5 passed; 0 failed; 0 skipped; finished in 26.65ms (61.14ms CPU time)
+
+Ran 7 test suites in 27.36ms (39.94ms CPU time): 26 tests passed, 0 failed, 4 skipped (30 total tests)
+# exit 0
+
+$ (cd contracts/fee-hook && forge fmt --check)
+# exit 0
+
+$ npx nx run @surplus/contracts.fee-hook:build --skip-nx-cache
+
+> nx run @surplus/contracts.fee-hook:build
+
+> forge build --deny warnings
+
+No files changed, compilation skipped
+
+
+
+ NX   Successfully ran target build for project @surplus/contracts.fee-hook
+
+
+# exit 0
+
+$ npx nx run @surplus/contracts.fee-hook:test --skip-nx-cache
+
+> nx run @surplus/contracts.fee-hook:test
+
+> forge test --no-match-path 'test/fork/*'
+
+No files changed, compilation skipped
+
+Ran 6 tests for test/HookReviewRegressions.t.sol:HookReviewRegressionsTest
+[PASS] test_H3_BeforeInitializeRejectsCallersOtherThanThePoolManager() (gas: 18537)
+[PASS] test_H3_BeforeInitializeRejectsEveryKeyButTheOfficialOne() (gas: 38149)
+[PASS] test_H3_BeforeInitializeRejectsSendersOtherThanTheInitializer() (gas: 23822)
+[PASS] test_H3_ConstructorRejectsZeroAddressesAndUnsortedCurrencies() (gas: 56500)
+[PASS] test_H3_ConstructorRequiresExactlyTheGatedFlagBits() (gas: 31200)
+[PASS] test_H3_LaunchParametersAreImmutablesThatSurviveEtch() (gas: 30948)
+Suite result: ok. 6 passed; 0 failed; 0 skipped; finished in 1.40ms (3.81ms CPU time)
+
+Ran 15 tests for test/SurplusFeeHook.t.sol:SurplusFeeHookTest
+[PASS] testFuzz_ChargesExactlyTheFeeOnTheUnspecifiedCurrency(bool,bool,uint256,uint256) (runs: 512, μ: 150520, ~: 164702)
+[PASS] test_AfterSwapRejectsNonManager() (gas: 16599)
+[PASS] test_ExactInOneForZeroChargesToken0() (gas: 156904)
+[PASS] test_ExactInZeroForOneChargesToken1() (gas: 156898)
+[PASS] test_FeeConstantsMatchSpec() (gas: 6509)
+[PASS] test_FeeSplitsIntoHalvesWithTheOddWeiToBuyback() (gas: 151871)
+[PASS] test_H1_ExactOutOneForZeroChargesTheInputToken1() (gas: 156943)
+[PASS] test_H1_ExactOutZeroForOneChargesTheInputToken0() (gas: 156968)
+[PASS] test_H2_AfterSwapTakesWithoutSyncing() (gas: 255235)
+[PASS] test_H4_WithdrawalInACurrencyWithoutCodeReverts() (gas: 130681)
+[PASS] test_H4_WithdrawalToTheZeroAddressReverts() (gas: 205539)
+[PASS] test_OwedAndPaidAreTrackedPerCurrencyAndHalf() (gas: 445833)
+[PASS] test_RejectsNativeEth() (gas: 14733)
+[PASS] test_WithdrawalRevertsWhenTheTokenFailsAndBooksNothing() (gas: 485855)
+[PASS] test_WithdrawalsAreTreasuryOnly() (gas: 163355)
+Suite result: ok. 15 passed; 0 failed; 0 skipped; finished in 12.04ms (18.94ms CPU time)
+
+Ran 5 tests for test/MineHookSalt.t.sol:MineHookSaltTest
+[PASS] test_MinedSaltDeploysAtThePredictedAddressAndPassesTheFlagCheck() (gas: 1532600)
+[PASS] test_MinedSaltDeploysThroughTheCreate2Proxy() (gas: 3601665)
+[PASS] test_MinedSaltIsTheSmallestMatchFromTheStart() (gas: 29114083)
+[PASS] test_MinerRevertsWhenNoSaltMatchesWithinTheBudget() (gas: 5581457)
+[PASS] test_ScriptWritesTheSaltJson() (gas: 7959755)
+Suite result: ok. 5 passed; 0 failed; 0 skipped; finished in 27.48ms (64.85ms CPU time)
+
+Ran 3 test suites in 28.09ms (40.92ms CPU time): 26 tests passed, 0 failed, 0 skipped (26 total tests)
+
+
+
+ NX   Successfully ran target test for project @surplus/contracts.fee-hook
+
+
+# exit 0
+
+$ npx nx run @surplus/contracts.fee-hook:lint --skip-nx-cache
+
+> nx run @surplus/contracts.fee-hook:lint
+
+> forge fmt --check
+
+
+
+
+ NX   Successfully ran target lint for project @surplus/contracts.fee-hook
+
+
+# exit 0
+
+$ npx nx run @surplus/contracts.fee-hook:fork --skip-nx-cache
+
+> nx run @surplus/contracts.fee-hook:fork
+
+> forge test --match-path 'test/fork/*' --fork-url ${FORK_URL:-http://127.0.0.1:18549} --fork-block-number ${FORK_BLOCK:-51935583}
+
+No files changed, compilation skipped
+
+Ran 4 tests for test/fork/HookReviewRegressions.t.sol:HookReviewRegressionsV2Currency1Test
+[PASS] test_H1_ExactOutputSwapsSettleAndChargeTheInput() (gas: 989233)
+[PASS] test_H2_NativeSettleLaterInTheSameUnlockSucceeds() (gas: 806484)
+[PASS] test_H3_NoOtherPoolKeyCanNameTheHook() (gas: 478618)
+[PASS] test_H3_OnlyTheInitializerCanInitializeTheOfficialKey() (gas: 331399)
+Suite result: ok. 4 passed; 0 failed; 0 skipped; finished in 4.13ms (4.85ms CPU time)
+
+Ran 6 tests for test/fork/SurplusFeeHookFork.t.sol:SurplusFeeHookForkV2Currency1Test
+[PASS] test_AllInCostOfASmallTradeIsAboutOnePointEightPercent() (gas: 539778)
+[PASS] test_ExactInBuyPaysExactlyTheFee() (gas: 407295)
+[PASS] test_ExactInSellPaysExactlyTheFee() (gas: 405316)
+[PASS] test_ExactOutBuyPaysExactlyTheFee() (gas: 404875)
+[PASS] test_ExactOutSellPaysExactlyTheFee() (gas: 408376)
+[PASS] test_TreasuryWithdrawsBothHalvesOfEveryFeeCurrency() (gas: 944766)
+Suite result: ok. 6 passed; 0 failed; 0 skipped; finished in 5.24ms (4.82ms CPU time)
+
+Ran 4 tests for test/fork/HookReviewRegressions.t.sol:HookReviewRegressionsV2Currency0Test
+[PASS] test_H1_ExactOutputSwapsSettleAndChargeTheInput() (gas: 981206)
+[PASS] test_H2_NativeSettleLaterInTheSameUnlockSucceeds() (gas: 802179)
+[PASS] test_H3_NoOtherPoolKeyCanNameTheHook() (gas: 434343)
+[PASS] test_H3_OnlyTheInitializerCanInitializeTheOfficialKey() (gas: 324006)
+Suite result: ok. 4 passed; 0 failed; 0 skipped; finished in 14.91ms (4.78ms CPU time)
+
+Ran 6 tests for test/fork/SurplusFeeHookFork.t.sol:SurplusFeeHookForkV2Currency0Test
+[PASS] test_AllInCostOfASmallTradeIsAboutOnePointEightPercent() (gas: 539177)
+[PASS] test_ExactInBuyPaysExactlyTheFee() (gas: 404251)
+[PASS] test_ExactInSellPaysExactlyTheFee() (gas: 407206)
+[PASS] test_ExactOutBuyPaysExactlyTheFee() (gas: 407251)
+[PASS] test_ExactOutSellPaysExactlyTheFee() (gas: 404846)
+[PASS] test_TreasuryWithdrawsBothHalvesOfEveryFeeCurrency() (gas: 943596)
+Suite result: ok. 6 passed; 0 failed; 0 skipped; finished in 15.83ms (4.61ms CPU time)
+
+Ran 4 test suites in 20.78ms (40.11ms CPU time): 20 tests passed, 0 failed, 0 skipped (20 total tests)
+
+
+
+ NX   Successfully ran target fork for project @surplus/contracts.fee-hook
+
+
+# exit 0
+
+$ npx nx show project @surplus/contracts.fee-hook --json  (name, root, tags, target names)
+{"name": "@surplus/contracts.fee-hook", "root": "contracts/fee-hook", "tags": ["type:contracts", "scope:contracts"], "targets": ["build", "fmt", "fork", "gas", "lint", "mine-salt", "test"]}
+# exit 0

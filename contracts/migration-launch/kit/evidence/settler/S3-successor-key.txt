@@ -1,0 +1,26 @@
+# §3.4 settler S3 (a wrong successor key opens the wrong pool) — RED on cf4f54fdf
+$ forge test --match-path test/fork/SettlerRegressions.fork.t.sol --fork-url <local anvil 127.0.0.1:18549, chainId 8453, block 51935583>
+Ran 1 test suite in 1.31s (1.30s CPU time): 2 tests passed, 4 failed, 0 skipped (6 total tests)
+[FAIL: settle accepted: a hook not bound to the settler] test_S3_HookNotBoundToTheSettlerReverts() (gas: 13561166)
+[FAIL: settle accepted: no successor hook] test_S3_NoSuccessorHookReverts() (gas: 13348799)
+[FAIL: settle accepted: wrong successor fee] test_S3_WrongSuccessorFeeReverts() (gas: 13370125)
+[FAIL: settle accepted: wrong successor tick spacing] test_S3_WrongSuccessorTickSpacingReverts() (gas: 13370099)
+[PASS] test_S1_LaunchLeavesNoTokensOrApprovals() (gas: 11052323)
+[PASS] test_S2_DonationCannotBlockTheLaunch() (gas: 11106160)
+
+# GREEN after the fix (settler sha256 0a381a0423239946)
+$ forge test --match-path 'test/fork/**' --fork-url <local anvil 127.0.0.1:18549, chainId 8453, block 51935583>
+Ran 2 test suites in 21.38ms (34.73ms CPU time): 13 tests passed, 0 failed, 0 skipped (13 total tests)
+[PASS] test_FrontRunInitRevertsTheWholeBatch() (gas: 11997370)
+[PASS] test_GatedHookRejectsAnOutsiderInitialize() (gas: 7397709)
+[PASS] test_Launch_V2SortsAboveWeth() (gas: 11274677)
+[PASS] test_Launch_V2SortsBelowWeth() (gas: 11275511)
+[PASS] test_OnlyTheSafeCanSettle() (gas: 7313278)
+[PASS] test_S1_LaunchLeavesNoTokensOrApprovals() (gas: 11249049)
+[PASS] test_S2_DonationCannotBlockTheLaunch() (gas: 11302841)
+[PASS] test_S3_HookNotBoundToTheSettlerReverts() (gas: 11389528)
+[PASS] test_S3_NoSuccessorHookReverts() (gas: 11197321)
+[PASS] test_S3_WrongSuccessorFeeReverts() (gas: 11196651)
+[PASS] test_S3_WrongSuccessorTickSpacingReverts() (gas: 11196806)
+[PASS] test_SaleBelowTheSignedMinimumRevertsTheBatch() (gas: 11934055)
+[PASS] test_V2BudgetBelowTheSeedRevertsTheBatch() (gas: 11957057)

@@ -1,0 +1,5 @@
+snapshot at block 51948266: 6338 leaves, total 91050022387755487790277973417, root 0x703204306d075c428bc7a9436d6c50b5cbfcf96eb323fae2c0824d5954df79d4
+  VerifyTree: OK
+  VerifyTreeBulk: OK
+  python: OK
+  wrote kit/output/snapshot/51948266/{deposits.csv,tree.json,tree.csv,snapshot.json}

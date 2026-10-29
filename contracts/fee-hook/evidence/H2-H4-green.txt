@@ -1,0 +1,36 @@
+# H2-H4-green — 2026-09-29T10:31:20Z
+# HEAD 1b8bedcb2; modified vs HEAD: contracts/fee-hook/src/SurplusFeeHook.sol contracts/fee-hook/test/SurplusFeeHook.t.sol contracts/fee-hook/test/fork/Actor.sol contracts/fee-hook/test/fork/HookReviewRegressions.t.sol contracts/fee-hook/evidence/H2-H4-green.txt contracts/fee-hook/evidence/H2-H4-red.txt contracts/fee-hook/test/utils/FlakyToken.sol 
+
+$ forge test --match-test 'H2_|H4_'
+No files changed, compilation skipped
+
+Ran 1 test for test/fork/HookReviewRegressions.t.sol:HookReviewRegressionsV2Currency0Test
+[SKIP: skipped: fork suite: run the project's Nx `fork` target] setUp() (gas: 0)
+Suite result: ok. 0 passed; 0 failed; 1 skipped; finished in 379.67µs (0.00ns CPU time)
+
+Ran 1 test for test/fork/HookReviewRegressions.t.sol:HookReviewRegressionsV2Currency1Test
+[SKIP: skipped: fork suite: run the project's Nx `fork` target] setUp() (gas: 0)
+Suite result: ok. 0 passed; 0 failed; 1 skipped; finished in 379.08µs (0.00ns CPU time)
+
+Ran 3 tests for test/SurplusFeeHook.t.sol:SurplusFeeHookTest
+[PASS] test_H2_AfterSwapTakesWithoutSyncing() (gas: 255257)
+[PASS] test_H4_WithdrawalInACurrencyWithoutCodeReverts() (gas: 130614)
+[PASS] test_H4_WithdrawalToTheZeroAddressReverts() (gas: 205539)
+Suite result: ok. 3 passed; 0 failed; 0 skipped; finished in 607.54µs (244.92µs CPU time)
+
+Ran 3 test suites in 4.17ms (1.37ms CPU time): 3 tests passed, 0 failed, 2 skipped (5 total tests)
+# exit 0
+
+$ forge test --match-path 'test/fork/*' --match-test 'H2_|H4_' --fork-url http://127.0.0.1:18549 --fork-block-number 51935583
+No files changed, compilation skipped
+
+Ran 1 test for test/fork/HookReviewRegressions.t.sol:HookReviewRegressionsV2Currency0Test
+[PASS] test_H2_NativeSettleLaterInTheSameUnlockSucceeds() (gas: 802179)
+Suite result: ok. 1 passed; 0 failed; 0 skipped; finished in 2.49ms (1.28ms CPU time)
+
+Ran 1 test for test/fork/HookReviewRegressions.t.sol:HookReviewRegressionsV2Currency1Test
+[PASS] test_H2_NativeSettleLaterInTheSameUnlockSucceeds() (gas: 806484)
+Suite result: ok. 1 passed; 0 failed; 0 skipped; finished in 2.49ms (1.29ms CPU time)
+
+Ran 2 test suites in 7.76ms (4.99ms CPU time): 2 tests passed, 0 failed, 0 skipped (2 total tests)
+# exit 0

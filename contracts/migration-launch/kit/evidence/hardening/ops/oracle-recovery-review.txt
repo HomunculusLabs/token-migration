@@ -1,0 +1,29 @@
+[progress] oracle_send: Starting Oracle...
+[progress] oracle_send: Waiting for Oracle response...
+[progress] oracle_send: Oracle complete
+## Chat Send ✅
+- **Chat**: `untitled-chat-C78EC2` | **Mode**: review
+
+### Response
+## Summary
+
+Reviewed only the `rehearse.py` receipt-wait and deposit-resume delta. The revision does what the report describes: receipt polling is now bounded by the monotonic 120-second wait:
+
+```py
+deadline = time.monotonic() + 120
+while time.monotonic() < deadline:
+```
+
+and deposit replay now refuses to proceed with outstanding txpool work via:
+
+```py
+pending = rpc.call("txpool_status", [])
+if int(pending["pending"], 16) or int(pending["queued"], 16):
+    k.fail("unconfirmed transactions remain; inspect their receipts before resuming deposits")
+```
+
+The resume logic skips only fully completed cohort deposits, rejects partial/unexpected ledger state, distinguishes unknown confirmation from mined reverts, and avoids auto-resubmission. This is local-only rehearsal behavior and does not change Solidity, ABI, economics, or production paths.
+
+## Findings
+
+No reproducible defects introduced by this delta.

@@ -1,0 +1,10 @@
+{
+  "chainId": 8453,
+  "block": 51948266,
+  "blockHash": "0x8f960c1bf603cc2d06a45184d9906b802fcb8b4d1bc2d8a8c33957f06432973a",
+  "timestamp": 1790833314,
+  "vault": "0x7242B0d4F1F67b54E4c2E809892c6410d1EcCe3F",
+  "stateFile": "precommit-state.hex",
+  "stateSha256": "59e37c3e74896fab7194d79b4e038b20da897b60cd0b65e1bbc359e2bf44f2b5",
+  "stage": "deposited, window closed, no root committed; snapshot still must be regenerated"
+}

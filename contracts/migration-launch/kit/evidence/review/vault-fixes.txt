@@ -1,0 +1,23 @@
+# §3.5 oracle review — vault findings fixed by the parent (red on 38c25b24a, green after the fix)
+$ cd contracts/migration && forge test --match-contract OracleReviewTest   (on 38c25b24a's MigrationVault.sol)
+Ran 1 test suite in 4.65ms (658.00µs CPU time): 0 tests passed, 4 failed, 0 skipped (4 total tests)
+[FAIL: a leaf outside the committed total was paid] test_ORACLE_migration_PayoutsNeverExceedTheCommittedTotal() (gas: 3395536)
+[FAIL: a vault that accepted deposits can never activate claims (claimPeriod overflow)] test_ORACLE_migration_ClaimPeriodThatOverflowsBricksActivation() (gas: 3259063)
+[FAIL: a vault whose timeout exit can overflow was deployed] test_ORACLE_migration_ExecutionWindowThatOverflowsIsRejected() (gas: 2958479)
+[FAIL: activateClaims succeeded after the execution deadline: the timeout exit was pre-empted] test_ORACLE_migration_ActivationAfterTheExecutionDeadline() (gas: 3368025)
+
+# after the fix (MigrationVault.sol sha256 18be50e7c04d604e)
+$ forge test
+Ran 10 test suites in 3.14s (18.51s CPU time): 118 tests passed, 0 failed, 0 skipped (118 total tests)
+Ran 4 tests for test/regressions/OracleReview.t.sol:OracleReviewTest
+[PASS] test_ORACLE_migration_ActivationAfterTheExecutionDeadline() (gas: 3384636)
+[PASS] test_ORACLE_migration_ClaimPeriodThatOverflowsBricksActivation() (gas: 1034484)
+[PASS] test_ORACLE_migration_ExecutionWindowThatOverflowsIsRejected() (gas: 1035967)
+[PASS] test_ORACLE_migration_PayoutsNeverExceedTheCommittedTotal() (gas: 3360751)
+
+# mutants (scratch copy): each fix removed alone turns its regression red
+M1 activateClaims without the execution deadline → FAIL test_ORACLE_migration_ActivationAfterTheExecutionDeadline
+M2 claims without the payout cap                  → FAIL test_ORACLE_migration_PayoutsNeverExceedTheCommittedTotal
+M3 constructor without the executionWindow bound   → FAIL test_ORACLE_migration_ExecutionWindowThatOverflowsIsRejected (panic, not WindowTooLong)
+
+# E2EMultisig: the happy path activated 1s AFTER the execution window (it pinned the defect); it now activates at the deadline.

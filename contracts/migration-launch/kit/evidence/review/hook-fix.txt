@@ -1,0 +1,12 @@
+# §3.5 oracle review — hook finding (round 2 #2, stray tokens stranded in the hook) fixed by the parent
+$ cd contracts/fee-hook && forge test --match-contract HookOracleReviewTest   (on 189de9038's SurplusFeeHook.sol)
+Ran 1 test suite in 4.11ms (518.50µs CPU time): 0 tests passed, 1 failed, 0 skipped (1 total tests)
+[FAIL: the treasury recovers the stray tokens] test_ORACLE_hook_StrayTokensAreRecoverable() (gas: 182835)
+
+# after the fix (SurplusFeeHook.sol sha256 2d644f90d9d455c7)
+$ forge test
+Ran 8 test suites in 13.07ms (27.05ms CPU time): 27 tests passed, 0 failed, 4 skipped (31 total tests)
+[PASS] test_ORACLE_hook_StrayTokensAreRecoverable() (gas: 201912)
+$ forge test --match-path 'test/fork/*' --fork-url <local fork> --fork-block-number 51935583
+Ran 4 test suites in 20.15ms (40.95ms CPU time): 20 tests passed, 0 failed, 0 skipped (20 total tests)
+# mutant: recoverExcess ignores owed fees → FAIL test_ORACLE_hook_StrayTokensAreRecoverable (exactly the stray amount came back)

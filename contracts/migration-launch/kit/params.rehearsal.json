@@ -1,0 +1,133 @@
+{
+  "schema": "surplus-v2-launch-params/1",
+  "mode": "rehearsal",
+  "purpose": "params.json with every open decision set to the rehearsal default (spec \u00a76, in brackets). NEVER a launch input: the kit refuses it unless run with --rehearsal.",
+  "chainId": 8453,
+  "pin": {
+    "block": 51935583,
+    "hash": "0x2a3d465ca7407d2373bce06a2741e104785fefd0d43db7574a8230a310caa1b6",
+    "timestamp": 1790660513,
+    "note": "The rehearsal fork pin. Launch-day simulations fork the latest block instead; the kit records the block it used."
+  },
+  "external": {
+    "v1": "0xC52aeDec3374422d7510E294cfAa90799595CBa3",
+    "weth": "0x4200000000000000000000000000000000000006",
+    "poolManager": "0x498581fF718922c3f8e6A244956aF099B2652b2b",
+    "positionManager": "0x7C5f5A4bBd8fD63184577525326123B519429bDc",
+    "permit2": "0x000000000022D473030F116dDEE9F6B43aC78BA3",
+    "multicall3": "0xcA11bde05977b3631167028862bE2a173976CA11",
+    "create2Deployer": "0x4e59b44847b379578588920ca78fbf26c0b4956c",
+    "gasPriceOracle": "0x420000000000000000000000000000000000000F",
+    "safe141": {
+      "singleton": "0x29fcB43b46531BcA003ddC8FCB67FFE91900C762",
+      "proxyFactory": "0x4e1DCf7AD4e460CfD30791CCC4F9c8a4f820ec67",
+      "multiSendCallOnly": "0x9641d764fc13c8B624c04430C7356C1C7C8102e2"
+    },
+    "oldPool": {
+      "currency0": "0x4200000000000000000000000000000000000006",
+      "currency1": "0xC52aeDec3374422d7510E294cfAa90799595CBa3",
+      "fee": 8388608,
+      "tickSpacing": 200,
+      "hooks": "0xbB7784A4d481184283Ed89619A3e3ed143e1Adc0",
+      "poolId": "0xfc25fdd217e288d03a877f0b7d49e0bbe52b2288c88de929125062569fc7eb2a"
+    },
+    "v3Tail": "0xbCf23F30a90f6D7c288fACdc932fF8F8B68b0f30",
+    "runtimeCodeHashes": {
+      "0x29fcB43b46531BcA003ddC8FCB67FFE91900C762": "0xb1f926978a0f44a2c0ec8fe822418ae969bd8c3f18d61e5103100339894f81ff",
+      "0x4e1DCf7AD4e460CfD30791CCC4F9c8a4f820ec67": "0x50c3cdc4074750a7a974204a716c999edd37482f907608d960b2b025ee0b3317",
+      "0x9641d764fc13c8B624c04430C7356C1C7C8102e2": "0xecd5bd14a08c5d2122379900b2f272bdf107a7e92423c10dd5fe3254386c9939",
+      "0x498581fF718922c3f8e6A244956aF099B2652b2b": "0x83b2af6e9f3158defc2811cbcb0db71ecf8b2ba2abea39c39e370ac5c6f43eb6",
+      "0x7C5f5A4bBd8fD63184577525326123B519429bDc": "0x243f9e091ddf11c7c04e28059fdbbf1bab82b72d414fafb8e096c097aaeb622a",
+      "0x000000000022D473030F116dDEE9F6B43aC78BA3": "0xa67739abc3ede9dbdc0491636c67d6a14ac07fab9030c3f509b1eb7b11dff8ed",
+      "0xbCf23F30a90f6D7c288fACdc932fF8F8B68b0f30": "0x4e9765e7a79b52a8a05580258d5113801c67829c8c5debd9eb88edfca177a771",
+      "0xbB7784A4d481184283Ed89619A3e3ed143e1Adc0": "0x317314fa00365686fa78baafcd62d23ca4383b7d01a704ef5c600b8f8548e897"
+    }
+  },
+  "governance": {
+    "decision": "\u00a76.1 (SUR-662)",
+    "owners": [
+      "0xe05fcC23807536bEe418f142D19fa0d21BB0cfF7",
+      "0x0376AAc07Ad725E01357B1725B5ceC61aE10473c",
+      "0x0F89F1868aF3b14a5eca86ed9a5404A742a11454"
+    ],
+    "threshold": 2,
+    "existingSafe": null,
+    "saltNonce": "0x5ec7",
+    "note": "existingSafe must remain null: this kit plans a new Safe 1.4.1 proxy deterministically from owners, threshold and saltNonce. Existing Safes are rejected and require a separately reviewed plan."
+  },
+  "token": {
+    "decision": "\u00a76.2",
+    "name": "Test-only SURPLUS v2",
+    "symbol": "TV2",
+    "capWei": "100000000000000000000000000000"
+  },
+  "vault": {
+    "decision": "\u00a76.3 dates (open); \u00a76.3 executionWindowSeconds decided by Bill 2026-10-25: the launch must execute within 28 days of the commit (2419200); \u00a76.5 P5 decided by Bill 2026-09-29: claims never expire (claimPeriodSeconds 0)",
+    "depositOpen": 1790660513,
+    "depositDeadline": 1790833313,
+    "commitDeadline": 1791092513,
+    "executionWindowSeconds": 2419200,
+    "claimPeriodSeconds": 0,
+    "rateBps": 10000,
+    "proRata": true
+  },
+  "hook": {
+    "decision": "\u00a76.4 fee recipient",
+    "feeRecipient": "safe",
+    "feeBps": 150,
+    "flags": "0x2044"
+  },
+  "successorPool": {
+    "lpFee": 3000,
+    "tickSpacing": 60
+  },
+  "sale": {
+    "tailShareBps": 1000,
+    "tailSqrtPriceLimitX96": "1461446703485210103287273052203988822378723970341",
+    "minWethOutBps": 9950,
+    "v2BudgetExtraWei": 10
+  },
+  "seed": {
+    "decision": "Bill 2026-10-25 (SUR-658), replacing the 2026-09-29 decision of no extra single-sided v2: the successor pool opens with two single-sided sides that meet at the opening tick",
+    "openTick": "pre-sale-tick-rounded",
+    "v2Side": "old-pool-ladder-copy",
+    "wethSide": "full-range",
+    "mergeBps": 100,
+    "note": "openTick: v1's pre-sale tick on the old pool, rounded half up to the successor grid. v2Side: the v1 the old pool holds above its price, copied as v2 range by range (boundaries on the successor grid; adjacent segments within mergeBps of liquidity merge). wethSide: one position from the opening tick to the end of the range, holding what the sale raised."
+  },
+  "operators": {
+    "decision": "\u00a76.7",
+    "deployer": "0x24891F45932fCc27282E49B5A7BDD01E36ad0a92",
+    "relayer": "0x3331A453567D4263DAc722aD186cbC2E641c708E"
+  },
+  "push": {
+    "maxCalldataBytes": 131072,
+    "maxGasPerTx": 16777216,
+    "allowFailure": true
+  },
+  "salts": {
+    "tokenImplementation": "0x7375727000000000000000000000000000000000000000000000000000000001",
+    "tokenProxy": "0x7375727000000000000000000000000000000000000000000000000000000002",
+    "vault": "0x7375727000000000000000000000000000000000000000000000000000000003",
+    "settler": "0x7375727000000000000000000000000000000000000000000000000000000004"
+  },
+  "monitoring": {
+    "decision": "Bill 2026-09-29, with the no-extra-depth choice",
+    "rivalPoolInRangeDepthAlertUsd": 125000,
+    "note": "Alert when any rival pool for the pair holds this much in-range depth (siphon re-run, REPORT.md)."
+  },
+  "policies": {
+    "decision": "Bill 2026-09-29",
+    "bridgedHolders": "No special outreach. Holders of bridged SURPLUS (LayerZero OFT adapter) take part only if they bridge back to Base and deposit before the deadline; otherwise they miss the migration."
+  },
+  "rehearsalKeys": {
+    "note": "Public throwaway test keys (the address of each is above). Rehearsal only; never fund them on a real chain.",
+    "owners": [
+      "0xa11ce",
+      "0xb0b",
+      "0xca401"
+    ],
+    "deployer": "0xde9107",
+    "relayer": "0x9e1a7"
+  }
+}

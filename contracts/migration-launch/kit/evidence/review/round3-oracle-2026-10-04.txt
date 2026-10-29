@@ -1,0 +1,130 @@
+[progress] oracle_send: Starting Oracle...
+[progress] oracle_send: Waiting for Oracle response...
+[progress] oracle_send: Waiting for Oracle response...
+[progress] oracle_send: Waiting for Oracle response...
+[progress] oracle_send: Waiting for Oracle response...
+[progress] oracle_send: Waiting for Oracle response...
+[progress] oracle_send: Waiting for Oracle response...
+[progress] oracle_send: Waiting for Oracle response...
+[progress] oracle_send: Waiting for Oracle response...
+[progress] oracle_send: Oracle complete
+## Chat Send ✅
+- **Chat**: `untitled-chat-4C812C` | **Mode**: chat
+
+### Response
+```sol
+    function _markClaimed(uint256 index) private {
+        uint256 bit = 2 ** (index & 31); // Bit position within the 32-claim word.
+        if ((_claimedBitmap[index >> 5] & bit) != 0) revert AlreadyClaimed(index);
+        _claimedBitmap[index >> 5] |= bit; // state BEFORE transfer (checks-effects-interactions)
+    }
+```
+
+## Findings
+
+### H-01 — Permit2 approval expiration `0` makes settler LP mint fail, potentially freezing tokens
+
+- **Severity:** High
+- **File / line:** `contracts/migration-launch/src/MigrationSettler.sol:302-305`
+- **Code:**
+  ```sol
+  function _approve(address token, uint256 amount) internal {
+      IERC20(token).forceApprove(address(PERMIT2), amount);
+      PERMIT2.approve(token, address(POSITION_MANAGER), amount.toUint160(), 0);
+  }
+  ```
+- **Issue:** Permit2 allowance expiration is a timestamp. An expiration of `0` is already expired on Base, so when `PositionManager.modifyLiquidities` later pulls through Permit2, the pull should revert as expired.
+- **Exploit / failure scenario:**
+  1. Safe calls `settle`.
+  2. `_sell` succeeds internally.
+  3. `_mint` calls `_approve(..., expiration = 0)`.
+  4. `modifyLiquidities` attempts `SETTLE_PAIR` via Permit2.
+  5. Permit2 sees the allowance as expired and reverts.
+- **Impact:** In the intended atomic Safe batch, the full batch reverts: no sale, no activation, no successor LP mint. If tokens were sent to the settler outside the atomic batch, they can become permanently stuck because the contract has no external rescue path.
+- **Loss type:** Primarily **freezes funds / blocks launch**; can strand mistakenly pre-positioned tokens.
+
+---
+
+### M-01 — Pro-rata mode only validates aggregate total, so a malformed root can drain the shared claim cap before ledger claimants
+
+- **Severity:** Medium
+- **File / line:** `contracts/migration/src/MigrationVault.sol:317-319`, `contracts/migration/src/MigrationVault.sol:410-419`, `contracts/migration/src/MigrationVault.sol:436-449`
+- **Code:**
+  ```sol
+  if (PRO_RATA_ENABLED) {
+      uint256 expected = ((totalDepositedV1 - totalLedgerWithdrawnV1) * MIGRATION_RATE_BPS) / 10_000;
+      if (totalClaimable_ != expected) revert ProRataTotalMismatch(expected, totalClaimable_);
+  }
+  ```
+- **Issue:** In `PRO_RATA_ENABLED` mode, `commitRoot` proves only that the **sum** equals the flat-ratio ledger total. It does not prove each Merkle leaf equals that account’s ledger-derived entitlement, nor that each account appears once.
+- **Exploit scenario:**
+  1. Owner/Safe or tree tooling commits a root with total equal to the pro-rata total.
+  2. The root over-allocates one account and under-allocates others.
+  3. The over-allocated account claims via Merkle first.
+  4. `_recordPayout` consumes the shared `totalClaimable` cap.
+  5. Later honest users calling `claimProRata` can revert with `ExceedsTotalClaimable`.
+- **Impact:** V2 entitlements can be misallocated if the committed root is malformed or malicious.
+- **Loss type:** **Loss of claimable V2 for under-allocated holders.**
+- **Note:** The comments document this as an off-chain tree-build obligation, but the on-chain aggregate check may give a stronger safety impression than it actually provides.
+
+---
+
+### L-01 — Claim-tree library does not enforce embedded index uniqueness or index-position consistency
+
+- **Severity:** Low
+- **File / line:** `contracts/migration-tools/src/ClaimTree.sol:50-52`, `contracts/migration-tools/src/ClaimTree.sol:92-97`
+- **Code:**
+  ```sol
+  function leaf(uint256 index, address account, uint256 amount) internal pure returns (bytes32) {
+      return keccak256(abi.encodePacked(index, account, amount));
+  }
+  ```
+- **Issue:** The vault bitmap keys claims by the embedded `index`, but `ClaimTree.rootOf` accepts an arbitrary leaf array and does not enforce that each embedded index is unique or equals its array position.
+- **Exploit / failure scenario:**
+  1. Tree tooling accidentally emits two leaves with the same embedded index.
+  2. Both leaves are included in `totalClaimable`.
+  3. The first claimant marks the bitmap index.
+  4. The second claimant’s valid Merkle proof still reverts as `AlreadyClaimed(index)`.
+- **Impact:** One or more valid-looking allocations can become unclaimable. With a positive claim period, those funds are eventually sweepable by the owner; with no expiry, they can remain reserved forever.
+- **Loss type:** **Freezes funds or causes claimant loss after expiry.**
+
+---
+
+### I-01 — Vault accounting assumes exact-transfer ERC-20 behavior for V1 and V2
+
+- **Severity:** Informational
+- **File / line:** `contracts/migration/src/MigrationVault.sol:258-260`, `contracts/migration/src/MigrationVault.sol:282-284`, `contracts/migration/src/MigrationVault.sol:428-429`, `contracts/migration/src/MigrationVault.sol:448-449`
+- **Issue:** The vault credits deposits by the requested `amount`, not by the actual token balance delta. Claims similarly record the nominal V2 amount before transfer.
+- **Exploit scenario:** If V1 were fee-on-transfer or deflationary, a depositor could be over-credited relative to what the vault received, making later withdrawals/refunds undercollateralized. If V2 were fee-on-transfer, claimants would receive less than the recorded claim amount.
+- **Impact:** Incorrect ledger accounting with non-vanilla ERC-20s.
+- **Loss type:** **Loss or degraded payouts** under incompatible token behavior.
+- **Practical note:** The provided `SurplusTokenV2` is a standard ERC-20; this is mainly a deployment-assumption risk for V1 or any future replacement.
+
+## Benign / checked issues
+
+- **Vault `_markClaimed` before proof verification:** Benign. A later `InvalidProof` revert rolls back the bitmap write.
+- **Vault bitmap uses 32 claims per word, not 256:** Benign for correctness. It is less storage-efficient but does not create replay overlap because both the word index and bit index consistently use `/32`.
+- **Vault activation/expiry latches:** Benign. `claimsEverActive` permanently blocks refund reopening after activation, and `activateClaims` now respects the execution deadline.
+- **Vault settlement withdrawal after activation:** Benign by design. Once V2 is fully backed and claims are active, V1 is settlement inventory rather than refund collateral.
+- **Fee hook arithmetic and casts:** Benign for exact-input swaps. `take = basis * 15_000 / 1_000_000` fits safely below `int128` for an `int128` basis. Exact-output behavior is the known excluded limitation.
+- **Fee hook unofficial pool concern:** Benign assuming normal Uniswap v4 initialization semantics: `beforeInitialize` gates the only official pool key and initializer.
+- **Settler V1/WETH donation manipulation:** Benign. V1 donations before launch are excluded by the exact `p.v1In` sale accounting, and WETH proceeds are measured by balance delta during `_sell`.
+- **Settler V2 donations:** Benign for launch pricing. Extra V2 can subsidize the fixed-liquidity mint but does not increase liquidity, which is sized from raised WETH.
+- **Settler direct `PoolManager.initialize`:** Benign and desirable. A pre-initialized successor pool reverts the whole transaction instead of silently minting at an attacker-set price.
+- **Settler partial fills:** Benign. V4/v3 partial fills leave V1 behind and are caught by `V1LeftUnsold`; proceeds are also bounded by `minWethOut`.
+
+## One-line verdicts
+
+- **MigrationVault:** Strong phase-machine after prior fixes, but pro-rata mode still relies on correct off-chain per-account tree construction.
+- **SurplusTokenV2:** No new exploitable issue found under standard governance deployment assumptions.
+- **SurplusFeeHook:** No new exploitable issue found, excluding the documented exact-output limitation.
+- **ClaimTree:** Hashing matches the vault, but tooling should enforce unique embedded indices.
+- **MigrationSettler:** Launch flow is well bounded, but Permit2 expiration `0` is a launch-blocking bug.
+### Oracle export
+- Path: `$REPO/prompt-exports/oracle-chat-2026-10-04-145815-untitled-chat-4c812c-daa6.md`
+- To share this with a delegated agent, include the path inside the `message` you send on your next delegation call; your system prompt names the specific delegation tool you should use. The child agent opens the file with `read_file`.
+
+```text
+Read the Oracle export at $REPO/prompt-exports/oracle-chat-2026-10-04-145815-untitled-chat-4c812c-daa6.md with `read_file`. Use this exact path verbatim; do not shorten it, relativize it, or use only the filename.
+```
+EXIT=0

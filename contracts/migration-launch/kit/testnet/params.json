@@ -1,0 +1,25 @@
+{
+  "schema": 1,
+  "mode": "testnet",
+  "chainId": 84532,
+  "validUntil": "TBD",
+  "deployer": "TBD",
+  "governance": {
+    "owners": "TBD",
+    "threshold": "TBD",
+    "saltNonce": "TBD"
+  },
+  "token": {
+    "name": "TEST ONLY Surplus V2",
+    "symbol": "TEST-V2",
+    "capWei": "1000000000000000000000000"
+  },
+  "vault": {
+    "depositDeadline": "TBD",
+    "commitDeadline": "TBD",
+    "executionWindowSeconds": "TBD",
+    "claimPeriodSeconds": 0,
+    "rateBps": 10000,
+    "proRata": true
+  }
+}

@@ -1,0 +1,101 @@
+test_local_endpoints_pass_and_remote_or_malformed_endpoints_fail (test_kit_controls.LoopbackTests.test_local_endpoints_pass_and_remote_or_malformed_endpoints_fail) ... ok
+test_userinfo_cannot_turn_a_loopback_prefix_into_a_remote_host (test_kit_controls.LoopbackTests.test_userinfo_cannot_turn_a_loopback_prefix_into_a_remote_host) ... ok
+test_changed_or_missing_artifact_fails (test_kit_controls.ManifestTests.test_changed_or_missing_artifact_fails) ... ok
+test_complete_inventory_with_matching_hashes_passes (test_kit_controls.ManifestTests.test_complete_inventory_with_matching_hashes_passes) ... ok
+test_incomplete_snapshot_and_invalid_schema_fail (test_kit_controls.ManifestTests.test_incomplete_snapshot_and_invalid_schema_fail) ... ok
+test_omitting_evidence_inventory_fails (test_kit_controls.ManifestTests.test_omitting_evidence_inventory_fails) ... ok
+test_omitting_output_inventory_fails_even_when_committed_files_match (test_kit_controls.ManifestTests.test_omitting_output_inventory_fails_even_when_committed_files_match) ... ok
+test_omitting_retained_push_artifacts_fails (test_kit_controls.ManifestTests.test_omitting_retained_push_artifacts_fails) ... ok
+test_omitting_signed_packet_or_snapshot_files_fails (test_kit_controls.ManifestTests.test_omitting_signed_packet_or_snapshot_files_fails) ... ok
+test_path_escape_in_manifest_fails_before_reading_it (test_kit_controls.ManifestTests.test_path_escape_in_manifest_fails_before_reading_it) ... ok
+test_modes_are_explicit_and_do_not_fill_open_decisions (test_kit_controls.ParameterModeTests.test_modes_are_explicit_and_do_not_fill_open_decisions) ... ok
+test_production_does_not_accept_rehearsal_key_material (test_kit_controls.ParameterModeTests.test_production_does_not_accept_rehearsal_key_material) ... ok
+test_renamed_rehearsal_parameters_are_rejected_for_production (test_kit_controls.ParameterModeTests.test_renamed_rehearsal_parameters_are_rejected_for_production) ... ok
+test_commit_root_command_supplies_an_independent_canonical_rpc (test_operator_contracts.RunbookCommandTests.test_commit_root_command_supplies_an_independent_canonical_rpc) ... ok
+test_documented_phase_commands_reach_parameter_loading (test_operator_contracts.RunbookCommandTests.test_documented_phase_commands_reach_parameter_loading) ... ok
+test_cli_resumes_saved_plan_after_crash (test_push_plan.PushTests.test_cli_resumes_saved_plan_after_crash) ...   plans/7b37cf883c6c8291e1fadfaa561178ed0b99e3856b798b88057a195adc5558a3/batch-000.calldata: 0 actual claims, 0 unpaid (not receipt-based)
+replanning after the executed batches:
+ok
+test_crash_after_submission_recovers_counts_without_resending (test_push_plan.PushTests.test_crash_after_submission_recovers_counts_without_resending) ...   plans/7b37cf883c6c8291e1fadfaa561178ed0b99e3856b798b88057a195adc5558a3/batch-000.calldata: 0 actual claims, 0 unpaid (not receipt-based)
+ok
+test_crash_before_hash_is_saved_preserves_unknown_attribution (test_push_plan.PushTests.test_crash_before_hash_is_saved_preserves_unknown_attribution) ...   plans/7b37cf883c6c8291e1fadfaa561178ed0b99e3856b798b88057a195adc5558a3/batch-000.calldata: 0 actual claims, 0 unpaid (not receipt-based)
+ok
+test_formula_claim_and_merkle_claim_both_count_as_paid (test_push_plan.PushTests.test_formula_claim_and_merkle_claim_both_count_as_paid) ... ok
+test_malformed_or_wrong_entitlement_events_fail_closed (test_push_plan.PushTests.test_malformed_or_wrong_entitlement_events_fail_closed) ... KIT STOP: malformed payout event
+KIT STOP: payout event differs from account entitlement/index
+KIT STOP: malformed payout event
+KIT STOP: payout log block is not canonical
+KIT STOP: payout event differs from account entitlement/index
+KIT STOP: payout event differs from account entitlement/index
+KIT STOP: duplicate payout event/account
+ok
+test_missing_payout_logs_fail_closed_against_total_claimed (test_push_plan.PushTests.test_missing_payout_logs_fail_closed_against_total_claimed) ... KIT STOP: payout logs do not reconcile to totalClaimedAmount; missing/partial history
+ok
+test_partial_bitmap_response_cannot_silently_omit_holders (test_push_plan.PushTests.test_partial_bitmap_response_cannot_silently_omit_holders) ... KIT STOP: partial/malformed isClaimed batch response
+ok
+test_partial_payout_reports_only_actual_claims (test_push_plan.PushTests.test_partial_payout_reports_only_actual_claims) ...   plans/7b37cf883c6c8291e1fadfaa561178ed0b99e3856b798b88057a195adc5558a3/batch-000.calldata: 1 actual claims, 1 unpaid (not receipt-based)
+KIT STOP: push batch has unpaid/reverted claims; progress saved, replan before retry
+ok
+test_planning_requires_really_active_claims (test_push_plan.PushTests.test_planning_requires_really_active_claims) ... KIT STOP: claims are not active at the pinned head
+KIT STOP: claims are not active at the pinned head
+KIT STOP: claims are not active at the pinned head
+KIT STOP: claims are not active at the pinned head
+ok
+test_race_between_read_and_send_reports_zero_new_payouts (test_push_plan.PushTests.test_race_between_read_and_send_reports_zero_new_payouts) ...   plans/7b37cf883c6c8291e1fadfaa561178ed0b99e3856b798b88057a195adc5558a3/batch-000.calldata: 0 actual claims, 0 unpaid (not receipt-based)
+ok
+test_raced_self_claims_are_not_resent_or_counted_as_batch_payouts (test_push_plan.PushTests.test_raced_self_claims_are_not_resent_or_counted_as_batch_payouts) ...   plans/7b37cf883c6c8291e1fadfaa561178ed0b99e3856b798b88057a195adc5558a3/batch-000.calldata: 0 actual claims, 0 unpaid (not receipt-based)
+ok
+test_replan_preserves_initial_nonempty_batches (test_push_plan.PushTests.test_replan_preserves_initial_nonempty_batches) ... ok
+test_success_receipt_with_unpaid_inner_calls_is_not_delivery (test_push_plan.PushTests.test_success_receipt_with_unpaid_inner_calls_is_not_delivery) ...   plans/7b37cf883c6c8291e1fadfaa561178ed0b99e3856b798b88057a195adc5558a3/batch-000.calldata: 0 actual claims, 2 unpaid (not receipt-based)
+KIT STOP: push batch has unpaid/reverted claims; progress saved, replan before retry
+ok
+test_only_seven_passing_tests_without_skips_is_accepted (test_rehearsal_gate.RehearsalGateTests.test_only_seven_passing_tests_without_skips_is_accepted) ... ok
+test_non_open_vault_blocks_replay_before_sending (test_rehearse.DepositResumeTests.test_non_open_vault_blocks_replay_before_sending) ... ok
+test_partial_ledger_is_refused_before_another_deposit (test_rehearse.DepositResumeTests.test_partial_ledger_is_refused_before_another_deposit) ... ok
+test_pending_transactions_block_replay_before_sending (test_rehearse.DepositResumeTests.test_pending_transactions_block_replay_before_sending) ... ok
+test_resume_skips_confirmed_deposits_and_a_completed_rerun_sends_nothing (test_rehearse.DepositResumeTests.test_resume_skips_confirmed_deposits_and_a_completed_rerun_sends_nothing) ... ok
+test_delayed_receipt_does_not_fail_or_resubmit_a_successful_transaction (test_rehearse.ReceiptTests.test_delayed_receipt_does_not_fail_or_resubmit_a_successful_transaction) ... ok
+test_mined_revert_still_stops (test_rehearse.ReceiptTests.test_mined_revert_still_stops) ... ok
+test_unconfirmed_receipt_is_not_reported_as_a_revert (test_rehearse.ReceiptTests.test_unconfirmed_receipt_is_not_reported_as_a_revert) ... ok
+test_report_preserves_current_policy_without_guaranteeing_exit_value (test_report.ReportTests.test_report_preserves_current_policy_without_guaranteeing_exit_value) ... ok
+test_balanced_wrong_tree_cannot_reach_signing (test_snapshot.SigningTests.test_balanced_wrong_tree_cannot_reach_signing) ... KIT STOP: python: leaf 0 (0x0000000000000000000000000000000000000001) amount 150 != ledger at block 12
+ok
+test_depositor_logs_require_complete_event_abi (test_snapshot.SigningTests.test_depositor_logs_require_complete_event_abi) ... KIT STOP: malformed depositor RPC result: 'address'
+ok
+test_depositor_pagination_rejects_zero_chunk_before_rpc (test_snapshot.SigningTests.test_depositor_pagination_rejects_zero_chunk_before_rpc) ... KIT STOP: depositor scan exceeds bounded pagination; check --from-block/--log-chunk
+ok
+test_finality_and_canonical_controls (test_snapshot.SigningTests.test_finality_and_canonical_controls) ... KIT STOP: snapshot block is not finalized
+KIT STOP: live finality requires a canonical chain RPC, not private Anvil finality
+ok
+test_live_ledger_is_read_from_canonical_rpc_not_mutable_fork (test_snapshot.SigningTests.test_live_ledger_is_read_from_canonical_rpc_not_mutable_fork) ... KIT STOP: python: leaf 0 (0x0000000000000000000000000000000000000001) amount 100 != ledger at block 12
+ok
+test_live_signing_requires_canonical_finality_source (test_snapshot.SigningTests.test_live_signing_requires_canonical_finality_source) ... KIT STOP: live commit-root requires --canonical-rpc for finalized snapshot verification
+ok
+test_malformed_block_header_is_not_canonical_evidence (test_snapshot.SigningTests.test_malformed_block_header_is_not_canonical_evidence) ... KIT STOP: malformed block header
+ok
+test_missing_snapshot_refuses_balanced_tree (test_snapshot.SigningTests.test_missing_snapshot_refuses_balanced_tree) ... KIT STOP: mandatory snapshot missing: $SCRATCH/tmp53mztfa2/snapshot.json
+ok
+test_omitted_leaf_is_rejected_by_independent_ledger_verifier (test_snapshot.SigningTests.test_omitted_leaf_is_rejected_by_independent_ledger_verifier) ... KIT STOP: python: leaf ledger sum != vault net ledger; omitted depositor
+ok
+test_partial_abi_word_is_not_a_ledger_value (test_snapshot.SigningTests.test_partial_abi_word_is_not_a_ledger_value) ... KIT STOP: ledger RPC returned a malformed ABI word
+ok
+test_partial_finalized_header_is_not_finality (test_snapshot.SigningTests.test_partial_finalized_header_is_not_finality) ... KIT STOP: malformed block header
+ok
+test_signing_binds_loaded_root_to_the_verified_ledger_root (test_snapshot.SigningTests.test_signing_binds_loaded_root_to_the_verified_ledger_root) ... KIT STOP: loaded signing root/total differs from ledger-verified snapshot
+ok
+test_snapshot_before_deadline_is_rejected (test_snapshot.SigningTests.test_snapshot_before_deadline_is_rejected) ... KIT STOP: snapshot must be strictly after the deposit deadline
+ok
+test_snapshot_identity_is_checked_not_its_ok_string (test_snapshot.SigningTests.test_snapshot_identity_is_checked_not_its_ok_string) ... KIT STOP: snapshot chain/vault does not match deployment
+KIT STOP: snapshot block is no longer canonical on this RPC
+KIT STOP: snapshot must be strictly after the deposit deadline
+KIT STOP: snapshot/params rate or pro-rata mode differs from vault
+KIT STOP: snapshot root/total/leaves/net ledger differ from verified tree
+KIT STOP: snapshot root/total/leaves/net ledger differ from verified tree
+KIT STOP: snapshot root/total/leaves/net ledger differ from verified tree
+KIT STOP: snapshot root/total/leaves/net ledger differ from verified tree
+ok
+
+----------------------------------------------------------------------
+Ran 51 tests in 2.344s
+
+OK

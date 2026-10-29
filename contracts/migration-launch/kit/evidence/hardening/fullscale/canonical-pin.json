@@ -1,0 +1,6 @@
+{
+  "chainId": 8453,
+  "block": 51935583,
+  "blockHash": "0x2a3d465ca7407d2373bce06a2741e104785fefd0d43db7574a8230a310caa1b6",
+  "finality": "canonical Base finalized; rehearsal deposits exist only on the private fork"
+}

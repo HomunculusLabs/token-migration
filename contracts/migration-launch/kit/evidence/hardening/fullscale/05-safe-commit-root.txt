@@ -1,0 +1,28 @@
+commitRoot: safeTxHash 0x7c2a171241f50569910f2b6fdf4d6e5bac49bd51230828240bd1fa71024b6d7c (Safe 0xfaAaadF79b178ca2e3B0833ee08c7592a97728C9, nonce 0, CALL to 0x7242B0d4F1F67b54E4c2E809892c6410d1EcCe3F)
+  ok  Safe 0xfaAaadF79b178ca2e3B0833ee08c7592a97728C9: singleton Safe 1.4.1, 2-of-3, next nonce 0
+  ok  Safe domainSeparator() == python EIP-712 domain {chainId, verifyingContract}
+  ok  deployment: vault.owner() == safe
+  ok  deployment: vault.V1() == params v1
+  ok  deployment: vault.V2() == v2
+  ok  deployment: settler.SAFE() == safe
+  ok  deployment: settler.V1() == params v1
+  ok  deployment: settler.V2() == v2
+  ok  deployment: settler.WETH() == params weth
+  ok  deployment: settler.POOL_MANAGER() == params poolManager
+  ok  deployment: settler.POSITION_MANAGER() == params positionManager
+  ok  deployment: settler.V3_TAIL() == params v3Tail
+  ok  deployment: settler.OLD_POOL_ID() == params oldPool.poolId
+  ok  deployment: settler.LP_FEE() == successorPool.lpFee
+  ok  deployment: settler.TICK_SPACING() == successorPool.tickSpacing
+  ok  deployment: hook address carries exactly the 0x2044 flags
+  ok  deployment: hook.INITIALIZER() == settler
+  ok  deployment: hook.TREASURY() == settler.FEE_RECIPIENT()
+  ok  deployment: hook.FEE_PIPS() == 15000 (1.5%)
+  ok  deployment: v2 MINTER_ROLE is held by the Safe
+  ok  tree: 6338 leaves fold to root 0x703204306d075c428bc7a9436d6c50b5cbfcf96eb323fae2c0824d5954df79d4, total 91050022387755487790277973417 (pure-Python keccak)
+  ok  tree total == vault net ledger x rate / 10 000 = 91050022387755487790277973417 (the pro-rata check)
+  ok  fork time 1790833314 is inside the commit window (1790833313, 1791092513]
+  ok  commitRoot calldata == cast calldata
+  ok  safeTxHash: python EIP-712 == Safe.getTransactionHash on the fork
+  ok  executed through the Safe (approveHash x2 + execTransaction): vault root and totalClaimable == the tree, phase Committed
+  wrote kit/output/safe-txs/commitRoot.{json,calldata.txt,safeTxHash.txt,safe-tx.json}

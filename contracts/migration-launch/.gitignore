@@ -1,0 +1,10 @@
+# Build output and compiler cache — reproducible from source with a pinned solc (see foundry.toml).
+out/
+cache/
+# `lib/` is intentionally absent: this project vendors no Solidity dependencies and has no git submodule.
+lib/
+broadcast/
+# Large chain dumps and per-run generator output. The manifest records their sha256 instead.
+kit/output/
+kit/testnet/output/
+__pycache__/

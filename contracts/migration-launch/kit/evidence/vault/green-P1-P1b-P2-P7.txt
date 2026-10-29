@@ -1,0 +1,18 @@
+# GREEN P1/P1b/P2/P7 (freeze at the deposit deadline + permissionless pre-commit timeout) 2026-09-29T07:35:53Z
+# forge test --match-path test/regressions/LedgerFreeze.t.sol
+[PASS] test_CommitDeadlineIsHardForTheSafe() (gas: 2961284)
+[PASS] test_P1_WithdrawalAfterDepositDeadlineIsRejected() (gas: 3167489)
+[PASS] test_P1b_TimeoutPathPaysEachDepositorExactlyOnce() (gas: 3185307)
+[PASS] test_P2_OneWeiWithdrawalCannotBrickCommit() (gas: 3075425)
+[PASS] test_P7_PreCommitTimeoutRefundsEveryDepositor() (gas: 3109316)
+[PASS] test_WithdrawalBeforeTheDeadlineStillWorks() (gas: 3005320)
+Suite result: ok. 6 passed; 0 failed; 0 skipped; finished in 838.12µs (2.88ms CPU time)
+# migration full suite minus the not-yet-fixed P5/P6 regressions
+Ran 6 test suites in 2.95s (4.81s CPU time): 99 tests passed, 0 failed, 0 skipped (99 total tests)
+# sibling projects compiled against the new 9-arg constructor
+## migration-tools
+Compiler run successful!
+## token-v2
+Compiler run successful!
+Ran 2 test suites in 4.51ms (1.87ms CPU time): 18 tests passed, 0 failed, 0 skipped (18 total tests)
+Ran 1 test suite in 12.30ms (11.84ms CPU time): 11 tests passed, 0 failed, 0 skipped (11 total tests)

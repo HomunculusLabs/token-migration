@@ -1,0 +1,26 @@
+# §4.3 snapshot → tree → 3-way verify, on a private anvil forked from the pinned fork (block 51935583)
+# 40 real holders (20 largest + 20 smallest EOA/EIP-7702 at the pin) each: deposit ½, deposit ¼, withdraw ⅒ (so net ≠ credited)
+$ python3.14 kit/snapshot.py --rehearsal --block 51935745 --vault 0xc611Cc9E20EaE4fc833dF6aCF550b8386Dd4655E --rpc <private anvil>
+snapshot at block 51935745: 40 leaves, total 21802547122568094752959837675, root 0x0c7377430d8137ab82fee64cee63d1de41a1148f9a1d19211a5be13c48ccf474
+  VerifyTree: OK
+  VerifyTreeBulk: OK
+  python: OK
+  wrote kit/output/snapshot/51935745/{deposits.csv,tree.json,tree.csv,snapshot.json}
+rerun: byte-identical (deposits.csv, snapshot.json, tree.csv, tree.json)
+7476054c9ba00ec1168901014ff5eb52d34077e7bdf4506167d0a7bb18444b0b  snapshot/51935745/deposits.csv
+6139af09f2e97251cf7600f07d69035f99b9777acc3f38a64a2bcadcf3bf63d7  snapshot/51935745/snapshot.json
+4555741d7222de2a584336067b7feec4007ddd0ab7ae25e34939ab1286082591  snapshot/51935745/tree.csv
+df4ccbb37e58641bd543eb2f26fb531394e11e45d1b8ab106d42774bdb5d0e09  snapshot/51935745/tree.json
+
+# each guard stops the phase:
+N1 block before the deposit deadline →
+KIT STOP: block 51935700 (t=1790660515) is not after DEPOSIT_DEADLINE 1790833313: the ledger can still change, so a tree built here could be stale
+N2 a depositor missing from the log scan →
+KIT STOP: Σ net over 36 depositors = 13867535360962718686817150975 but the vault's net ledger is 21802547122568094752959837675: a depositor is missing from the logs
+N3 launch params.json: the tree needs only rateBps + proRata (both decided); the TBD deadline is read from the vault →
+note: params vault.depositDeadline is TBD (§6.3); using the vault's own DEPOSIT_DEADLINE 1790833313
+snapshot at block 51935745: 40 leaves, total 21802547122568094752959837675, root 0x0c7377430d8137ab82fee64cee63d1de41a1148f9a1d19211a5be13c48ccf474
+N4 rehearsal params without --rehearsal →
+KIT STOP: params.rehearsal.json is rehearsal-only; pass --rehearsal to use it
+N5 an address that is not a vault →
+KIT STOP: 0xC52aeDec3374422d7510E294cfAa90799595CBa3 is not a MigrationVault (MIGRATION_RATE_BPS() did not return one word)

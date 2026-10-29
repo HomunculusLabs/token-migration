@@ -1,0 +1,18 @@
+SURPLUS token migration
+Copyright (c) 2026 The SURPLUS token-migration contributors
+Licensed under the MIT License; see LICENSE.
+
+This repository includes code adapted from third-party projects:
+
+- contracts/migration-launch/src/LaunchMath.sol ports TickMath.getSqrtPriceAtTick
+  (including its published constants) and the BalanceDelta unpacking from
+  Uniswap v4-core (https://github.com/Uniswap/v4-core): src/libraries/TickMath.sol
+  and src/types/BalanceDelta.sol, distributed under the MIT License. The original
+  implementations remain the work of their authors.
+
+- anvil-lab/ adapts the FullMath mulDiv algorithm and the TickMath factors and
+  rounding from the same Uniswap v4-core libraries (MIT). See anvil-lab/NOTICE.md
+  and anvil-lab/SOURCES.md.
+
+Dependencies installed from npm, not vendored: @openzeppelin/contracts and
+@openzeppelin/contracts-upgradeable 4.9.6 (MIT License).

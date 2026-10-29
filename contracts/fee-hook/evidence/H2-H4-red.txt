@@ -1,0 +1,57 @@
+# H2-H4-red — 2026-09-29T10:31:06Z
+# HEAD 1b8bedcb2; modified vs HEAD: contracts/fee-hook/test/SurplusFeeHook.t.sol contracts/fee-hook/test/fork/Actor.sol contracts/fee-hook/test/fork/HookReviewRegressions.t.sol contracts/fee-hook/evidence/H2-H4-red.txt contracts/fee-hook/test/utils/FlakyToken.sol 
+
+$ forge test --match-test 'H2_|H4_'
+No files changed, compilation skipped
+
+Ran 1 test for test/fork/HookReviewRegressions.t.sol:HookReviewRegressionsV2Currency1Test
+[SKIP: skipped: fork suite: run the project's Nx `fork` target] setUp() (gas: 0)
+Suite result: ok. 0 passed; 0 failed; 1 skipped; finished in 637.50µs (0.00ns CPU time)
+
+Ran 1 test for test/fork/HookReviewRegressions.t.sol:HookReviewRegressionsV2Currency0Test
+[SKIP: skipped: fork suite: run the project's Nx `fork` target] setUp() (gas: 0)
+Suite result: ok. 0 passed; 0 failed; 1 skipped; finished in 639.75µs (0.00ns CPU time)
+
+Ran 3 tests for test/SurplusFeeHook.t.sol:SurplusFeeHookTest
+[FAIL: no currency left synced] test_H2_AfterSwapTakesWithoutSyncing() (gas: 277322)
+[FAIL: next call did not revert as expected] test_H4_WithdrawalInACurrencyWithoutCodeReverts() (gas: 36325)
+[FAIL: next call did not revert as expected] test_H4_WithdrawalToTheZeroAddressReverts() (gas: 221813)
+Suite result: FAILED. 0 passed; 3 failed; 0 skipped; finished in 848.04µs (306.21µs CPU time)
+
+Ran 3 test suites in 5.21ms (2.13ms CPU time): 0 tests passed, 3 failed, 2 skipped (5 total tests)
+
+Failing tests:
+Encountered 3 failing tests in test/SurplusFeeHook.t.sol:SurplusFeeHookTest
+[FAIL: no currency left synced] test_H2_AfterSwapTakesWithoutSyncing() (gas: 277322)
+[FAIL: next call did not revert as expected] test_H4_WithdrawalInACurrencyWithoutCodeReverts() (gas: 36325)
+[FAIL: next call did not revert as expected] test_H4_WithdrawalToTheZeroAddressReverts() (gas: 221813)
+
+Encountered a total of 3 failing tests, 0 tests succeeded
+
+Tip: Run `forge test --rerun` to retry only the 3 failed tests
+# exit 1
+
+$ forge test --match-path 'test/fork/*' --match-test 'H2_|H4_' --fork-url http://127.0.0.1:18549 --fork-block-number 51935583
+No files changed, compilation skipped
+
+Ran 1 test for test/fork/HookReviewRegressions.t.sol:HookReviewRegressionsV2Currency0Test
+[FAIL: NonzeroNativeValue()] test_H2_NativeSettleLaterInTheSameUnlockSucceeds() (gas: 449682)
+Suite result: FAILED. 0 passed; 1 failed; 0 skipped; finished in 1.97ms (803.79µs CPU time)
+
+Ran 1 test for test/fork/HookReviewRegressions.t.sol:HookReviewRegressionsV2Currency1Test
+[FAIL: NonzeroNativeValue()] test_H2_NativeSettleLaterInTheSameUnlockSucceeds() (gas: 454132)
+Suite result: FAILED. 0 passed; 1 failed; 0 skipped; finished in 1.94ms (826.42µs CPU time)
+
+Ran 2 test suites in 7.72ms (3.91ms CPU time): 0 tests passed, 2 failed, 0 skipped (2 total tests)
+
+Failing tests:
+Encountered 1 failing test in test/fork/HookReviewRegressions.t.sol:HookReviewRegressionsV2Currency0Test
+[FAIL: NonzeroNativeValue()] test_H2_NativeSettleLaterInTheSameUnlockSucceeds() (gas: 449682)
+
+Encountered 1 failing test in test/fork/HookReviewRegressions.t.sol:HookReviewRegressionsV2Currency1Test
+[FAIL: NonzeroNativeValue()] test_H2_NativeSettleLaterInTheSameUnlockSucceeds() (gas: 454132)
+
+Encountered a total of 2 failing tests, 0 tests succeeded
+
+Tip: Run `forge test --rerun` to retry only the 2 failed tests
+# exit 1

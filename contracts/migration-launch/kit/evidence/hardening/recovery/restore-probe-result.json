@@ -1,0 +1,18 @@
+{
+  "chainId": 8453,
+  "block": 51948266,
+  "blockHash": "0x8f960c1bf603cc2d06a45184d9906b802fcb8b4d1bc2d8a8c33957f06432973a",
+  "depositEvents": 6338,
+  "totalDepositedV1": "91050022387755487790277973417",
+  "compressedBytes": 7814513,
+  "rawBytes": 79657621,
+  "checkpointSha256": "ed0549621d576b483e410bbd7c925cae5f4160bc2b81a842d49222ae7c750ef4",
+  "headAndLedgerRestored": true,
+  "logsRestored": true,
+  "runtimeCodeMatched": true,
+  "runtimeCodeReference": "sha256-verified saved checkpoint",
+  "historicalReadAfterMining": true,
+  "historicalReadScope": "vault totalDepositedV1 at the checkpoint block",
+  "sourceMutations": false,
+  "note": "Saved precommit checkpoint restored; no source mutations."
+}

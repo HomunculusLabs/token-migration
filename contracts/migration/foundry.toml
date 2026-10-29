@@ -1,0 +1,44 @@
+# Mirrors contracts/payments: pinned solc + evm_version so bytecode is reproducible, bytecode_hash=none so
+# init-code hashes are stable across machines. The migration contracts are ordinary single-deployment contracts
+# (no CREATE2 address derivation), but a pinned toolchain keeps review deltas honest.
+#
+# OpenZeppelin resolves via remappings.txt from the WORKSPACE's npm-pinned 4.9.6 (root package.json
+# overrides) — not a vendored copy and not a git submodule, keeping this project as
+# checkout-flow-neutral as contracts/payments.
+
+[profile.default]
+src = "src"
+test = "test"
+out = "out"
+libs = ["lib"]
+# OZ lives in the workspace root's node_modules (see remappings.txt); solc's import sandbox only
+# allows the project dir + libs by default, so the shared dependency root must be allow-listed.
+allow_paths = ["../../node_modules"]
+solc_version = "0.8.28"
+evm_version = "cancun"
+optimizer = true
+optimizer_runs = 200
+bytecode_hash = "none"
+via_ir = false
+
+# block-timestamp: the vault's phase windows (deposit deadline, execution window, claim window) are
+# deadline semantics measured in days; validator timestamp drift of a few seconds is immaterial to
+# them and there is no MEV surface on a deadline's exact second. Everything else stays denied.
+[profile.default.lint]
+exclude_lints = ["block-timestamp"]
+
+[fuzz]
+runs = 512
+
+[invariant]
+runs = 128
+depth = 64
+fail_on_revert = false
+
+
+# Deep-fuzz campaign profile (SUR-658 audit week): `forge test --fuzz-runs` overrides per-run, but a
+# named profile keeps the campaign reproducible — `forge test --match-profile deep` is not a thing;
+# use `FOUNDRY_PROFILE=deep forge test`. Default profiles above stay at CI-friendly depths.
+[profile.deep]
+fuzz = { runs = 20000 }
+invariant = { runs = 2000, depth = 256 }

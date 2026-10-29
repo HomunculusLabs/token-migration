@@ -1,0 +1,35 @@
+# snapshot-plan --probe against Base mainnet (2026-10-24): can this RPC serve the snapshot of a 30-day deposit
+# window? It runs the snapshot's own depositor scan over the most recent 30 days. RPC URLs are never printed.
+#
+# 1. The team's Alchemy key (BASE_RPC_URL in the main checkout's .env.local; OPERATOR_ and FALLBACK_RPC_URL
+#    gave the same 10-block limit): free tier.
+$ KIT_RPC_URL=<team Alchemy key> python3.14 kit/launch.py snapshot-plan --probe --window-days 30
+RPC probe: a 30-day deposit window on chain 8453 (reth/v2.5.2-7134be3/x86_64-unknown-linux-gnu/base/v1.5.1)
+  block time        2.000 s, measured over the last 10,000 finalized blocks
+  window            1,296,000 blocks ending at finalized block 53,035,171: pages of at least 130 blocks fit 10,000 pages
+  widest page       10 blocks; refused wider: HTTP 400: Under the Free tier plan, you can make eth_getLogs requests with up to a 10 block range. Based on your parameters, this block range should work: [0x3291994, 0x329199d]. Upgrade to PAYG for expanded block range.
+  archive state     served at the window start (the re-reads days after the snapshot need it)
+  deploy-block      the search found v1's deploy block, 46,077,742, in 4s
+  push-plan         1,000-block pages are refused; --log-chunk 10 covers only 2d 7h 33m of claims after the snapshot block
+  eth_call          130 ms each; the snapshot makes 4 per depositor, about 8m 40s per 1,000 depositors
+NOT OK: it serves 10-block eth_getLogs pages and the window needs 130
+exit status 1
+
+# 2. PublicNode's free endpoint, through a harness whose only change is a User-Agent header. The kit sends
+#    Python's default User-Agent, which PublicNode, mainnet.base.org and base.drpc.org all answer with HTTP 403
+#    (each answers eth_chainId 0x2105 once any other User-Agent is sent). It keeps about 30 days of state, so a
+#    launch on it would pass --from-block. Not a launch recommendation: it shows the passing path on Base.
+#    harness: opener = urllib.request.build_opener(); opener.addheaders = [("User-Agent", "surplus-launch-kit/1")]
+#             urllib.request.install_opener(opener); runpy.run_path("kit/snapshot_plan.py", run_name="__main__")
+$ python3.14 ua_harness.py kit/snapshot_plan.py --probe --window-days 30 --rpc https://base-rpc.publicnode.com
+RPC probe: a 30-day deposit window on chain 8453 (reth/v2.5.2-7134be3/x86_64-unknown-linux-gnu/base/v1.5.1)
+  block time        2.000 s, measured over the last 10,000 finalized blocks
+  window            1,296,000 blocks ending at finalized block 53,035,171: pages of at least 130 blocks fit 10,000 pages
+  widest page       10,000 blocks
+  full-window scan  648 pages of 2,000 blocks in 2m 33s: the snapshot's own scan, on v1
+  archive state     served at the window start (the re-reads days after the snapshot need it)
+  deploy-block      no state at half the chain height, where its search starts (HTTP 403: Archive requests require a personal token. Get one at: <url>): pass --from-block on launch day
+  push-plan         its default 1,000-block pages are served
+  eth_call          128 ms each; the snapshot makes 4 per depositor, about 8m 32s per 1,000 depositors
+OK: this RPC can serve the snapshot of a 30-day deposit window
+exit status 0

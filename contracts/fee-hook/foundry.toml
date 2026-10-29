@@ -1,0 +1,32 @@
+# Mirrors contracts/payments: a pinned solc + evm_version keeps bytecode reproducible, and
+# bytecode_hash = "none" keeps metadata out of it, so the hook's init-code hash (and with it the
+# CREATE2 address mined for the hook's permission bits) is identical on every machine.
+#
+# OpenZeppelin (test doubles only) resolves via remappings.txt from the workspace's npm-pinned
+# 4.9.6; solc's import sandbox only allows the project dir + libs by default, so the shared
+# dependency root must be allow-listed.
+#
+# fs_permissions: the salt miner writes its JSON under output/ (git-ignored); nothing else touches
+# the filesystem. gas_limit stays at the default: mining costs ~175 gas per salt, so even the
+# miner's 2^20-salt budget fits the default 2^30.
+[profile.default]
+src = "src"
+test = "test"
+script = "script"
+out = "out"
+libs = ["lib"]
+allow_paths = ["../../node_modules"]
+solc_version = "0.8.28"
+evm_version = "cancun"
+optimizer = true
+optimizer_runs = 200
+bytecode_hash = "none"
+via_ir = false
+fs_permissions = [{ access = "read-write", path = "./output" }]
+
+[fuzz]
+runs = 512
+
+[profile.deep]
+fuzz = { runs = 20000 }
+invariant = { runs = 2000, depth = 256 }

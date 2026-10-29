@@ -1,0 +1,164 @@
+# §4.4 + §4.5 at FULL scale: the kit's safe-txs and push-plan phases drive the 6,338-holder rehearsal
+# private anvil (loopback, chainId 8453) forked from the pinned fork (Base 51935583); every eligible holder deposited;
+# the deposit window closed; tree = kit snapshot at block 51948268 (root 0x703204…79d4, 3-way verified).
+# Contracts: the fixed settler + hook (58f9d5bfb) at their planned addresses; vault 0x7242B0d4…Ce3F.
+# The anvil was snapshotted before commitRoot and reverted to that state afterwards.
+
+## commitRoot (simulate twice → byte-identical; then execute and keep)
+$ python3.14 kit/safe_txs.py commit-root --tree kit/output/snapshot/51948268/tree.json --deployment kit/output/deploy/deployment.json --safe-nonce 0 --rpc <private anvil> --rehearsal
+commitRoot: safeTxHash 0x7c2a171241f50569910f2b6fdf4d6e5bac49bd51230828240bd1fa71024b6d7c (Safe 0xfaAaadF79b178ca2e3B0833ee08c7592a97728C9, nonce 0, CALL to 0x7242B0d4F1F67b54E4c2E809892c6410d1EcCe3F)
+  ok  Safe 0xfaAaadF79b178ca2e3B0833ee08c7592a97728C9: singleton Safe 1.4.1, 2-of-3, next nonce 0
+  ok  Safe domainSeparator() == python EIP-712 domain {chainId, verifyingContract}
+  ok  deployment: vault.owner() == safe
+  ok  deployment: vault.V1() == params v1
+  ok  deployment: vault.V2() == v2
+  ok  deployment: settler.SAFE() == safe
+  ok  deployment: settler.V1() == params v1
+  ok  deployment: settler.V2() == v2
+  ok  deployment: settler.WETH() == params weth
+  ok  deployment: settler.POOL_MANAGER() == params poolManager
+  ok  deployment: settler.POSITION_MANAGER() == params positionManager
+  ok  deployment: settler.V3_TAIL() == params v3Tail
+  ok  deployment: settler.OLD_POOL_ID() == params oldPool.poolId
+  ok  deployment: settler.LP_FEE() == successorPool.lpFee
+  ok  deployment: settler.TICK_SPACING() == successorPool.tickSpacing
+  ok  deployment: hook address carries exactly the 0x2044 flags
+  ok  deployment: hook.INITIALIZER() == settler
+  ok  deployment: hook.TREASURY() == settler.FEE_RECIPIENT()
+  ok  deployment: hook.FEE_PIPS() == 15000 (1.5%)
+  ok  deployment: v2 MINTER_ROLE is held by the Safe
+  ok  tree: 6338 leaves fold to root 0x703204306d075c428bc7a9436d6c50b5cbfcf96eb323fae2c0824d5954df79d4, total 91050022387755487790277973417 (pure-Python keccak)
+  ok  tree total == vault net ledger x rate / 10 000 = 91050022387755487790277973417 (the pro-rata check)
+  ok  fork time 1790833314 is inside the commit window (1790833313, 1791092513]
+  ok  commitRoot calldata == cast calldata
+  ok  safeTxHash: python EIP-712 == Safe.getTransactionHash on the fork
+  ok  executed through the Safe (approveHash x2 + execTransaction): vault root and totalClaimable == the tree, phase Committed
+  wrote kit/output/safe-txs/commitRoot.{json,calldata.txt,safeTxHash.txt,safe-tx.json}
+[exit 0]
+$ python3.14 kit/safe_txs.py commit-root --tree kit/output/snapshot/51948268/tree.json --deployment kit/output/deploy/deployment.json --safe-nonce 0 --rpc <private anvil> --rehearsal
+commitRoot: safeTxHash 0x7c2a171241f50569910f2b6fdf4d6e5bac49bd51230828240bd1fa71024b6d7c (Safe 0xfaAaadF79b178ca2e3B0833ee08c7592a97728C9, nonce 0, CALL to 0x7242B0d4F1F67b54E4c2E809892c6410d1EcCe3F)
+  ok  commitRoot calldata == cast calldata
+  wrote kit/output/safe-txs/commitRoot.{json,calldata.txt,safeTxHash.txt,safe-tx.json}
+rerun byte-identical: commitRoot.safeTxHash.txt
+$ python3.14 kit/safe_txs.py commit-root --tree kit/output/snapshot/51948268/tree.json --deployment kit/output/deploy/deployment.json --safe-nonce 0 --rpc <private anvil> --rehearsal --execute-on-private-fork
+commitRoot: safeTxHash 0x7c2a171241f50569910f2b6fdf4d6e5bac49bd51230828240bd1fa71024b6d7c (Safe 0xfaAaadF79b178ca2e3B0833ee08c7592a97728C9, nonce 0, CALL to 0x7242B0d4F1F67b54E4c2E809892c6410d1EcCe3F)
+  ok  commitRoot calldata == cast calldata
+  wrote kit/output/safe-txs/commitRoot.{json,calldata.txt,safeTxHash.txt,safe-tx.json}
+
+## launch batch: simulate-then-sign (twice → byte-identical), then execute the signed transaction
+  ok  tree: 6338 leaves fold to root 0x703204306d075c428bc7a9436d6c50b5cbfcf96eb323fae2c0824d5954df79d4, total 91050022387755487790277973417 (pure-Python keccak)
+  ok  tree total == vault net ledger x rate / 10 000 = 91050022387755487790277973417 (the pro-rata check)
+  ok  fork time 1790833314 is inside the commit window (1790833313, 1791092513]
+  ok  safeTxHash: python EIP-712 == Safe.getTransactionHash on the fork
+  ok  executed through the Safe (approveHash x2 + execTransaction): vault root and totalClaimable == the tree, phase Committed
+[exit 0]
+  ok  tree: 6338 leaves fold to root 0x703204306d075c428bc7a9436d6c50b5cbfcf96eb323fae2c0824d5954df79d4, total 91050022387755487790277973417 (pure-Python keccak)
+  ok  tree total == vault net ledger x rate / 10 000 = 91050022387755487790277973417 (the pro-rata check)
+  ok  fork time 1790833314 is inside the commit window (1790833313, 1791092513]
+  ok  safeTxHash: python EIP-712 == Safe.getTransactionHash on the fork
+  ok  executed through the Safe (approveHash x2 + execTransaction): vault root and totalClaimable == the tree, phase Committed
+[exit 0]
+$ python3.14 kit/safe_txs.py launch-batch --deployment kit/output/deploy/deployment.json --safe-nonce 1 --rpc <private anvil> --rehearsal
+launch-batch: safeTxHash 0x8d0a903051c7738ac165f48e58dddf24eaf0df4d3b22cfd80f09b29fc1175ab0 (Safe 0xfaAaadF79b178ca2e3B0833ee08c7592a97728C9, nonce 1, DELEGATECALL to 0x9641d764fc13c8B624c04430C7356C1C7C8102e2)
+  ok  MultiSendCallOnly 0x9641d764fc13c8B624c04430C7356C1C7C8102e2: runtime code hash == params (Safe 1.4.1)
+  ok  from the vault: backing = totalClaimable() = 91050022387755487790277973417; v1In = net ledger = 91050022387755487790277973417 (v1 held 91050022387755487790277973417)
+  ok  unconstrained run (minWethOut 0, budget = cap - supply - backing = 8949977612244512209722026583): executed, raised 138168563107434167125 WETH, used 6012102829102588730159006765 v2; state reverted
+  ok  signed run executed through the Safe (approveHash + execTransaction, DELEGATECALL to MultiSendCallOnly) and passed:
+  ok    wethRaised 138168563107434167125 >= minWethOut 137477720291896996289
+  ok    wethRaised == the unconstrained run's (same pre-state)
+  ok    v2 used 6012102829102588730159006765 <= budget 6018114931931691318889165781
+  ok    vault.claimsActive() and verifySettlement(): fully funded, v2 held == backing, claimable == backing
+  ok    vault v1 left == v1 held - v1In (0)
+  ok    LP NFT 3097527 owned by the Safe
+  ok    the settler holds no v1, WETH or v2
+  ok    the successor pool opened at the signed price
+  ok    v2 supply == before + backing + budget
+  ok  all five inner calls and the multiSend wrapper == cast calldata
+  wrote kit/output/safe-txs/launch-batch.{json,calldata.txt,safeTxHash.txt,safe-tx.json}
+  simulation: raised 138168563107434167125 WETH, used 6012102829102588730159006765 v2 -> signed minWethOut 137477720291896996289, v2 budget 6018114931931691318889165781
+[exit 0]
+$ python3.14 kit/safe_txs.py launch-batch --deployment kit/output/deploy/deployment.json --safe-nonce 1 --rpc <private anvil> --rehearsal
+launch-batch: safeTxHash 0x8d0a903051c7738ac165f48e58dddf24eaf0df4d3b22cfd80f09b29fc1175ab0 (Safe 0xfaAaadF79b178ca2e3B0833ee08c7592a97728C9, nonce 1, DELEGATECALL to 0x9641d764fc13c8B624c04430C7356C1C7C8102e2)
+  ok  MultiSendCallOnly 0x9641d764fc13c8B624c04430C7356C1C7C8102e2: runtime code hash == params (Safe 1.4.1)
+  ok  from the vault: backing = totalClaimable() = 91050022387755487790277973417; v1In = net ledger = 91050022387755487790277973417 (v1 held 91050022387755487790277973417)
+  ok  unconstrained run (minWethOut 0, budget = cap - supply - backing = 8949977612244512209722026583): executed, raised 138168563107434167125 WETH, used 6012102829102588730159006765 v2; state reverted
+  ok  signed run executed through the Safe (approveHash + execTransaction, DELEGATECALL to MultiSendCallOnly) and passed:
+  ok    wethRaised 138168563107434167125 >= minWethOut 137477720291896996289
+  ok    wethRaised == the unconstrained run's (same pre-state)
+  ok    v2 used 6012102829102588730159006765 <= budget 6018114931931691318889165781
+  ok    vault.claimsActive() and verifySettlement(): fully funded, v2 held == backing, claimable == backing
+  ok    vault v1 left == v1 held - v1In (0)
+  ok    LP NFT 3097527 owned by the Safe
+  ok    the settler holds no v1, WETH or v2
+  ok    the successor pool opened at the signed price
+  ok    v2 supply == before + backing + budget
+  ok  all five inner calls and the multiSend wrapper == cast calldata
+  wrote kit/output/safe-txs/launch-batch.{json,calldata.txt,safeTxHash.txt,safe-tx.json}
+  simulation: raised 138168563107434167125 WETH, used 6012102829102588730159006765 v2 -> signed minWethOut 137477720291896996289, v2 budget 6018114931931691318889165781
+[exit 0]
+rerun byte-identical: launch-batch.safeTxHash.txt
+$ python3.14 kit/safe_txs.py launch-batch --deployment kit/output/deploy/deployment.json --safe-nonce 1 --rpc <private anvil> --rehearsal --execute-on-private-fork
+launch-batch: safeTxHash 0x8d0a903051c7738ac165f48e58dddf24eaf0df4d3b22cfd80f09b29fc1175ab0 (Safe 0xfaAaadF79b178ca2e3B0833ee08c7592a97728C9, nonce 1, DELEGATECALL to 0x9641d764fc13c8B624c04430C7356C1C7C8102e2)
+  ok  MultiSendCallOnly 0x9641d764fc13c8B624c04430C7356C1C7C8102e2: runtime code hash == params (Safe 1.4.1)
+  ok  from the vault: backing = totalClaimable() = 91050022387755487790277973417; v1In = net ledger = 91050022387755487790277973417 (v1 held 91050022387755487790277973417)
+  ok  unconstrained run (minWethOut 0, budget = cap - supply - backing = 8949977612244512209722026583): executed, raised 138168563107434167125 WETH, used 6012102829102588730159006765 v2; state reverted
+  ok  signed run executed through the Safe (approveHash + execTransaction, DELEGATECALL to MultiSendCallOnly) and passed:
+  ok    wethRaised 138168563107434167125 >= minWethOut 137477720291896996289
+  ok    wethRaised == the unconstrained run's (same pre-state)
+  ok    v2 used 6012102829102588730159006765 <= budget 6018114931931691318889165781
+  ok    vault.claimsActive() and verifySettlement(): fully funded, v2 held == backing, claimable == backing
+  ok    vault v1 left == v1 held - v1In (0)
+  ok    LP NFT 3097527 owned by the Safe
+  ok    the settler holds no v1, WETH or v2
+  ok    the successor pool opened at the signed price
+  ok    v2 supply == before + backing + budget
+  ok  all five inner calls and the multiSend wrapper == cast calldata
+  wrote kit/output/safe-txs/launch-batch.{json,calldata.txt,safeTxHash.txt,safe-tx.json}
+  simulation: raised 138168563107434167125 WETH, used 6012102829102588730159006765 v2 -> signed minWethOut 137477720291896996289, v2 budget 6018114931931691318889165781
+[exit 0]
+
+## push plan: plan twice (byte-identical), execute all 53 batches, replan (0 left)
+$ python3.14 -u kit/push_plan.py --tree kit/output/snapshot/51948268/tree.json --rpc <private anvil> --rehearsal --deployment kit/output/deploy/deployment.json
+push plan at block 51948274: 6338 leaves, 0 already claimed, 6338 to push in 53 batches
+  largest batch: 8,489,592 gas (cap 16,777,216), 92,228 bytes (cap 131,072)
+  cost at base fee 7 wei: L2 447,169,680 gas = 3130187760 wei, L1 upper 149576717145092 wei, total 149579847332852 wei
+  wrote kit/output/push-plan/plan.json + 53 batch files
+[exit 0]
+$ python3.14 -u kit/push_plan.py --tree kit/output/snapshot/51948268/tree.json --rpc <private anvil> --rehearsal --deployment kit/output/deploy/deployment.json
+push plan at block 51948274: 6338 leaves, 0 already claimed, 6338 to push in 53 batches
+  largest batch: 8,489,592 gas (cap 16,777,216), 92,228 bytes (cap 131,072)
+  cost at base fee 7 wei: L2 447,169,680 gas = 3130187760 wei, L1 upper 149576717145092 wei, total 149579847332852 wei
+  wrote kit/output/push-plan/plan.json + 53 batch files
+[exit 0]
+rerun (nothing sent): plan.json byte-identical
+$ python3.14 -u kit/push_plan.py --tree kit/output/snapshot/51948268/tree.json --rpc <private anvil> --rehearsal --deployment kit/output/deploy/deployment.json --execute-first 53 --on-private-anvil
+push plan at block 51948274: 6338 leaves, 0 already claimed, 6338 to push in 53 batches
+  largest batch: 8,489,592 gas (cap 16,777,216), 92,228 bytes (cap 131,072)
+  cost at base fee 7 wei: L2 447,169,680 gas = 3130187760 wei, L1 upper 149576717145092 wei, total 149579847332852 wei
+  wrote kit/output/push-plan/plan.json + 53 batch files
+  sent batch-000.calldata: 120 claims, gas used 8,463,436
+  sent batch-001.calldata: 120 claims, gas used 8,452,340
+  sent batch-002.calldata: 120 claims, gas used 8,451,372
+  sent batch-003.calldata: 120 claims, gas used 8,429,528
+  sent batch-004.calldata: 120 claims, gas used 8,445,860
+  sent batch-005.calldata: 120 claims, gas used 8,451,572
+  sent batch-006.calldata: 120 claims, gas used 8,449,840
+  sent batch-007.calldata: 120 claims, gas used 8,428,968
+  sent batch-008.calldata: 120 claims, gas used 8,445,140
+  sent batch-009.calldata: 120 claims, gas used 8,451,312
+  sent batch-052.calldata: 98 claims, gas used 6,683,988
+replanning after the executed batches:
+push plan at block 51948327: 6338 leaves, 6338 already claimed, 0 to push in 0 batches
+  cost at base fee 7 wei: L2 0 gas = 0 wei, L1 upper 0 wei, total 0 wei
+  wrote kit/output/push-plan/plan.json + 0 batch files
+[exit 0]
+$ python3.14 -u kit/push_plan.py --tree kit/output/snapshot/51948268/tree.json --rpc <private anvil> --rehearsal --deployment kit/output/deploy/deployment.json
+push plan at block 51948327: 6338 leaves, 6338 already claimed, 0 to push in 0 batches
+  cost at base fee 7 wei: L2 0 gas = 0 wei, L1 upper 0 wei, total 0 wei
+  wrote kit/output/push-plan/plan.json + 0 batch files
+[exit 0]
+
+## independent post-state reads (raw eth_call, not the kit)
+leaves: 6338; holders holding exactly their leaf in v2: 6338; mismatches: 0
+sum of leaves = vault.totalClaimedAmount() = vault.totalClaimable() = 91050022387755487790277973417
+vault v2 balance 0; vault v1 custody 0; claimsActive 1; relayer v2 0; settler v2/WETH/v1 0/0/0

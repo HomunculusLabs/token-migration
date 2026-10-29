@@ -1,0 +1,8 @@
+# GREEN P6 (rescue of plain-transferred v1, excess above the ledger only) 2026-09-29T07:39:18Z
+# forge test --match-path test/regressions/PlainTransferRescue.t.sol
+[PASS] test_P6_PlainTransferIsRescuableButDepositsAreNot() (gas: 3095147)
+[PASS] test_RescueNeverReachesDepositsInAnyPhase() (gas: 3213149)
+[PASS] test_RevertIf_RescueByOutsider() (gas: 2934279)
+Suite result: ok. 3 passed; 0 failed; 0 skipped; finished in 683.75µs (1.10ms CPU time)
+# migration full suite minus the not-yet-fixed P5 regressions
+Ran 7 test suites in 3.05s (12.22s CPU time): 102 tests passed, 0 failed, 0 skipped (102 total tests)

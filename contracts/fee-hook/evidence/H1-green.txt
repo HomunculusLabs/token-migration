@@ -1,0 +1,35 @@
+# H1-green — 2026-09-29T10:12:51Z
+# HEAD abaace831; modified vs HEAD: contracts/fee-hook/src/SurplusFeeHook.sol contracts/fee-hook/test/SurplusFeeHook.t.sol contracts/fee-hook/evidence/ contracts/fee-hook/test/fork/HookReviewRegressions.t.sol 
+
+$ forge test --match-test H1_
+No files changed, compilation skipped
+
+Ran 1 test for test/fork/HookReviewRegressions.t.sol:HookReviewRegressionsV2Currency1Test
+[SKIP: skipped: fork suite: run the project's Nx `fork` target] setUp() (gas: 0)
+Suite result: ok. 0 passed; 0 failed; 1 skipped; finished in 384.08µs (0.00ns CPU time)
+
+Ran 1 test for test/fork/HookReviewRegressions.t.sol:HookReviewRegressionsV2Currency0Test
+[SKIP: skipped: fork suite: run the project's Nx `fork` target] setUp() (gas: 0)
+Suite result: ok. 0 passed; 0 failed; 1 skipped; finished in 363.75µs (0.00ns CPU time)
+
+Ran 2 tests for test/SurplusFeeHook.t.sol:SurplusFeeHookTest
+[PASS] test_H1_ExactOutOneForZeroChargesTheInputToken1() (gas: 179641)
+[PASS] test_H1_ExactOutZeroForOneChargesTheInputToken0() (gas: 179666)
+Suite result: ok. 2 passed; 0 failed; 0 skipped; finished in 626.92µs (121.46µs CPU time)
+
+Ran 3 test suites in 5.04ms (1.37ms CPU time): 2 tests passed, 0 failed, 2 skipped (4 total tests)
+# exit 0
+
+$ forge test --match-path 'test/fork/*' --match-test H1_ --fork-url http://127.0.0.1:18549 --fork-block-number 51935583
+No files changed, compilation skipped
+
+Ran 1 test for test/fork/HookReviewRegressions.t.sol:HookReviewRegressionsV2Currency1Test
+[PASS] test_H1_ExactOutputSwapsSettleAndChargeTheInput() (gas: 990381)
+Suite result: ok. 1 passed; 0 failed; 0 skipped; finished in 2.73ms (1.72ms CPU time)
+
+Ran 1 test for test/fork/HookReviewRegressions.t.sol:HookReviewRegressionsV2Currency0Test
+[PASS] test_H1_ExactOutputSwapsSettleAndChargeTheInput() (gas: 982354)
+Suite result: ok. 1 passed; 0 failed; 0 skipped; finished in 2.66ms (1.72ms CPU time)
+
+Ran 2 test suites in 7.58ms (5.39ms CPU time): 2 tests passed, 0 failed, 0 skipped (2 total tests)
+# exit 0

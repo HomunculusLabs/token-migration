@@ -1,0 +1,15 @@
+# §0 setup evidence (2026-09-29T07:15:24Z)
+worktree: $REPO
+branch: feat/sur-658-launch-readiness
+base: aeab6998802ba5b64cc9011697ae6fc57be55578 (docs(contracts): record ratio and launch-order decisions — 1:1, pool before distribution (Bill, 2026-09-28))
+npm ci log tail:
+npm warn deprecated @metamask/sdk-communication-layer@0.33.1: No longer maintained, superseded by https://docs.metamask.io/metamask-connect
+
+added 3529 packages in 36s
+OZ contracts: 4.9.6
+OZ contracts-upgradeable: 4.9.6
+empty package dirs under node_modules (depth 2): 0
+forge: forge Version: 1.7.1
+anvil fork: chainId=8453 block=51935583
+pin block hash on fork: 0x2a3d465ca7407d2373bce06a2741e104785fefd0d43db7574a8230a310caa1b6
+pin record: contracts/migration-launch/kit/evidence/00-pin.json

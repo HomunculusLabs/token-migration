@@ -1,0 +1,8 @@
+out/
+cache/
+lib/
+broadcast/
+# Generated tree artifacts (rebuild with script/BuildTree.s.sol).
+output/
+# The real deposit list is sensitive operator data; only the sample is committed.
+input/deposits.csv

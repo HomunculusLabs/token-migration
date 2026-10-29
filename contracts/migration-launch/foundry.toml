@@ -1,0 +1,41 @@
+# Mirrors contracts/token-v2 (itself mirroring contracts/payments): a pinned toolchain keeps review
+# and deployment bytecode reproducible. The launch helper's tests compile the REAL sibling contracts
+# (MigrationVault, the ClaimTree engine, SurplusTokenV2, SurplusFeeHook) through remappings.txt, never copies.
+[profile.default]
+src = "src"
+test = "test"
+script = "script"
+out = "out"
+libs = ["lib"]
+# solc's import sandbox only allows the project dir: OpenZeppelin comes from the workspace's npm pin,
+# the vault, the tree engine, the token and the fee hook from their sibling projects.
+allow_paths = ["../../node_modules", "../fee-hook", "../migration", "../migration-tools", "../token-v2"]
+solc_version = "0.8.28"
+evm_version = "cancun"
+optimizer = true
+optimizer_runs = 200
+bytecode_hash = "none"
+via_ir = false
+# The fork suite reads the launch parameters; the kit scripts write only under kit/output.
+fs_permissions = [
+    { access = "read", path = "./kit" },
+    { access = "read-write", path = "./kit/output" },
+    { access = "read-write", path = "./kit/testnet/output" },
+]
+
+[profile.default.lint]
+# block-timestamp: compiling the REAL MigrationVault (window deadlines measured in days) and the
+# settler's same-transaction PositionManager deadline; no ordering depends on a timestamp.
+exclude_lints = ["block-timestamp"]
+
+[fuzz]
+runs = 512
+
+[invariant]
+runs = 128
+depth = 64
+fail_on_revert = false
+
+[profile.deep]
+fuzz = { runs = 20000 }
+invariant = { runs = 2000, depth = 256 }

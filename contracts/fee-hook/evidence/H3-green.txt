@@ -1,0 +1,41 @@
+# H3-green — 2026-09-29T10:26:42Z
+# HEAD 481321ce9; modified vs HEAD: contracts/fee-hook/src/SurplusFeeHook.sol contracts/fee-hook/test/SurplusFeeHook.t.sol contracts/fee-hook/test/fork/ForkHarness.sol contracts/fee-hook/test/fork/HookReviewRegressions.t.sol contracts/fee-hook/test/utils/HookTest.sol contracts/fee-hook/evidence/H3-green.txt contracts/fee-hook/evidence/H3-red.txt contracts/fee-hook/test/HookReviewRegressions.t.sol 
+
+$ forge test --match-test H3_
+No files changed, compilation skipped
+
+Ran 1 test for test/fork/HookReviewRegressions.t.sol:HookReviewRegressionsV2Currency0Test
+[SKIP: skipped: fork suite: run the project's Nx `fork` target] setUp() (gas: 0)
+Suite result: ok. 0 passed; 0 failed; 1 skipped; finished in 382.38µs (0.00ns CPU time)
+
+Ran 1 test for test/fork/HookReviewRegressions.t.sol:HookReviewRegressionsV2Currency1Test
+[SKIP: skipped: fork suite: run the project's Nx `fork` target] setUp() (gas: 0)
+Suite result: ok. 0 passed; 0 failed; 1 skipped; finished in 368.12µs (0.00ns CPU time)
+
+Ran 6 tests for test/HookReviewRegressions.t.sol:HookReviewRegressionsTest
+[PASS] test_H3_BeforeInitializeRejectsCallersOtherThanThePoolManager() (gas: 18537)
+[PASS] test_H3_BeforeInitializeRejectsEveryKeyButTheOfficialOne() (gas: 38149)
+[PASS] test_H3_BeforeInitializeRejectsSendersOtherThanTheInitializer() (gas: 23822)
+[PASS] test_H3_ConstructorRejectsZeroAddressesAndUnsortedCurrencies() (gas: 56786)
+[PASS] test_H3_ConstructorRequiresExactlyTheGatedFlagBits() (gas: 31295)
+[PASS] test_H3_LaunchParametersAreImmutablesThatSurviveEtch() (gas: 30972)
+Suite result: ok. 6 passed; 0 failed; 0 skipped; finished in 1.09ms (1.17ms CPU time)
+
+Ran 3 test suites in 5.74ms (1.84ms CPU time): 6 tests passed, 0 failed, 2 skipped (8 total tests)
+# exit 0
+
+$ forge test --match-path 'test/fork/*' --match-test H3_ --fork-url http://127.0.0.1:18549 --fork-block-number 51935583
+No files changed, compilation skipped
+
+Ran 2 tests for test/fork/HookReviewRegressions.t.sol:HookReviewRegressionsV2Currency0Test
+[PASS] test_H3_NoOtherPoolKeyCanNameTheHook() (gas: 434321)
+[PASS] test_H3_OnlyTheInitializerCanInitializeTheOfficialKey() (gas: 323913)
+Suite result: ok. 2 passed; 0 failed; 0 skipped; finished in 1.01s (836.58ms CPU time)
+
+Ran 2 tests for test/fork/HookReviewRegressions.t.sol:HookReviewRegressionsV2Currency1Test
+[PASS] test_H3_NoOtherPoolKeyCanNameTheHook() (gas: 478596)
+[PASS] test_H3_OnlyTheInitializerCanInitializeTheOfficialKey() (gas: 331306)
+Suite result: ok. 2 passed; 0 failed; 0 skipped; finished in 1.03s (857.78ms CPU time)
+
+Ran 2 test suites in 1.04s (2.04s CPU time): 4 tests passed, 0 failed, 0 skipped (4 total tests)
+# exit 0

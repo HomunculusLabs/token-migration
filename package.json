@@ -1,0 +1,18 @@
+{
+  "name": "surplus-token-migration",
+  "version": "0.1.0",
+  "private": true,
+  "description": "SUR → SURPLUS (V1 → V2) token migration: vault, V2 token, fee hook, merkle tools and the launch kit.",
+  "license": "MIT",
+  "comments": {
+    "purpose": "The Foundry projects resolve @openzeppelin via ../../node_modules remappings, so dependencies install at this root.",
+    "oz-pin": "@openzeppelin/contracts and -upgradeable pinned to 4.9.6, the version the contracts were reviewed and tested against."
+  },
+  "scripts": {
+    "install:sol": "npm install"
+  },
+  "devDependencies": {
+    "@openzeppelin/contracts": "4.9.6",
+    "@openzeppelin/contracts-upgradeable": "4.9.6"
+  }
+}

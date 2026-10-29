@@ -1,0 +1,6 @@
+@openzeppelin/contracts/=../../node_modules/@openzeppelin/contracts/
+@openzeppelin/contracts-upgradeable/=../../node_modules/@openzeppelin/contracts-upgradeable/
+@surplus/fee-hook/=../fee-hook/
+@surplus/migration/=../migration/
+@surplus/migration-tools/=../migration-tools/
+@surplus/token-v2/=../token-v2/

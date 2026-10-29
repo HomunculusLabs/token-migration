@@ -1,0 +1,80 @@
+{
+  "name": "@surplus/contracts.migration-tools",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "contracts/migration-tools/src",
+  "projectType": "application",
+  "tags": [
+    "type:contracts",
+    "scope:contracts"
+  ],
+  "targets": {
+    "build": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "forge build --deny warnings",
+        "cwd": "contracts/migration-tools",
+        "forwardAllArgs": false
+      },
+      "inputs": [
+        "{projectRoot}/src/**/*.sol",
+        "{projectRoot}/script/**/*.sol",
+        "{projectRoot}/test/**/*.sol",
+        "{projectRoot}/foundry.toml"
+      ],
+      "outputs": [
+        "{projectRoot}/out"
+      ]
+    },
+    "test": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "forge test",
+        "cwd": "contracts/migration-tools",
+        "forwardAllArgs": false
+      },
+      "inputs": [
+        "{projectRoot}/src/**/*.sol",
+        "{projectRoot}/script/**/*.sol",
+        "{projectRoot}/test/**/*.sol",
+        "{projectRoot}/foundry.toml"
+      ]
+    },
+    "lint": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "forge fmt --check",
+        "cwd": "contracts/migration-tools",
+        "forwardAllArgs": false
+      },
+      "inputs": [
+        "{projectRoot}/src/**/*.sol",
+        "{projectRoot}/script/**/*.sol",
+        "{projectRoot}/test/**/*.sol"
+      ]
+    },
+    "fmt": {
+      "executor": "nx:run-commands",
+      "cache": false,
+      "options": {
+        "command": "forge fmt",
+        "cwd": "contracts/migration-tools"
+      }
+    },
+    "build-tree": {
+      "executor": "nx:run-commands",
+      "cache": false,
+      "options": {
+        "command": "forge script script/BuildTree.s.sol --tc BuildTree",
+        "cwd": "contracts/migration-tools"
+      }
+    },
+    "verify-tree": {
+      "executor": "nx:run-commands",
+      "cache": false,
+      "options": {
+        "command": "forge script script/VerifyTree.s.sol --tc VerifyTree",
+        "cwd": "contracts/migration-tools"
+      }
+    }
+  }
+}

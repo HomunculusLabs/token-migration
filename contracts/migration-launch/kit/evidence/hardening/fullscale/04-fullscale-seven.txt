@@ -1,0 +1,23 @@
+No files changed, compilation skipped
+
+Ran 7 tests for test/fork/rehearsal/FullScaleLaunch.t.sol:FullScaleLaunchRehearsal
+[PASS] test_00_TreeIsTheCohortAtOneToOne() (gas: 1174058244)
+Logs:
+  holders: 6338
+  v1_deposited_wei: 91050022387755487790277973417
+
+[PASS] test_01_FullLifecycle() (gas: 7321615408)
+[PASS] test_02_SafeNeverCommitsSoThePreCommitTimeoutRefundsEveryone() (gas: 807366386)
+Logs:
+  refund_batches: 32
+  refund_max_tx_gas: 12316359
+  refund_max_tx_bytes: 44868
+
+[PASS] test_03_NobodyActivatesSoTheExecutionTimeoutRefundsEveryone() (gas: 2424119270)
+[PASS] test_04_FrontRunPoolInitRevertsTheWholeBatch() (gas: 1148718679)
+[PASS] test_05_WithdrawalAfterTheDeadlineIsRejected() (gas: 59017)
+[PASS] test_06_PlainTransferToTheVaultIsRescued() (gas: 188172)
+Suite result: ok. 7 passed; 0 failed; 0 skipped; finished in 16.89s (25.57s CPU time)
+
+Ran 1 test suite in 16.92s (16.89s CPU time): 7 tests passed, 0 failed, 0 skipped (7 total tests)
+FULL-SCALE REHEARSAL OK: 7 passed, 0 failed, 0 skipped

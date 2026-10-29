@@ -1,0 +1,26 @@
+# Mirrors contracts/payments: pin the toolchain so review and deployment bytecode stay reproducible.
+# Both OpenZeppelin packages resolve from the root npm lockfile, not vendored submodules.
+[profile.default]
+src = "src"
+test = "test"
+out = "out"
+libs = ["lib"]
+allow_paths = ["../../node_modules", "../migration"]
+solc_version = "0.8.28"
+evm_version = "cancun"
+optimizer = true
+optimizer_runs = 200
+bytecode_hash = "none"
+via_ir = false
+
+[fuzz]
+runs = 512
+
+[invariant]
+runs = 128
+depth = 64
+fail_on_revert = false
+
+[profile.deep]
+fuzz = { runs = 20000 }
+invariant = { runs = 2000, depth = 256 }

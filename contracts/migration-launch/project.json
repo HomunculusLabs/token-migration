@@ -1,0 +1,144 @@
+{
+  "name": "@surplus/contracts.migration-launch",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "contracts/migration-launch/src",
+  "projectType": "application",
+  "tags": [
+    "type:contracts",
+    "scope:contracts"
+  ],
+  "targets": {
+    "build": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "python3.14 -B ../token-v2/scripts/sepolia_source.py --check && forge build --deny warnings",
+        "cwd": "contracts/migration-launch",
+        "forwardAllArgs": false
+      },
+      "inputs": [
+        "{projectRoot}/src/**/*.sol",
+        "{projectRoot}/foundry.toml",
+        "{projectRoot}/remappings.txt",
+        "{projectRoot}/project.json",
+        "{projectRoot}/script/**/*.sol",
+        "{projectRoot}/scripts/**/*.py",
+        "{projectRoot}/__tests__/**/*.py",
+        "{projectRoot}/kit/testnet/**/*.py",
+        "{projectRoot}/kit/testnet/*.json",
+        "{projectRoot}/kit/testnet/*.md",
+        "{workspaceRoot}/contracts/token-v2/src/**/*.sol",
+        "{workspaceRoot}/contracts/token-v2/scripts/**/*.py",
+        "{workspaceRoot}/contracts/migration/src/**/*.sol"
+      ],
+      "outputs": [
+        "{projectRoot}/out"
+      ]
+    },
+    "test": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "python3.14 -B ../token-v2/scripts/sepolia_source.py --check && forge test --no-match-path 'test/fork/**' && python3.14 -B -m unittest discover -s __tests__/kit -p 'test_*.py' -v",
+        "cwd": "contracts/migration-launch",
+        "forwardAllArgs": false
+      },
+      "inputs": [
+        "{projectRoot}/src/**/*.sol",
+        "{projectRoot}/test/**/*.sol",
+        "{projectRoot}/__tests__/kit/**/*.py",
+        "{projectRoot}/kit/*.py",
+        "{projectRoot}/kit/*.json",
+        "{projectRoot}/kit/*.md",
+        "{projectRoot}/foundry.toml",
+        "{projectRoot}/remappings.txt",
+        "{projectRoot}/project.json",
+        "{projectRoot}/script/**/*.sol",
+        "{projectRoot}/scripts/**/*.py",
+        "{projectRoot}/__tests__/**/*.py",
+        "{projectRoot}/kit/testnet/**/*.py",
+        "{projectRoot}/kit/testnet/*.json",
+        "{projectRoot}/kit/testnet/*.md",
+        "{workspaceRoot}/contracts/token-v2/src/**/*.sol",
+        "{workspaceRoot}/contracts/token-v2/scripts/**/*.py",
+        "{workspaceRoot}/contracts/migration/src/**/*.sol"
+      ]
+    },
+    "kit-test": {
+      "executor": "nx:run-commands",
+      "cache": false,
+      "options": {
+        "command": "python3.14 -B -m unittest discover -s __tests__/kit -p 'test_*.py' -v",
+        "cwd": "contracts/migration-launch",
+        "forwardAllArgs": false
+      }
+    },
+    "rehearsal": {
+      "executor": "nx:run-commands",
+      "cache": false,
+      "options": {
+        "command": "python3.14 -B kit/rehearsal_gate.py",
+        "cwd": "contracts/migration-launch",
+        "forwardAllArgs": false
+      }
+    },
+    "fork": {
+      "executor": "nx:run-commands",
+      "cache": false,
+      "options": {
+        "command": "forge test --match-path 'test/fork/**' --fork-url \"${SURPLUS_FORK_RPC:-http://127.0.0.1:18549}\" -vv",
+        "cwd": "contracts/migration-launch",
+        "forwardAllArgs": false
+      }
+    },
+    "lint": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "python3.14 -B ../token-v2/scripts/sepolia_source.py --check && forge fmt --check",
+        "cwd": "contracts/migration-launch",
+        "forwardAllArgs": false
+      },
+      "inputs": [
+        "{projectRoot}/src/**/*.sol",
+        "{projectRoot}/test/**/*.sol",
+        "{projectRoot}/script/**/*.sol",
+        "{projectRoot}/project.json",
+        "{projectRoot}/scripts/**/*.py",
+        "{projectRoot}/__tests__/**/*.py",
+        "{projectRoot}/kit/testnet/**/*.py",
+        "{projectRoot}/kit/testnet/*.json",
+        "{projectRoot}/kit/testnet/*.md",
+        "{workspaceRoot}/contracts/token-v2/src/**/*.sol",
+        "{workspaceRoot}/contracts/token-v2/scripts/**/*.py",
+        "{workspaceRoot}/contracts/migration/src/**/*.sol"
+      ]
+    },
+    "fmt": {
+      "executor": "nx:run-commands",
+      "cache": false,
+      "options": {
+        "command": "forge fmt",
+        "cwd": "contracts/migration-launch"
+      }
+    },
+    "gas": {
+      "executor": "nx:run-commands",
+      "cache": false,
+      "options": {
+        "command": "forge test --no-match-path 'test/fork/**' --gas-report",
+        "cwd": "contracts/migration-launch"
+      }
+    },
+    "fuzz": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "FOUNDRY_PROFILE=deep forge test --no-match-path 'test/fork/**'",
+        "cwd": "contracts/migration-launch",
+        "forwardAllArgs": false
+      },
+      "inputs": [
+        "{projectRoot}/src/**/*.sol",
+        "{projectRoot}/test/**/*.sol",
+        "{projectRoot}/foundry.toml"
+      ]
+    }
+  }
+}

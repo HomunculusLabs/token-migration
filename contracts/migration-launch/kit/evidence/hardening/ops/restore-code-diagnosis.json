@@ -1,0 +1,121 @@
+{
+  "checkpointBlock": 51948266,
+  "checkpointHash": "0x8f960c1bf603cc2d06a45184d9906b802fcb8b4d1bc2d8a8c33957f06432973a",
+  "sourceChainId": "0x2105",
+  "targets": {
+    "safe": {
+      "address": "0xfaAaadF79b178ca2e3B0833ee08c7592a97728C9",
+      "checkpointAccountPresent": true,
+      "checkpointAccountFields": [
+        "balance",
+        "code",
+        "nonce",
+        "storage"
+      ],
+      "checkpointCode": {
+        "bytes": 171,
+        "hash": "0xd7d408ebcd99b2b70be43e20253d6d92a8ea8fab29bd3be7f55b10032331fb4c"
+      },
+      "sourceHistoricalCode": {
+        "error": "{\"code\": -32603, \"message\": \"missing bytecode for code hash 0xd7d408ebcd99b2b70be43e20253d6d92a8ea8fab29bd3be7f55b10032331fb4c\"}"
+      },
+      "sourceLatestCode": {
+        "bytes": 171,
+        "hash": "0xd7d408ebcd99b2b70be43e20253d6d92a8ea8fab29bd3be7f55b10032331fb4c"
+      }
+    },
+    "token": {
+      "address": "0xbF42Bac232d1586EF2C04031e1aF4c09aDe8770D",
+      "checkpointAccountPresent": true,
+      "checkpointAccountFields": [
+        "balance",
+        "code",
+        "nonce",
+        "storage"
+      ],
+      "checkpointCode": {
+        "bytes": 129,
+        "hash": "0xe36c12035e97cb6d19f336d09583ba06bc074d449f89350dfe36bb7a8f0db9f2"
+      },
+      "sourceHistoricalCode": {
+        "bytes": 129,
+        "hash": "0xe36c12035e97cb6d19f336d09583ba06bc074d449f89350dfe36bb7a8f0db9f2"
+      },
+      "sourceLatestCode": {
+        "bytes": 129,
+        "hash": "0xe36c12035e97cb6d19f336d09583ba06bc074d449f89350dfe36bb7a8f0db9f2"
+      }
+    },
+    "vault": {
+      "address": "0x7242B0d4F1F67b54E4c2E809892c6410d1EcCe3F",
+      "checkpointAccountPresent": true,
+      "checkpointAccountFields": [
+        "balance",
+        "code",
+        "nonce",
+        "storage"
+      ],
+      "checkpointCode": {
+        "bytes": 9650,
+        "hash": "0xc1e78b10ca8eea8f2ddb2c1f9bbe36875c2a37a018c19195f0bed41551b53681"
+      },
+      "sourceHistoricalCode": {
+        "bytes": 9650,
+        "hash": "0xc1e78b10ca8eea8f2ddb2c1f9bbe36875c2a37a018c19195f0bed41551b53681"
+      },
+      "sourceLatestCode": {
+        "bytes": 9650,
+        "hash": "0xc1e78b10ca8eea8f2ddb2c1f9bbe36875c2a37a018c19195f0bed41551b53681"
+      }
+    },
+    "hook": {
+      "address": "0x0bE135901994c28BB2817F39fc7c4aD35584a044",
+      "checkpointAccountPresent": true,
+      "checkpointAccountFields": [
+        "balance",
+        "code",
+        "nonce",
+        "storage"
+      ],
+      "checkpointCode": {
+        "bytes": 4469,
+        "hash": "0x9e42fc8966ad5ab6f2567b8a327c84988e0327e14d01cbd222a1e969469921b3"
+      },
+      "sourceHistoricalCode": {
+        "bytes": 4469,
+        "hash": "0x9e42fc8966ad5ab6f2567b8a327c84988e0327e14d01cbd222a1e969469921b3"
+      },
+      "sourceLatestCode": {
+        "bytes": 4469,
+        "hash": "0x9e42fc8966ad5ab6f2567b8a327c84988e0327e14d01cbd222a1e969469921b3"
+      }
+    },
+    "v1": {
+      "address": "0xc52aedec3374422d7510e294cfaa90799595cba3",
+      "checkpointAccountPresent": true,
+      "checkpointAccountFields": [
+        "balance",
+        "code",
+        "nonce",
+        "storage"
+      ],
+      "checkpointCode": {
+        "bytes": 10143,
+        "hash": "0xe26be58e411540ce995a8a4b0f27fa6db6019d3bf6ebb08e6aaac25f182b89a7"
+      },
+      "sourceHistoricalCode": {
+        "bytes": 10143,
+        "hash": "0xe26be58e411540ce995a8a4b0f27fa6db6019d3bf6ebb08e6aaac25f182b89a7"
+      },
+      "sourceLatestCode": {
+        "bytes": 10143,
+        "hash": "0xe26be58e411540ce995a8a4b0f27fa6db6019d3bf6ebb08e6aaac25f182b89a7"
+      },
+      "originCode": {
+        "bytes": 10143,
+        "hash": "0xe26be58e411540ce995a8a4b0f27fa6db6019d3bf6ebb08e6aaac25f182b89a7"
+      }
+    }
+  },
+  "missingHash": "0xd7d408ebcd99b2b70be43e20253d6d92a8ea8fab29bd3be7f55b10032331fb4c"
+}

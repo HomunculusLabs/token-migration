@@ -1,0 +1,34 @@
+CHECKPOINT block=51948266, deposit events=6338, compressed=7814513 bytes, raw=79657621 bytes
+Restore account cache: 250/6361 warmed
+Restore account cache: 500/6361 warmed
+Restore account cache: 750/6361 warmed
+Restore account cache: 1000/6361 warmed
+Restore account cache: 1250/6361 warmed
+Restore account cache: 1500/6361 warmed
+Restore account cache: 1750/6361 warmed
+Restore account cache: 2000/6361 warmed
+Restore account cache: 2250/6361 warmed
+Restore account cache: 2500/6361 warmed
+Restore account cache: 2750/6361 warmed
+Restore account cache: 3000/6361 warmed
+Restore account cache: 3250/6361 warmed
+Restore account cache: 3500/6361 warmed
+Restore account cache: 3750/6361 warmed
+Restore account cache: 4000/6361 warmed
+Restore account cache: 4250/6361 warmed
+Restore account cache: 4500/6361 warmed
+Restore account cache: 4750/6361 warmed
+Restore account cache: 5000/6361 warmed
+Restore account cache: 5250/6361 warmed
+Restore account cache: 5500/6361 warmed
+Restore account cache: 5750/6361 warmed
+Restore account cache: 6000/6361 warmed
+Restore account cache: 6250/6361 warmed
+Restore account cache: 6361/6361 warmed
+Restored runtime matches checkpoint: 0xfaAaadF79b178ca2e3B0833ee08c7592a97728C9
+Restored runtime matches checkpoint: 0xbF42Bac232d1586EF2C04031e1aF4c09aDe8770D
+Restored runtime matches checkpoint: 0x7242B0d4F1F67b54E4c2E809892c6410d1EcCe3F
+Restored runtime matches checkpoint: 0x0bE135901994c28BB2817F39fc7c4aD35584a044
+Restored runtime matches checkpoint: 0xc52aedec3374422d7510e294cfaa90799595cba3
+PASS restored block/hash, vault total, complete deposit logs and runtime code; historical read still works after local mining
+Restoration-only Anvil stopped; source preparation untouched

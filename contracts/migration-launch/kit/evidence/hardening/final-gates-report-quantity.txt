@@ -1,0 +1,1155 @@
+(node:58278) [DEP0180] DeprecationWarning: fs.Stats constructor is deprecated.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+
+ NX   Running targets lint, test, build for project @surplus/contracts.migration-launch:
+
+- @surplus/contracts.migration-launch
+
+
+
+> nx run @surplus/contracts.migration-launch:build
+
+> forge build --deny warnings
+
+No files changed, compilation skipped
+
+> nx run @surplus/contracts.migration-launch:lint
+
+> forge fmt --check
+
+
+> nx run @surplus/contracts.migration-launch:test
+
+> forge test --no-match-path 'test/fork/**' && python3.14 -B -m unittest discover -s __tests__/kit -p 'test_*.py' -v
+
+No files changed, compilation skipped
+
+Ran 4 tests for test/LaunchMath.t.sol:LaunchMathTest
+[PASS] testFuzz_Monotonic(int24) (runs: 512, μ: 5513, ~: 6481)
+[PASS] test_CanonicalBoundaries() (gas: 10854)
+[PASS] test_FullRangeAtSpacing60() (gas: 14812)
+[PASS] test_RejectsTicksOutOfRange() (gas: 6812)
+Suite result: ok. 4 passed; 0 failed; 0 skipped; finished in 11.14ms (21.12ms CPU time)
+
+Ran 1 test suite in 20.89ms (11.14ms CPU time): 4 tests passed, 0 failed, 0 skipped (4 total tests)
+test_local_endpoints_pass_and_remote_or_malformed_endpoints_fail (test_kit_controls.LoopbackTests.test_local_endpoints_pass_and_remote_or_malformed_endpoints_fail) ... [32mok[0m
+test_userinfo_cannot_turn_a_loopback_prefix_into_a_remote_host (test_kit_controls.LoopbackTests.test_userinfo_cannot_turn_a_loopback_prefix_into_a_remote_host) ... [32mok[0m
+test_changed_or_missing_artifact_fails (test_kit_controls.ManifestTests.test_changed_or_missing_artifact_fails) ... [32mok[0m
+test_complete_inventory_with_matching_hashes_passes (test_kit_controls.ManifestTests.test_complete_inventory_with_matching_hashes_passes) ... [32mok[0m
+test_incomplete_snapshot_and_invalid_schema_fail (test_kit_controls.ManifestTests.test_incomplete_snapshot_and_invalid_schema_fail) ... [32mok[0m
+test_omitting_evidence_inventory_fails (test_kit_controls.ManifestTests.test_omitting_evidence_inventory_fails) ... [32mok[0m
+test_omitting_output_inventory_fails_even_when_committed_files_match (test_kit_controls.ManifestTests.test_omitting_output_inventory_fails_even_when_committed_files_match) ... [32mok[0m
+test_omitting_retained_push_artifacts_fails (test_kit_controls.ManifestTests.test_omitting_retained_push_artifacts_fails) ... [32mok[0m
+test_omitting_signed_packet_or_snapshot_files_fails (test_kit_controls.ManifestTests.test_omitting_signed_packet_or_snapshot_files_fails) ... [32mok[0m
+test_path_escape_in_manifest_fails_before_reading_it (test_kit_controls.ManifestTests.test_path_escape_in_manifest_fails_before_reading_it) ... [32mok[0m
+test_modes_are_explicit_and_do_not_fill_open_decisions (test_kit_controls.ParameterModeTests.test_modes_are_explicit_and_do_not_fill_open_decisions) ... [32mok[0m
+test_production_does_not_accept_rehearsal_key_material (test_kit_controls.ParameterModeTests.test_production_does_not_accept_rehearsal_key_material) ... [32mok[0m
+test_renamed_rehearsal_parameters_are_rejected_for_production (test_kit_controls.ParameterModeTests.test_renamed_rehearsal_parameters_are_rejected_for_production) ... [32mok[0m
+test_commit_root_command_supplies_an_independent_canonical_rpc (test_operator_contracts.RunbookCommandTests.test_commit_root_command_supplies_an_independent_canonical_rpc) ... [32mok[0m
+test_documented_phase_commands_reach_parameter_loading (test_operator_contracts.RunbookCommandTests.test_documented_phase_commands_reach_parameter_loading) ... [32mok[0m
+test_cli_resumes_saved_plan_after_crash (test_push_plan.PushTests.test_cli_resumes_saved_plan_after_crash) ...   plans/7b37cf883c6c8291e1fadfaa561178ed0b99e3856b798b88057a195adc5558a3/batch-000.calldata: 0 actual claims, 0 unpaid (not receipt-based)
+replanning after the executed batches:
+[32mok[0m
+test_crash_after_submission_recovers_counts_without_resending (test_push_plan.PushTests.test_crash_after_submission_recovers_counts_without_resending) ...   plans/7b37cf883c6c8291e1fadfaa561178ed0b99e3856b798b88057a195adc5558a3/batch-000.calldata: 0 actual claims, 0 unpaid (not receipt-based)
+[32mok[0m
+test_crash_before_hash_is_saved_preserves_unknown_attribution (test_push_plan.PushTests.test_crash_before_hash_is_saved_preserves_unknown_attribution) ...   plans/7b37cf883c6c8291e1fadfaa561178ed0b99e3856b798b88057a195adc5558a3/batch-000.calldata: 0 actual claims, 0 unpaid (not receipt-based)
+[32mok[0m
+test_formula_claim_and_merkle_claim_both_count_as_paid (test_push_plan.PushTests.test_formula_claim_and_merkle_claim_both_count_as_paid) ... [32mok[0m
+test_malformed_or_wrong_entitlement_events_fail_closed (test_push_plan.PushTests.test_malformed_or_wrong_entitlement_events_fail_closed) ... KIT STOP: malformed payout event
+KIT STOP: payout event differs from account entitlement/index
+KIT STOP: malformed payout event
+KIT STOP: payout log block is not canonical
+KIT STOP: payout event differs from account entitlement/index
+KIT STOP: payout event differs from account entitlement/index
+KIT STOP: duplicate payout event/account
+[32mok[0m
+test_missing_payout_logs_fail_closed_against_total_claimed (test_push_plan.PushTests.test_missing_payout_logs_fail_closed_against_total_claimed) ... KIT STOP: payout logs do not reconcile to totalClaimedAmount; missing/partial history
+[32mok[0m
+test_partial_bitmap_response_cannot_silently_omit_holders (test_push_plan.PushTests.test_partial_bitmap_response_cannot_silently_omit_holders) ... KIT STOP: partial/malformed isClaimed batch response
+[32mok[0m
+test_partial_payout_reports_only_actual_claims (test_push_plan.PushTests.test_partial_payout_reports_only_actual_claims) ...   plans/7b37cf883c6c8291e1fadfaa561178ed0b99e3856b798b88057a195adc5558a3/batch-000.calldata: 1 actual claims, 1 unpaid (not receipt-based)
+KIT STOP: push batch has unpaid/reverted claims; progress saved, replan before retry
+[32mok[0m
+test_planning_requires_really_active_claims (test_push_plan.PushTests.test_planning_requires_really_active_claims) ... KIT STOP: claims are not active at the pinned head
+KIT STOP: claims are not active at the pinned head
+KIT STOP: claims are not active at the pinned head
+KIT STOP: claims are not active at the pinned head
+[32mok[0m
+test_race_between_read_and_send_reports_zero_new_payouts (test_push_plan.PushTests.test_race_between_read_and_send_reports_zero_new_payouts) ...   plans/7b37cf883c6c8291e1fadfaa561178ed0b99e3856b798b88057a195adc5558a3/batch-000.calldata: 0 actual claims, 0 unpaid (not receipt-based)
+[32mok[0m
+test_raced_self_claims_are_not_resent_or_counted_as_batch_payouts (test_push_plan.PushTests.test_raced_self_claims_are_not_resent_or_counted_as_batch_payouts) ...   plans/7b37cf883c6c8291e1fadfaa561178ed0b99e3856b798b88057a195adc5558a3/batch-000.calldata: 0 actual claims, 0 unpaid (not receipt-based)
+[32mok[0m
+test_replan_preserves_initial_nonempty_batches (test_push_plan.PushTests.test_replan_preserves_initial_nonempty_batches) ... [32mok[0m
+test_success_receipt_with_unpaid_inner_calls_is_not_delivery (test_push_plan.PushTests.test_success_receipt_with_unpaid_inner_calls_is_not_delivery) ...   plans/7b37cf883c6c8291e1fadfaa561178ed0b99e3856b798b88057a195adc5558a3/batch-000.calldata: 0 actual claims, 2 unpaid (not receipt-based)
+KIT STOP: push batch has unpaid/reverted claims; progress saved, replan before retry
+[32mok[0m
+test_only_seven_passing_tests_without_skips_is_accepted (test_rehearsal_gate.RehearsalGateTests.test_only_seven_passing_tests_without_skips_is_accepted) ... [32mok[0m
+test_non_open_vault_blocks_replay_before_sending (test_rehearse.DepositResumeTests.test_non_open_vault_blocks_replay_before_sending) ... [32mok[0m
+test_partial_ledger_is_refused_before_another_deposit (test_rehearse.DepositResumeTests.test_partial_ledger_is_refused_before_another_deposit) ... [32mok[0m
+test_pending_transactions_block_replay_before_sending (test_rehearse.DepositResumeTests.test_pending_transactions_block_replay_before_sending) ... [32mok[0m
+test_resume_skips_confirmed_deposits_and_a_completed_rerun_sends_nothing (test_rehearse.DepositResumeTests.test_resume_skips_confirmed_deposits_and_a_completed_rerun_sends_nothing) ... [32mok[0m
+test_delayed_receipt_does_not_fail_or_resubmit_a_successful_transaction (test_rehearse.ReceiptTests.test_delayed_receipt_does_not_fail_or_resubmit_a_successful_transaction) ... [32mok[0m
+test_mined_revert_still_stops (test_rehearse.ReceiptTests.test_mined_revert_still_stops) ... [32mok[0m
+test_unconfirmed_receipt_is_not_reported_as_a_revert (test_rehearse.ReceiptTests.test_unconfirmed_receipt_is_not_reported_as_a_revert) ... [32mok[0m
+test_report_preserves_current_policy_without_guaranteeing_exit_value (test_report.ReportTests.test_report_preserves_current_policy_without_guaranteeing_exit_value) ... [32mok[0m
+test_report_prices_gas_with_rpc_hex_or_decimal_base_fee (test_report.ReportTests.test_report_prices_gas_with_rpc_hex_or_decimal_base_fee) ... [32mok[0m
+test_balanced_wrong_tree_cannot_reach_signing (test_snapshot.SigningTests.test_balanced_wrong_tree_cannot_reach_signing) ... KIT STOP: python: leaf 0 (0x0000000000000000000000000000000000000001) amount 150 != ledger at block 12
+[32mok[0m
+test_depositor_logs_require_complete_event_abi (test_snapshot.SigningTests.test_depositor_logs_require_complete_event_abi) ... KIT STOP: malformed depositor RPC result: 'address'
+[32mok[0m
+test_depositor_pagination_rejects_zero_chunk_before_rpc (test_snapshot.SigningTests.test_depositor_pagination_rejects_zero_chunk_before_rpc) ... KIT STOP: depositor scan exceeds bounded pagination; check --from-block/--log-chunk
+[32mok[0m
+test_finality_and_canonical_controls (test_snapshot.SigningTests.test_finality_and_canonical_controls) ... KIT STOP: snapshot block is not finalized
+KIT STOP: live finality requires a canonical chain RPC, not private Anvil finality
+[32mok[0m
+test_live_ledger_is_read_from_canonical_rpc_not_mutable_fork (test_snapshot.SigningTests.test_live_ledger_is_read_from_canonical_rpc_not_mutable_fork) ... KIT STOP: python: leaf 0 (0x0000000000000000000000000000000000000001) amount 100 != ledger at block 12
+[32mok[0m
+test_live_signing_requires_canonical_finality_source (test_snapshot.SigningTests.test_live_signing_requires_canonical_finality_source) ... KIT STOP: live commit-root requires --canonical-rpc for finalized snapshot verification
+[32mok[0m
+test_malformed_block_header_is_not_canonical_evidence (test_snapshot.SigningTests.test_malformed_block_header_is_not_canonical_evidence) ... KIT STOP: malformed block header
+[32mok[0m
+test_missing_snapshot_refuses_balanced_tree (test_snapshot.SigningTests.test_missing_snapshot_refuses_balanced_tree) ... KIT STOP: mandatory snapshot missing: /var/folders/vk/ynsnb3x92sv16bj7wz5xtnm80000gn/T/tmpmr2wxoh7/snapshot.json
+[32mok[0m
+test_omitted_leaf_is_rejected_by_independent_ledger_verifier (test_snapshot.SigningTests.test_omitted_leaf_is_rejected_by_independent_ledger_verifier) ... KIT STOP: python: leaf ledger sum != vault net ledger; omitted depositor
+[32mok[0m
+test_partial_abi_word_is_not_a_ledger_value (test_snapshot.SigningTests.test_partial_abi_word_is_not_a_ledger_value) ... KIT STOP: ledger RPC returned a malformed ABI word
+[32mok[0m
+test_partial_finalized_header_is_not_finality (test_snapshot.SigningTests.test_partial_finalized_header_is_not_finality) ... KIT STOP: malformed block header
+[32mok[0m
+test_signing_binds_loaded_root_to_the_verified_ledger_root (test_snapshot.SigningTests.test_signing_binds_loaded_root_to_the_verified_ledger_root) ... KIT STOP: loaded signing root/total differs from ledger-verified snapshot
+[32mok[0m
+test_snapshot_before_deadline_is_rejected (test_snapshot.SigningTests.test_snapshot_before_deadline_is_rejected) ... KIT STOP: snapshot must be strictly after the deposit deadline
+[32mok[0m
+test_snapshot_identity_is_checked_not_its_ok_string (test_snapshot.SigningTests.test_snapshot_identity_is_checked_not_its_ok_string) ... KIT STOP: snapshot chain/vault does not match deployment
+KIT STOP: snapshot block is no longer canonical on this RPC
+KIT STOP: snapshot must be strictly after the deposit deadline
+KIT STOP: snapshot/params rate or pro-rata mode differs from vault
+KIT STOP: snapshot root/total/leaves/net ledger differ from verified tree
+KIT STOP: snapshot root/total/leaves/net ledger differ from verified tree
+KIT STOP: snapshot root/total/leaves/net ledger differ from verified tree
+KIT STOP: snapshot root/total/leaves/net ledger differ from verified tree
+[32mok[0m
+
+----------------------------------------------------------------------
+Ran 52 tests in 2.533s
+
+[32mOK[0m
+
+
+
+ NX   Successfully ran targets lint, test, build for project @surplus/contracts.migration-launch
+
+
+(node:60005) [DEP0180] DeprecationWarning: fs.Stats constructor is deprecated.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+
+ NX   Running targets lint, test, build for 6 projects:
+
+- @surplus/contracts.migration-launch
+- @surplus/contracts.migration-tools
+- @surplus/contracts.migration
+- @surplus/contracts.fee-hook
+- @surplus/contracts.payments
+- @surplus/contracts.token-v2
+
+
+
+> nx run @surplus/contracts.migration-launch:test
+
+> forge test --no-match-path 'test/fork/**' && python3.14 -B -m unittest discover -s __tests__/kit -p 'test_*.py' -v
+
+No files changed, compilation skipped
+
+Ran 4 tests for test/LaunchMath.t.sol:LaunchMathTest
+[PASS] testFuzz_Monotonic(int24) (runs: 512, μ: 5470, ~: 6472)
+[PASS] test_CanonicalBoundaries() (gas: 10854)
+[PASS] test_FullRangeAtSpacing60() (gas: 14812)
+[PASS] test_RejectsTicksOutOfRange() (gas: 6812)
+Suite result: ok. 4 passed; 0 failed; 0 skipped; finished in 2.25ms (2.56ms CPU time)
+
+Ran 1 test suite in 4.66ms (2.25ms CPU time): 4 tests passed, 0 failed, 0 skipped (4 total tests)
+test_local_endpoints_pass_and_remote_or_malformed_endpoints_fail (test_kit_controls.LoopbackTests.test_local_endpoints_pass_and_remote_or_malformed_endpoints_fail) ... [32mok[0m
+test_userinfo_cannot_turn_a_loopback_prefix_into_a_remote_host (test_kit_controls.LoopbackTests.test_userinfo_cannot_turn_a_loopback_prefix_into_a_remote_host) ... [32mok[0m
+test_changed_or_missing_artifact_fails (test_kit_controls.ManifestTests.test_changed_or_missing_artifact_fails) ... [32mok[0m
+test_complete_inventory_with_matching_hashes_passes (test_kit_controls.ManifestTests.test_complete_inventory_with_matching_hashes_passes) ... [32mok[0m
+test_incomplete_snapshot_and_invalid_schema_fail (test_kit_controls.ManifestTests.test_incomplete_snapshot_and_invalid_schema_fail) ... [32mok[0m
+test_omitting_evidence_inventory_fails (test_kit_controls.ManifestTests.test_omitting_evidence_inventory_fails) ... [32mok[0m
+test_omitting_output_inventory_fails_even_when_committed_files_match (test_kit_controls.ManifestTests.test_omitting_output_inventory_fails_even_when_committed_files_match) ... [32mok[0m
+test_omitting_retained_push_artifacts_fails (test_kit_controls.ManifestTests.test_omitting_retained_push_artifacts_fails) ... [32mok[0m
+test_omitting_signed_packet_or_snapshot_files_fails (test_kit_controls.ManifestTests.test_omitting_signed_packet_or_snapshot_files_fails) ... [32mok[0m
+test_path_escape_in_manifest_fails_before_reading_it (test_kit_controls.ManifestTests.test_path_escape_in_manifest_fails_before_reading_it) ... [32mok[0m
+test_modes_are_explicit_and_do_not_fill_open_decisions (test_kit_controls.ParameterModeTests.test_modes_are_explicit_and_do_not_fill_open_decisions) ... [32mok[0m
+test_production_does_not_accept_rehearsal_key_material (test_kit_controls.ParameterModeTests.test_production_does_not_accept_rehearsal_key_material) ... [32mok[0m
+test_renamed_rehearsal_parameters_are_rejected_for_production (test_kit_controls.ParameterModeTests.test_renamed_rehearsal_parameters_are_rejected_for_production) ... [32mok[0m
+test_commit_root_command_supplies_an_independent_canonical_rpc (test_operator_contracts.RunbookCommandTests.test_commit_root_command_supplies_an_independent_canonical_rpc) ... [32mok[0m
+test_documented_phase_commands_reach_parameter_loading (test_operator_contracts.RunbookCommandTests.test_documented_phase_commands_reach_parameter_loading) ... [32mok[0m
+test_cli_resumes_saved_plan_after_crash (test_push_plan.PushTests.test_cli_resumes_saved_plan_after_crash) ...   plans/7b37cf883c6c8291e1fadfaa561178ed0b99e3856b798b88057a195adc5558a3/batch-000.calldata: 0 actual claims, 0 unpaid (not receipt-based)
+replanning after the executed batches:
+[32mok[0m
+test_crash_after_submission_recovers_counts_without_resending (test_push_plan.PushTests.test_crash_after_submission_recovers_counts_without_resending) ...   plans/7b37cf883c6c8291e1fadfaa561178ed0b99e3856b798b88057a195adc5558a3/batch-000.calldata: 0 actual claims, 0 unpaid (not receipt-based)
+[32mok[0m
+test_crash_before_hash_is_saved_preserves_unknown_attribution (test_push_plan.PushTests.test_crash_before_hash_is_saved_preserves_unknown_attribution) ...   plans/7b37cf883c6c8291e1fadfaa561178ed0b99e3856b798b88057a195adc5558a3/batch-000.calldata: 0 actual claims, 0 unpaid (not receipt-based)
+[32mok[0m
+test_formula_claim_and_merkle_claim_both_count_as_paid (test_push_plan.PushTests.test_formula_claim_and_merkle_claim_both_count_as_paid) ... [32mok[0m
+test_malformed_or_wrong_entitlement_events_fail_closed (test_push_plan.PushTests.test_malformed_or_wrong_entitlement_events_fail_closed) ... KIT STOP: malformed payout event
+KIT STOP: payout event differs from account entitlement/index
+KIT STOP: malformed payout event
+KIT STOP: payout log block is not canonical
+KIT STOP: payout event differs from account entitlement/index
+KIT STOP: payout event differs from account entitlement/index
+KIT STOP: duplicate payout event/account
+[32mok[0m
+test_missing_payout_logs_fail_closed_against_total_claimed (test_push_plan.PushTests.test_missing_payout_logs_fail_closed_against_total_claimed) ... KIT STOP: payout logs do not reconcile to totalClaimedAmount; missing/partial history
+[32mok[0m
+test_partial_bitmap_response_cannot_silently_omit_holders (test_push_plan.PushTests.test_partial_bitmap_response_cannot_silently_omit_holders) ... KIT STOP: partial/malformed isClaimed batch response
+[32mok[0m
+test_partial_payout_reports_only_actual_claims (test_push_plan.PushTests.test_partial_payout_reports_only_actual_claims) ...   plans/7b37cf883c6c8291e1fadfaa561178ed0b99e3856b798b88057a195adc5558a3/batch-000.calldata: 1 actual claims, 1 unpaid (not receipt-based)
+KIT STOP: push batch has unpaid/reverted claims; progress saved, replan before retry
+[32mok[0m
+test_planning_requires_really_active_claims (test_push_plan.PushTests.test_planning_requires_really_active_claims) ... KIT STOP: claims are not active at the pinned head
+KIT STOP: claims are not active at the pinned head
+KIT STOP: claims are not active at the pinned head
+KIT STOP: claims are not active at the pinned head
+[32mok[0m
+test_race_between_read_and_send_reports_zero_new_payouts (test_push_plan.PushTests.test_race_between_read_and_send_reports_zero_new_payouts) ...   plans/7b37cf883c6c8291e1fadfaa561178ed0b99e3856b798b88057a195adc5558a3/batch-000.calldata: 0 actual claims, 0 unpaid (not receipt-based)
+[32mok[0m
+test_raced_self_claims_are_not_resent_or_counted_as_batch_payouts (test_push_plan.PushTests.test_raced_self_claims_are_not_resent_or_counted_as_batch_payouts) ...   plans/7b37cf883c6c8291e1fadfaa561178ed0b99e3856b798b88057a195adc5558a3/batch-000.calldata: 0 actual claims, 0 unpaid (not receipt-based)
+[32mok[0m
+test_replan_preserves_initial_nonempty_batches (test_push_plan.PushTests.test_replan_preserves_initial_nonempty_batches) ... [32mok[0m
+test_success_receipt_with_unpaid_inner_calls_is_not_delivery (test_push_plan.PushTests.test_success_receipt_with_unpaid_inner_calls_is_not_delivery) ...   plans/7b37cf883c6c8291e1fadfaa561178ed0b99e3856b798b88057a195adc5558a3/batch-000.calldata: 0 actual claims, 2 unpaid (not receipt-based)
+KIT STOP: push batch has unpaid/reverted claims; progress saved, replan before retry
+[32mok[0m
+test_only_seven_passing_tests_without_skips_is_accepted (test_rehearsal_gate.RehearsalGateTests.test_only_seven_passing_tests_without_skips_is_accepted) ... [32mok[0m
+test_non_open_vault_blocks_replay_before_sending (test_rehearse.DepositResumeTests.test_non_open_vault_blocks_replay_before_sending) ... [32mok[0m
+test_partial_ledger_is_refused_before_another_deposit (test_rehearse.DepositResumeTests.test_partial_ledger_is_refused_before_another_deposit) ... [32mok[0m
+test_pending_transactions_block_replay_before_sending (test_rehearse.DepositResumeTests.test_pending_transactions_block_replay_before_sending) ... [32mok[0m
+test_resume_skips_confirmed_deposits_and_a_completed_rerun_sends_nothing (test_rehearse.DepositResumeTests.test_resume_skips_confirmed_deposits_and_a_completed_rerun_sends_nothing) ... [32mok[0m
+test_delayed_receipt_does_not_fail_or_resubmit_a_successful_transaction (test_rehearse.ReceiptTests.test_delayed_receipt_does_not_fail_or_resubmit_a_successful_transaction) ... [32mok[0m
+test_mined_revert_still_stops (test_rehearse.ReceiptTests.test_mined_revert_still_stops) ... [32mok[0m
+test_unconfirmed_receipt_is_not_reported_as_a_revert (test_rehearse.ReceiptTests.test_unconfirmed_receipt_is_not_reported_as_a_revert) ... [32mok[0m
+test_report_preserves_current_policy_without_guaranteeing_exit_value (test_report.ReportTests.test_report_preserves_current_policy_without_guaranteeing_exit_value) ... [32mok[0m
+test_report_prices_gas_with_rpc_hex_or_decimal_base_fee (test_report.ReportTests.test_report_prices_gas_with_rpc_hex_or_decimal_base_fee) ... [32mok[0m
+test_balanced_wrong_tree_cannot_reach_signing (test_snapshot.SigningTests.test_balanced_wrong_tree_cannot_reach_signing) ... KIT STOP: python: leaf 0 (0x0000000000000000000000000000000000000001) amount 150 != ledger at block 12
+[32mok[0m
+test_depositor_logs_require_complete_event_abi (test_snapshot.SigningTests.test_depositor_logs_require_complete_event_abi) ... KIT STOP: malformed depositor RPC result: 'address'
+[32mok[0m
+test_depositor_pagination_rejects_zero_chunk_before_rpc (test_snapshot.SigningTests.test_depositor_pagination_rejects_zero_chunk_before_rpc) ... KIT STOP: depositor scan exceeds bounded pagination; check --from-block/--log-chunk
+[32mok[0m
+test_finality_and_canonical_controls (test_snapshot.SigningTests.test_finality_and_canonical_controls) ... KIT STOP: snapshot block is not finalized
+KIT STOP: live finality requires a canonical chain RPC, not private Anvil finality
+[32mok[0m
+test_live_ledger_is_read_from_canonical_rpc_not_mutable_fork (test_snapshot.SigningTests.test_live_ledger_is_read_from_canonical_rpc_not_mutable_fork) ... KIT STOP: python: leaf 0 (0x0000000000000000000000000000000000000001) amount 100 != ledger at block 12
+[32mok[0m
+test_live_signing_requires_canonical_finality_source (test_snapshot.SigningTests.test_live_signing_requires_canonical_finality_source) ... KIT STOP: live commit-root requires --canonical-rpc for finalized snapshot verification
+[32mok[0m
+test_malformed_block_header_is_not_canonical_evidence (test_snapshot.SigningTests.test_malformed_block_header_is_not_canonical_evidence) ... KIT STOP: malformed block header
+[32mok[0m
+test_missing_snapshot_refuses_balanced_tree (test_snapshot.SigningTests.test_missing_snapshot_refuses_balanced_tree) ... KIT STOP: mandatory snapshot missing: /var/folders/vk/ynsnb3x92sv16bj7wz5xtnm80000gn/T/tmp4mkbgg0v/snapshot.json
+[32mok[0m
+test_omitted_leaf_is_rejected_by_independent_ledger_verifier (test_snapshot.SigningTests.test_omitted_leaf_is_rejected_by_independent_ledger_verifier) ... KIT STOP: python: leaf ledger sum != vault net ledger; omitted depositor
+[32mok[0m
+test_partial_abi_word_is_not_a_ledger_value (test_snapshot.SigningTests.test_partial_abi_word_is_not_a_ledger_value) ... KIT STOP: ledger RPC returned a malformed ABI word
+[32mok[0m
+test_partial_finalized_header_is_not_finality (test_snapshot.SigningTests.test_partial_finalized_header_is_not_finality) ... KIT STOP: malformed block header
+[32mok[0m
+test_signing_binds_loaded_root_to_the_verified_ledger_root (test_snapshot.SigningTests.test_signing_binds_loaded_root_to_the_verified_ledger_root) ... KIT STOP: loaded signing root/total differs from ledger-verified snapshot
+[32mok[0m
+test_snapshot_before_deadline_is_rejected (test_snapshot.SigningTests.test_snapshot_before_deadline_is_rejected) ... KIT STOP: snapshot must be strictly after the deposit deadline
+[32mok[0m
+test_snapshot_identity_is_checked_not_its_ok_string (test_snapshot.SigningTests.test_snapshot_identity_is_checked_not_its_ok_string) ... KIT STOP: snapshot chain/vault does not match deployment
+KIT STOP: snapshot block is no longer canonical on this RPC
+KIT STOP: snapshot must be strictly after the deposit deadline
+KIT STOP: snapshot/params rate or pro-rata mode differs from vault
+KIT STOP: snapshot root/total/leaves/net ledger differ from verified tree
+KIT STOP: snapshot root/total/leaves/net ledger differ from verified tree
+KIT STOP: snapshot root/total/leaves/net ledger differ from verified tree
+KIT STOP: snapshot root/total/leaves/net ledger differ from verified tree
+[32mok[0m
+
+----------------------------------------------------------------------
+Ran 52 tests in 2.696s
+
+[32mOK[0m
+
+> nx run @surplus/contracts.payments:test
+
+> forge test
+
+No files changed, compilation skipped
+
+Ran 1 test for test/CreateXFork.t.sol:CreateXForkTest
+[SKIP] test_RealCreateXOnBaseDeploysToTheFrozenAddress() (gas: 0)
+Suite result: ok. 0 passed; 0 failed; 1 skipped; finished in 1.12ms (951.67µs CPU time)
+
+Ran 13 tests for test/WorkspaceReceiver.t.sol:WorkspaceReceiverTest
+[PASS] testFuzz_AnyCallerAnyAmountReachesOnlyCollection(address,uint96) (runs: 512, μ: 90173, ~: 90648)
+[PASS] testFuzz_SweepIsExactNeverPartial(uint96,uint96) (runs: 512, μ: 97472, ~: 98015)
+[PASS] test_ARevertingTokenDoesNotStrandTheReceiverPermanently() (gas: 378051)
+[PASS] test_CloneSweepsItsOwnBalanceToCollection() (gas: 108287)
+[PASS] test_ConstructorRejectsZeroAddresses() (gas: 73992)
+[PASS] test_LateDepositAfterASweepIsStillRecoverable() (gas: 97670)
+[PASS] test_ReceiverIsFundableBeforeItIsDeployed() (gas: 88597)
+[PASS] test_RepeatedSweepsAreSafe() (gas: 85746)
+[PASS] test_SweepIsPermissionlessAndStillOnlyReachesCollection() (gas: 88472)
+[PASS] test_SweepOnZeroBalanceIsANoOpNotARevert() (gas: 59329)
+[PASS] test_ThereIsNoWayToChangeTheDestination() (gas: 52186)
+[PASS] test_TokenReturningFalseReverts() (gas: 366696)
+[PASS] test_TokenReturningNoDataIsAccepted() (gas: 399840)
+Suite result: ok. 13 passed; 0 failed; 0 skipped; finished in 262.50ms (34.66ms CPU time)
+
+Ran 10 tests for test/Create2Parity.t.sol:Create2ParityTest
+[PASS] testFuzz_DistinctWorkspacesNeverCollide(string,string) (runs: 512, μ: 6163, ~: 6164)
+[PASS] testFuzz_ImplementationChangeMovesEveryAddress(address,address) (runs: 512, μ: 5167, ~: 5167)
+[PASS] test_AddressIsPredictableBeforeAnyCodeExists() (gas: 6256)
+[PASS] test_CreationCodeMatchesFrozenVector() (gas: 942)
+[PASS] test_ForgeAgreesWithTypescriptAddress() (gas: 3475)
+[PASS] test_GuardedSaltMatchesFrozenVector() (gas: 840)
+[PASS] test_InitCodeHashMatchesFrozenVector() (gas: 624)
+[PASS] test_RealDeploymentLandsOnPredictedAddress() (gas: 160346)
+[PASS] test_SaltMatchesFrozenVector() (gas: 380)
+[PASS] test_UnguardedDerivationIsWrongAndPinnedAsSuch() (gas: 3618)
+Suite result: ok. 10 passed; 0 failed; 0 skipped; finished in 367.08ms (30.62ms CPU time)
+
+Ran 5 tests for test/WorkspaceReceiver.invariants.t.sol:WorkspaceReceiverInvariantsTest
+[PASS] invariant_CollectionBalanceNeverDecreases() (runs: 128, calls: 8192, reverts: 0)
+
+╭----------+------------+-------+---------+----------╮
+| Contract | Selector   | Calls | Reverts | Discards |
++====================================================+
+| Handler  | deposit    | 2678  | 0       | 0        |
+|----------+------------+-------+---------+----------|
+| Handler  | sweepAs    | 2786  | 0       | 0        |
+|----------+------------+-------+---------+----------|
+| Handler  | sweepEmpty | 2728  | 0       | 0        |
+╰----------+------------+-------+---------+----------╯
+
+[PASS] invariant_DestinationIsImmutable() (runs: 128, calls: 8192, reverts: 0)
+
+╭----------+------------+-------+---------+----------╮
+| Contract | Selector   | Calls | Reverts | Discards |
++====================================================+
+| Handler  | deposit    | 2678  | 0       | 0        |
+|----------+------------+-------+---------+----------|
+| Handler  | sweepAs    | 2786  | 0       | 0        |
+|----------+------------+-------+---------+----------|
+| Handler  | sweepEmpty | 2728  | 0       | 0        |
+╰----------+------------+-------+---------+----------╯
+
+[PASS] invariant_NoValueIsEverCreatedOrDestroyed() (runs: 128, calls: 8192, reverts: 0)
+
+╭----------+------------+-------+---------+----------╮
+| Contract | Selector   | Calls | Reverts | Discards |
++====================================================+
+| Handler  | deposit    | 2678  | 0       | 0        |
+|----------+------------+-------+---------+----------|
+| Handler  | sweepAs    | 2786  | 0       | 0        |
+|----------+------------+-------+---------+----------|
+| Handler  | sweepEmpty | 2728  | 0       | 0        |
+╰----------+------------+-------+---------+----------╯
+
+[PASS] invariant_NobodyButCollectionEverReceivesAnything() (runs: 128, calls: 8192, reverts: 0)
+
+╭----------+------------+-------+---------+----------╮
+| Contract | Selector   | Calls | Reverts | Discards |
++====================================================+
+| Handler  | deposit    | 2678  | 0       | 0        |
+|----------+------------+-------+---------+----------|
+| Handler  | sweepAs    | 2786  | 0       | 0        |
+|----------+------------+-------+---------+----------|
+| Handler  | sweepEmpty | 2728  | 0       | 0        |
+╰----------+------------+-------+---------+----------╯
+
+[PASS] invariant_ReceiverHoldsNoEther() (runs: 128, calls: 8192, reverts: 0)
+
+╭----------+------------+-------+---------+----------╮
+| Contract | Selector   | Calls | Reverts | Discards |
++====================================================+
+| Handler  | deposit    | 2678  | 0       | 0        |
+|----------+------------+-------+---------+----------|
+| Handler  | sweepAs    | 2786  | 0       | 0        |
+|----------+------------+-------+---------+----------|
+| Handler  | sweepEmpty | 2728  | 0       | 0        |
+╰----------+------------+-------+---------+----------╯
+
+Suite result: ok. 5 passed; 0 failed; 0 skipped; finished in 370.48ms (1.69s CPU time)
+
+Ran 4 test suites in 371.35ms (1.00s CPU time): 28 tests passed, 0 failed, 1 skipped (29 total tests)
+
+> nx run @surplus/contracts.migration:test
+
+> forge test
+
+No files changed, compilation skipped
+
+Ran 3 tests for test/regressions/PlainTransferRescue.t.sol:PlainTransferRescueTest
+[PASS] test_P6_PlainTransferIsRescuableButDepositsAreNot() (gas: 3156013)
+[PASS] test_RescueNeverReachesDepositsInAnyPhase() (gas: 3274015)
+[PASS] test_RevertIf_RescueByOutsider() (gas: 2995156)
+Suite result: ok. 3 passed; 0 failed; 0 skipped; finished in 2.31ms (3.90ms CPU time)
+
+Ran 6 tests for test/regressions/LedgerFreeze.t.sol:LedgerFreezeTest
+[PASS] test_CommitDeadlineIsHardForTheSafe() (gas: 3114048)
+[PASS] test_P1_WithdrawalAfterDepositDeadlineIsRejected() (gas: 3320488)
+[PASS] test_P1b_TimeoutPathPaysEachDepositorExactlyOnce() (gas: 3338060)
+[PASS] test_P2_OneWeiWithdrawalCannotBrickCommit() (gas: 3228178)
+[PASS] test_P7_PreCommitTimeoutRefundsEveryDepositor() (gas: 3262069)
+[PASS] test_WithdrawalBeforeTheDeadlineStillWorks() (gas: 3158084)
+Suite result: ok. 6 passed; 0 failed; 0 skipped; finished in 2.44ms (9.76ms CPU time)
+
+Ran 4 tests for test/regressions/OracleReview.t.sol:OracleReviewTest
+[PASS] test_ORACLE_migration_ActivationAfterTheExecutionDeadline() (gas: 3384636)
+[PASS] test_ORACLE_migration_ClaimPeriodThatOverflowsBricksActivation() (gas: 1034484)
+[PASS] test_ORACLE_migration_ExecutionWindowThatOverflowsIsRejected() (gas: 1035967)
+[PASS] test_ORACLE_migration_PayoutsNeverExceedTheCommittedTotal() (gas: 3360751)
+Suite result: ok. 4 passed; 0 failed; 0 skipped; finished in 2.22ms (5.33ms CPU time)
+
+Ran 3 tests for test/regressions/LedgerRefunds.t.sol:LedgerRefundsTest
+[PASS] test_P3_TimeoutRefundsPayTheLedgerNotTheRoot() (gas: 6621322)
+[PASS] test_P4_BonusRootCannotTurnRefundsIntoABankRun() (gas: 3333257)
+[PASS] test_RefundIsOncePerCredit() (gas: 3160227)
+Suite result: ok. 3 passed; 0 failed; 0 skipped; finished in 2.44ms (4.86ms CPU time)
+
+Ran 4 tests for test/regressions/ClaimExpiry.t.sol:ClaimExpiryTest
+[PASS] test_BackingPostedBeforeATimeoutIsRecoverable() (gas: 3293401)
+[PASS] test_P5_ExpiryModeLetsTheSafeRecoverLeftovers() (gas: 3433824)
+[PASS] test_P5_NoExpiryModeFreezesNothing() (gas: 3462866)
+[PASS] test_SweepNeverTakesOutstandingEntitlementsBeforeExpiry() (gas: 3427482)
+Suite result: ok. 4 passed; 0 failed; 0 skipped; finished in 2.46ms (6.45ms CPU time)
+
+Ran 3 tests for test/E2EMultisig.t.sol:E2EMultisigTest
+[PASS] test_E2E_DeployerEOALockedOut() (gas: 30604)
+[PASS] test_E2E_FullLifecycleUnderMultisig() (gas: 614179)
+[PASS] test_E2E_SingleSignerCannotAct() (gas: 37379)
+Suite result: ok. 3 passed; 0 failed; 0 skipped; finished in 27.82ms (1.49ms CPU time)
+
+Ran 59 tests for test/MigrationVault.t.sol:MigrationVaultTest
+[PASS] test_ActivateRecordsWindow() (gas: 167119)
+[PASS] test_ClaimByBeneficiaryThemself() (gas: 387702)
+[PASS] test_ClaimPaysLeafBeneficiaryNotCaller() (gas: 395437)
+[PASS] test_CommitRootFreezesLedgerAndMovesPhase() (gas: 182040)
+[PASS] test_DeploymentConfigIsImmutable() (gas: 19614)
+[PASS] test_DepositCreditsSender() (gas: 109136)
+[PASS] test_ExpireExecutionOpensLedgerRefunds() (gas: 284762)
+[PASS] test_ExpiredClaimWindowSweepsTheUnclaimedToTheOwner() (gas: 304480)
+[PASS] test_FullLifecycle() (gas: 416970)
+[PASS] test_ManyHoldersAllClaim() (gas: 8461299)
+[PASS] test_ProRataNetOfWithdrawals() (gas: 2429075)
+[PASS] test_ProRataPaysFormulaWithoutProof() (gas: 2414671)
+[PASS] test_ProRataRateDiscount() (gas: 2377572)
+[PASS] test_ProRataRoundsDownPerAccount() (gas: 2312443)
+[PASS] test_ReceiptsArePerAccount() (gas: 218892)
+[PASS] test_ReceiptsCarryCumulativesAcrossSequence() (gas: 205245)
+[PASS] test_RepeatedDepositsAggregate() (gas: 125190)
+[PASS] test_RevertIf_AcceptByWrongParty() (gas: 39560)
+[PASS] test_RevertIf_ActivateUnderfunded() (gas: 122237)
+[PASS] test_RevertIf_ClaimAfterWindowEnds() (gas: 314603)
+[PASS] test_RevertIf_ClaimBeforeActivation() (gas: 182817)
+[PASS] test_RevertIf_ClaimTwice() (gas: 391241)
+[PASS] test_RevertIf_ClaimTwice_HighIndex() (gas: 391452)
+[PASS] test_RevertIf_ClaimWrongBeneficiary() (gas: 337572)
+[PASS] test_RevertIf_CommitBeforeDeadline() (gas: 107446)
+[PASS] test_RevertIf_CommitByNonOwner() (gas: 13659)
+[PASS] test_RevertIf_CommitDeadlineNotAfterDepositDeadline() (gas: 46283)
+[PASS] test_RevertIf_CommitTotalOffFormula() (gas: 2147639)
+[PASS] test_RevertIf_DepositAfterCommitOrCancel() (gas: 115376)
+[PASS] test_RevertIf_DepositAfterDeadline() (gas: 43364)
+[PASS] test_RevertIf_DepositDeadlineNotInFuture() (gas: 46268)
+[PASS] test_RevertIf_DepositZero() (gas: 13130)
+[PASS] test_RevertIf_ExpireBeforeWindowEnds() (gas: 230507)
+[PASS] test_RevertIf_InvalidProof() (gas: 335505)
+[PASS] test_RevertIf_OwnerFunctionsByOutsider() (gas: 13151)
+[PASS] test_RevertIf_ProRataAfterWindowEnd() (gas: 2303501)
+[PASS] test_RevertIf_ProRataBeforeActivation() (gas: 2221438)
+[PASS] test_RevertIf_ProRataClaimWhenDisabled() (gas: 309004)
+[PASS] test_RevertIf_ProRataEnabledWithZeroRate() (gas: 46351)
+[PASS] test_RevertIf_ProRataThenRootClaim() (gas: 2404014)
+[PASS] test_RevertIf_ProRataThenTimeoutRefund() (gas: 2380577)
+[PASS] test_RevertIf_ProRataTwice() (gas: 2378572)
+[PASS] test_RevertIf_ProRataWithNoCredit() (gas: 2311891)
+[PASS] test_RevertIf_RefundTwice() (gas: 280757)
+[PASS] test_RevertIf_RefundWhileCommitted() (gas: 225662)
+[PASS] test_RevertIf_RootClaimThenProRata() (gas: 2406994)
+[PASS] test_RevertIf_SettlementWithdrawalBeforeActivation() (gas: 85446)
+[PASS] test_RevertIf_WithdrawAfterRootCommitted() (gas: 179845)
+[PASS] test_RevertIf_WithdrawMoreThanCredited() (gas: 108352)
+[PASS] test_RevertIf_ZeroTokenOrOwner() (gas: 83740)
+[PASS] test_SettlementWithdrawalOnlyAfterActivation() (gas: 318766)
+[PASS] test_SweepPaysResidualToOwner() (gas: 418429)
+[PASS] test_SweepWhileWindowOpenTakesOnlyTheExcess() (gas: 330387)
+[PASS] test_TimeoutRefundsAreBackedByConstruction() (gas: 294169)
+[PASS] test_TwoStepOwnershipTransfer() (gas: 31348)
+[PASS] test_VerifySettlementFlagsDrainedBacking() (gas: 318083)
+[PASS] test_VerifySettlementTracksPhases() (gas: 414483)
+[PASS] test_WithdrawAgainAfterCancel() (gas: 143032)
+[PASS] test_WithdrawMyDepositWhileOpen() (gas: 162162)
+Suite result: ok. 59 passed; 0 failed; 0 skipped; finished in 958.37ms (33.39ms CPU time)
+
+Ran 7 tests for test/MigrationVaultInvariant.t.sol:MigrationVaultInvariantTest
+[PASS] invariant_ConservationV1() (runs: 128, calls: 8192, reverts: 0)
+
+╭------------------+-----------------------+-------+---------+----------╮
+| Contract         | Selector              | Calls | Reverts | Discards |
++=======================================================================+
+| MigrationHandler | activateClaims        | 651   | 0       | 0        |
+|------------------+-----------------------+-------+---------+----------|
+| MigrationHandler | claim                 | 598   | 0       | 0        |
+|------------------+-----------------------+-------+---------+----------|
+| MigrationHandler | commitRoot            | 623   | 0       | 0        |
+|------------------+-----------------------+-------+---------+----------|
+| MigrationHandler | deposit               | 631   | 0       | 0        |
+|------------------+-----------------------+-------+---------+----------|
+| MigrationHandler | expireClaims          | 649   | 0       | 0        |
+|------------------+-----------------------+-------+---------+----------|
+| MigrationHandler | expireCommit          | 621   | 0       | 0        |
+|------------------+-----------------------+-------+---------+----------|
+| MigrationHandler | expireExecution       | 656   | 0       | 0        |
+|------------------+-----------------------+-------+---------+----------|
+| MigrationHandler | fundV2                | 659   | 0       | 0        |
+|------------------+-----------------------+-------+---------+----------|
+| MigrationHandler | refund                | 616   | 0       | 0        |
+|------------------+-----------------------+-------+---------+----------|
+| MigrationHandler | sweepInWindow         | 644   | 0       | 0        |
+|------------------+-----------------------+-------+---------+----------|
+| MigrationHandler | sweepResidual         | 628   | 0       | 0        |
+|------------------+-----------------------+-------+---------+----------|
+| MigrationHandler | withdrawForSettlement | 640   | 0       | 0        |
+|------------------+-----------------------+-------+---------+----------|
+| MigrationHandler | withdrawLedger        | 576   | 0       | 0        |
+╰------------------+-----------------------+-------+---------+----------╯
+
+[PASS] invariant_ConservationV2() (runs: 128, calls: 8192, reverts: 0)
+
+╭------------------+-----------------------+-------+---------+----------╮
+| Contract         | Selector              | Calls | Reverts | Discards |
++=======================================================================+
+| MigrationHandler | activateClaims        | 651   | 0       | 0        |
+|------------------+-----------------------+-------+---------+----------|
+| MigrationHandler | claim                 | 598   | 0       | 0        |
+|------------------+-----------------------+-------+---------+----------|
+| MigrationHandler | commitRoot            | 623   | 0       | 0        |
+|------------------+-----------------------+-------+---------+----------|
+| MigrationHandler | deposit               | 631   | 0       | 0        |
+|------------------+-----------------------+-------+---------+----------|
+| MigrationHandler | expireClaims          | 649   | 0       | 0        |
+|------------------+-----------------------+-------+---------+----------|
+| MigrationHandler | expireCommit          | 621   | 0       | 0        |
+|------------------+-----------------------+-------+---------+----------|
+| MigrationHandler | expireExecution       | 656   | 0       | 0        |
+|------------------+-----------------------+-------+---------+----------|
+| MigrationHandler | fundV2                | 659   | 0       | 0        |
+|------------------+-----------------------+-------+---------+----------|
+| MigrationHandler | refund                | 616   | 0       | 0        |
+|------------------+-----------------------+-------+---------+----------|
+| MigrationHandler | sweepInWindow         | 644   | 0       | 0        |
+|------------------+-----------------------+-------+---------+----------|
+| MigrationHandler | sweepResidual         | 628   | 0       | 0        |
+|------------------+-----------------------+-------+---------+----------|
+| MigrationHandler | withdrawForSettlement | 640   | 0       | 0        |
+|------------------+-----------------------+-------+---------+----------|
+| MigrationHandler | withdrawLedger        | 576   | 0       | 0        |
+╰------------------+-----------------------+-------+---------+----------╯
+
+[PASS] invariant_LedgerNeverOverdrawn() (runs: 128, calls: 8192, reverts: 0)
+
+╭------------------+-----------------------+-------+---------+----------╮
+| Contract         | Selector              | Calls | Reverts | Discards |
++=======================================================================+
+| MigrationHandler | activateClaims        | 651   | 0       | 0        |
+|------------------+-----------------------+-------+---------+----------|
+| MigrationHandler | claim                 | 598   | 0       | 0        |
+|------------------+-----------------------+-------+---------+----------|
+| MigrationHandler | commitRoot            | 623   | 0       | 0        |
+|------------------+-----------------------+-------+---------+----------|
+| MigrationHandler | deposit               | 631   | 0       | 0        |
+|------------------+-----------------------+-------+---------+----------|
+| MigrationHandler | expireClaims          | 649   | 0       | 0        |
+|------------------+-----------------------+-------+---------+----------|
+| MigrationHandler | expireCommit          | 621   | 0       | 0        |
+|------------------+-----------------------+-------+---------+----------|
+| MigrationHandler | expireExecution       | 656   | 0       | 0        |
+|------------------+-----------------------+-------+---------+----------|
+| MigrationHandler | fundV2                | 659   | 0       | 0        |
+|------------------+-----------------------+-------+---------+----------|
+| MigrationHandler | refund                | 616   | 0       | 0        |
+|------------------+-----------------------+-------+---------+----------|
+| MigrationHandler | sweepInWindow         | 644   | 0       | 0        |
+|------------------+-----------------------+-------+---------+----------|
+| MigrationHandler | sweepResidual         | 628   | 0       | 0        |
+|------------------+-----------------------+-------+---------+----------|
+| MigrationHandler | withdrawForSettlement | 640   | 0       | 0        |
+|------------------+-----------------------+-------+---------+----------|
+| MigrationHandler | withdrawLedger        | 576   | 0       | 0        |
+╰------------------+-----------------------+-------+---------+----------╯
+
+[PASS] invariant_NoIndexEverPaidTwice() (runs: 128, calls: 8192, reverts: 0)
+
+╭------------------+-----------------------+-------+---------+----------╮
+| Contract         | Selector              | Calls | Reverts | Discards |
++=======================================================================+
+| MigrationHandler | activateClaims        | 651   | 0       | 0        |
+|------------------+-----------------------+-------+---------+----------|
+| MigrationHandler | claim                 | 598   | 0       | 0        |
+|------------------+-----------------------+-------+---------+----------|
+| MigrationHandler | commitRoot            | 623   | 0       | 0        |
+|------------------+-----------------------+-------+---------+----------|
+| MigrationHandler | deposit               | 631   | 0       | 0        |
+|------------------+-----------------------+-------+---------+----------|
+| MigrationHandler | expireClaims          | 649   | 0       | 0        |
+|------------------+-----------------------+-------+---------+----------|
+| MigrationHandler | expireCommit          | 621   | 0       | 0        |
+|------------------+-----------------------+-------+---------+----------|
+| MigrationHandler | expireExecution       | 656   | 0       | 0        |
+|------------------+-----------------------+-------+---------+----------|
+| MigrationHandler | fundV2                | 659   | 0       | 0        |
+|------------------+-----------------------+-------+---------+----------|
+| MigrationHandler | refund                | 616   | 0       | 0        |
+|------------------+-----------------------+-------+---------+----------|
+| MigrationHandler | sweepInWindow         | 644   | 0       | 0        |
+|------------------+-----------------------+-------+---------+----------|
+| MigrationHandler | sweepResidual         | 628   | 0       | 0        |
+|------------------+-----------------------+-------+---------+----------|
+| MigrationHandler | withdrawForSettlement | 640   | 0       | 0        |
+|------------------+-----------------------+-------+---------+----------|
+| MigrationHandler | withdrawLedger        | 576   | 0       | 0        |
+╰------------------+-----------------------+-------+---------+----------╯
+
+[PASS] invariant_OpenEntitlementsStayBacked() (runs: 128, calls: 8192, reverts: 0)
+
+╭------------------+-----------------------+-------+---------+----------╮
+| Contract         | Selector              | Calls | Reverts | Discards |
++=======================================================================+
+| MigrationHandler | activateClaims        | 651   | 0       | 0        |
+|------------------+-----------------------+-------+---------+----------|
+| MigrationHandler | claim                 | 598   | 0       | 0        |
+|------------------+-----------------------+-------+---------+----------|
+| MigrationHandler | commitRoot            | 623   | 0       | 0        |
+|------------------+-----------------------+-------+---------+----------|
+| MigrationHandler | deposit               | 631   | 0       | 0        |
+|------------------+-----------------------+-------+---------+----------|
+| MigrationHandler | expireClaims          | 649   | 0       | 0        |
+|------------------+-----------------------+-------+---------+----------|
+| MigrationHandler | expireCommit          | 621   | 0       | 0        |
+|------------------+-----------------------+-------+---------+----------|
+| MigrationHandler | expireExecution       | 656   | 0       | 0        |
+|------------------+-----------------------+-------+---------+----------|
+| MigrationHandler | fundV2                | 659   | 0       | 0        |
+|------------------+-----------------------+-------+---------+----------|
+| MigrationHandler | refund                | 616   | 0       | 0        |
+|------------------+-----------------------+-------+---------+----------|
+| MigrationHandler | sweepInWindow         | 644   | 0       | 0        |
+|------------------+-----------------------+-------+---------+----------|
+| MigrationHandler | sweepResidual         | 628   | 0       | 0        |
+|------------------+-----------------------+-------+---------+----------|
+| MigrationHandler | withdrawForSettlement | 640   | 0       | 0        |
+|------------------+-----------------------+-------+---------+----------|
+| MigrationHandler | withdrawLedger        | 576   | 0       | 0        |
+╰------------------+-----------------------+-------+---------+----------╯
+
+[PASS] invariant_OrderingHolds() (runs: 128, calls: 8192, reverts: 0)
+
+╭------------------+-----------------------+-------+---------+----------╮
+| Contract         | Selector              | Calls | Reverts | Discards |
++=======================================================================+
+| MigrationHandler | activateClaims        | 651   | 0       | 0        |
+|------------------+-----------------------+-------+---------+----------|
+| MigrationHandler | claim                 | 598   | 0       | 0        |
+|------------------+-----------------------+-------+---------+----------|
+| MigrationHandler | commitRoot            | 623   | 0       | 0        |
+|------------------+-----------------------+-------+---------+----------|
+| MigrationHandler | deposit               | 631   | 0       | 0        |
+|------------------+-----------------------+-------+---------+----------|
+| MigrationHandler | expireClaims          | 649   | 0       | 0        |
+|------------------+-----------------------+-------+---------+----------|
+| MigrationHandler | expireCommit          | 621   | 0       | 0        |
+|------------------+-----------------------+-------+---------+----------|
+| MigrationHandler | expireExecution       | 656   | 0       | 0        |
+|------------------+-----------------------+-------+---------+----------|
+| MigrationHandler | fundV2                | 659   | 0       | 0        |
+|------------------+-----------------------+-------+---------+----------|
+| MigrationHandler | refund                | 616   | 0       | 0        |
+|------------------+-----------------------+-------+---------+----------|
+| MigrationHandler | sweepInWindow         | 644   | 0       | 0        |
+|------------------+-----------------------+-------+---------+----------|
+| MigrationHandler | sweepResidual         | 628   | 0       | 0        |
+|------------------+-----------------------+-------+---------+----------|
+| MigrationHandler | withdrawForSettlement | 640   | 0       | 0        |
+|------------------+-----------------------+-------+---------+----------|
+| MigrationHandler | withdrawLedger        | 576   | 0       | 0        |
+╰------------------+-----------------------+-------+---------+----------╯
+
+[PASS] invariant_RootIsImmutableAfterCommit() (runs: 128, calls: 8192, reverts: 0)
+
+╭------------------+-----------------------+-------+---------+----------╮
+| Contract         | Selector              | Calls | Reverts | Discards |
++=======================================================================+
+| MigrationHandler | activateClaims        | 651   | 0       | 0        |
+|------------------+-----------------------+-------+---------+----------|
+| MigrationHandler | claim                 | 598   | 0       | 0        |
+|------------------+-----------------------+-------+---------+----------|
+| MigrationHandler | commitRoot            | 623   | 0       | 0        |
+|------------------+-----------------------+-------+---------+----------|
+| MigrationHandler | deposit               | 631   | 0       | 0        |
+|------------------+-----------------------+-------+---------+----------|
+| MigrationHandler | expireClaims          | 649   | 0       | 0        |
+|------------------+-----------------------+-------+---------+----------|
+| MigrationHandler | expireCommit          | 621   | 0       | 0        |
+|------------------+-----------------------+-------+---------+----------|
+| MigrationHandler | expireExecution       | 656   | 0       | 0        |
+|------------------+-----------------------+-------+---------+----------|
+| MigrationHandler | fundV2                | 659   | 0       | 0        |
+|------------------+-----------------------+-------+---------+----------|
+| MigrationHandler | refund                | 616   | 0       | 0        |
+|------------------+-----------------------+-------+---------+----------|
+| MigrationHandler | sweepInWindow         | 644   | 0       | 0        |
+|------------------+-----------------------+-------+---------+----------|
+| MigrationHandler | sweepResidual         | 628   | 0       | 0        |
+|------------------+-----------------------+-------+---------+----------|
+| MigrationHandler | withdrawForSettlement | 640   | 0       | 0        |
+|------------------+-----------------------+-------+---------+----------|
+| MigrationHandler | withdrawLedger        | 576   | 0       | 0        |
+╰------------------+-----------------------+-------+---------+----------╯
+
+Suite result: ok. 7 passed; 0 failed; 0 skipped; finished in 3.30s (7.72s CPU time)
+
+Ran 7 tests for test/MigrationVaultInvariant.t.sol:MigrationVaultNoExpiryInvariantTest
+[PASS] invariant_ConservationV1() (runs: 128, calls: 8192, reverts: 0)
+
+╭------------------+-----------------------+-------+---------+----------╮
+| Contract         | Selector              | Calls | Reverts | Discards |
++=======================================================================+
+| MigrationHandler | activateClaims        | 651   | 0       | 0        |
+|------------------+-----------------------+-------+---------+----------|
+| MigrationHandler | claim                 | 598   | 0       | 0        |
+|------------------+-----------------------+-------+---------+----------|
+| MigrationHandler | commitRoot            | 623   | 0       | 0        |
+|------------------+-----------------------+-------+---------+----------|
+| MigrationHandler | deposit               | 631   | 0       | 0        |
+|------------------+-----------------------+-------+---------+----------|
+| MigrationHandler | expireClaims          | 649   | 0       | 0        |
+|------------------+-----------------------+-------+---------+----------|
+| MigrationHandler | expireCommit          | 621   | 0       | 0        |
+|------------------+-----------------------+-------+---------+----------|
+| MigrationHandler | expireExecution       | 656   | 0       | 0        |
+|------------------+-----------------------+-------+---------+----------|
+| MigrationHandler | fundV2                | 659   | 0       | 0        |
+|------------------+-----------------------+-------+---------+----------|
+| MigrationHandler | refund                | 616   | 0       | 0        |
+|------------------+-----------------------+-------+---------+----------|
+| MigrationHandler | sweepInWindow         | 644   | 0       | 0        |
+|------------------+-----------------------+-------+---------+----------|
+| MigrationHandler | sweepResidual         | 628   | 0       | 0        |
+|------------------+-----------------------+-------+---------+----------|
+| MigrationHandler | withdrawForSettlement | 640   | 0       | 0        |
+|------------------+-----------------------+-------+---------+----------|
+| MigrationHandler | withdrawLedger        | 576   | 0       | 0        |
+╰------------------+-----------------------+-------+---------+----------╯
+
+[PASS] invariant_ConservationV2() (runs: 128, calls: 8192, reverts: 0)
+
+╭------------------+-----------------------+-------+---------+----------╮
+| Contract         | Selector              | Calls | Reverts | Discards |
++=======================================================================+
+| MigrationHandler | activateClaims        | 651   | 0       | 0        |
+|------------------+-----------------------+-------+---------+----------|
+| MigrationHandler | claim                 | 598   | 0       | 0        |
+|------------------+-----------------------+-------+---------+----------|
+| MigrationHandler | commitRoot            | 623   | 0       | 0        |
+|------------------+-----------------------+-------+---------+----------|
+| MigrationHandler | deposit               | 631   | 0       | 0        |
+|------------------+-----------------------+-------+---------+----------|
+| MigrationHandler | expireClaims          | 649   | 0       | 0        |
+|------------------+-----------------------+-------+---------+----------|
+| MigrationHandler | expireCommit          | 621   | 0       | 0        |
+|------------------+-----------------------+-------+---------+----------|
+| MigrationHandler | expireExecution       | 656   | 0       | 0        |
+|------------------+-----------------------+-------+---------+----------|
+| MigrationHandler | fundV2                | 659   | 0       | 0        |
+|------------------+-----------------------+-------+---------+----------|
+| MigrationHandler | refund                | 616   | 0       | 0        |
+|------------------+-----------------------+-------+---------+----------|
+| MigrationHandler | sweepInWindow         | 644   | 0       | 0        |
+|------------------+-----------------------+-------+---------+----------|
+| MigrationHandler | sweepResidual         | 628   | 0       | 0        |
+|------------------+-----------------------+-------+---------+----------|
+| MigrationHandler | withdrawForSettlement | 640   | 0       | 0        |
+|------------------+-----------------------+-------+---------+----------|
+| MigrationHandler | withdrawLedger        | 576   | 0       | 0        |
+╰------------------+-----------------------+-------+---------+----------╯
+
+[PASS] invariant_LedgerNeverOverdrawn() (runs: 128, calls: 8192, reverts: 0)
+
+╭------------------+-----------------------+-------+---------+----------╮
+| Contract         | Selector              | Calls | Reverts | Discards |
++=======================================================================+
+| MigrationHandler | activateClaims        | 651   | 0       | 0        |
+|------------------+-----------------------+-------+---------+----------|
+| MigrationHandler | claim                 | 598   | 0       | 0        |
+|------------------+-----------------------+-------+---------+----------|
+| MigrationHandler | commitRoot            | 623   | 0       | 0        |
+|------------------+-----------------------+-------+---------+----------|
+| MigrationHandler | deposit               | 631   | 0       | 0        |
+|------------------+-----------------------+-------+---------+----------|
+| MigrationHandler | expireClaims          | 649   | 0       | 0        |
+|------------------+-----------------------+-------+---------+----------|
+| MigrationHandler | expireCommit          | 621   | 0       | 0        |
+|------------------+-----------------------+-------+---------+----------|
+| MigrationHandler | expireExecution       | 656   | 0       | 0        |
+|------------------+-----------------------+-------+---------+----------|
+| MigrationHandler | fundV2                | 659   | 0       | 0        |
+|------------------+-----------------------+-------+---------+----------|
+| MigrationHandler | refund                | 616   | 0       | 0        |
+|------------------+-----------------------+-------+---------+----------|
+| MigrationHandler | sweepInWindow         | 644   | 0       | 0        |
+|------------------+-----------------------+-------+---------+----------|
+| MigrationHandler | sweepResidual         | 628   | 0       | 0        |
+|------------------+-----------------------+-------+---------+----------|
+| MigrationHandler | withdrawForSettlement | 640   | 0       | 0        |
+|------------------+-----------------------+-------+---------+----------|
+| MigrationHandler | withdrawLedger        | 576   | 0       | 0        |
+╰------------------+-----------------------+-------+---------+----------╯
+
+[PASS] invariant_NoIndexEverPaidTwice() (runs: 128, calls: 8192, reverts: 0)
+
+╭------------------+-----------------------+-------+---------+----------╮
+| Contract         | Selector              | Calls | Reverts | Discards |
++=======================================================================+
+| MigrationHandler | activateClaims        | 651   | 0       | 0        |
+|------------------+-----------------------+-------+---------+----------|
+| MigrationHandler | claim                 | 598   | 0       | 0        |
+|------------------+-----------------------+-------+---------+----------|
+| MigrationHandler | commitRoot            | 623   | 0       | 0        |
+|------------------+-----------------------+-------+---------+----------|
+| MigrationHandler | deposit               | 631   | 0       | 0        |
+|------------------+-----------------------+-------+---------+----------|
+| MigrationHandler | expireClaims          | 649   | 0       | 0        |
+|------------------+-----------------------+-------+---------+----------|
+| MigrationHandler | expireCommit          | 621   | 0       | 0        |
+|------------------+-----------------------+-------+---------+----------|
+| MigrationHandler | expireExecution       | 656   | 0       | 0        |
+|------------------+-----------------------+-------+---------+----------|
+| MigrationHandler | fundV2                | 659   | 0       | 0        |
+|------------------+-----------------------+-------+---------+----------|
+| MigrationHandler | refund                | 616   | 0       | 0        |
+|------------------+-----------------------+-------+---------+----------|
+| MigrationHandler | sweepInWindow         | 644   | 0       | 0        |
+|------------------+-----------------------+-------+---------+----------|
+| MigrationHandler | sweepResidual         | 628   | 0       | 0        |
+|------------------+-----------------------+-------+---------+----------|
+| MigrationHandler | withdrawForSettlement | 640   | 0       | 0        |
+|------------------+-----------------------+-------+---------+----------|
+| MigrationHandler | withdrawLedger        | 576   | 0       | 0        |
+╰------------------+-----------------------+-------+---------+----------╯
+
+[PASS] invariant_OpenEntitlementsStayBacked() (runs: 128, calls: 8192, reverts: 0)
+
+╭------------------+-----------------------+-------+---------+----------╮
+| Contract         | Selector              | Calls | Reverts | Discards |
++=======================================================================+
+| MigrationHandler | activateClaims        | 651   | 0       | 0        |
+|------------------+-----------------------+-------+---------+----------|
+| MigrationHandler | claim                 | 598   | 0       | 0        |
+|------------------+-----------------------+-------+---------+----------|
+| MigrationHandler | commitRoot            | 623   | 0       | 0        |
+|------------------+-----------------------+-------+---------+----------|
+| MigrationHandler | deposit               | 631   | 0       | 0        |
+|------------------+-----------------------+-------+---------+----------|
+| MigrationHandler | expireClaims          | 649   | 0       | 0        |
+|------------------+-----------------------+-------+---------+----------|
+| MigrationHandler | expireCommit          | 621   | 0       | 0        |
+|------------------+-----------------------+-------+---------+----------|
+| MigrationHandler | expireExecution       | 656   | 0       | 0        |
+|------------------+-----------------------+-------+---------+----------|
+| MigrationHandler | fundV2                | 659   | 0       | 0        |
+|------------------+-----------------------+-------+---------+----------|
+| MigrationHandler | refund                | 616   | 0       | 0        |
+|------------------+-----------------------+-------+---------+----------|
+| MigrationHandler | sweepInWindow         | 644   | 0       | 0        |
+|------------------+-----------------------+-------+---------+----------|
+| MigrationHandler | sweepResidual         | 628   | 0       | 0        |
+|------------------+-----------------------+-------+---------+----------|
+| MigrationHandler | withdrawForSettlement | 640   | 0       | 0        |
+|------------------+-----------------------+-------+---------+----------|
+| MigrationHandler | withdrawLedger        | 576   | 0       | 0        |
+╰------------------+-----------------------+-------+---------+----------╯
+
+[PASS] invariant_OrderingHolds() (runs: 128, calls: 8192, reverts: 0)
+
+╭------------------+-----------------------+-------+---------+----------╮
+| Contract         | Selector              | Calls | Reverts | Discards |
++=======================================================================+
+| MigrationHandler | activateClaims        | 651   | 0       | 0        |
+|------------------+-----------------------+-------+---------+----------|
+| MigrationHandler | claim                 | 598   | 0       | 0        |
+|------------------+-----------------------+-------+---------+----------|
+| MigrationHandler | commitRoot            | 623   | 0       | 0        |
+|------------------+-----------------------+-------+---------+----------|
+| MigrationHandler | deposit               | 631   | 0       | 0        |
+|------------------+-----------------------+-------+---------+----------|
+| MigrationHandler | expireClaims          | 649   | 0       | 0        |
+|------------------+-----------------------+-------+---------+----------|
+| MigrationHandler | expireCommit          | 621   | 0       | 0        |
+|------------------+-----------------------+-------+---------+----------|
+| MigrationHandler | expireExecution       | 656   | 0       | 0        |
+|------------------+-----------------------+-------+---------+----------|
+| MigrationHandler | fundV2                | 659   | 0       | 0        |
+|------------------+-----------------------+-------+---------+----------|
+| MigrationHandler | refund                | 616   | 0       | 0        |
+|------------------+-----------------------+-------+---------+----------|
+| MigrationHandler | sweepInWindow         | 644   | 0       | 0        |
+|------------------+-----------------------+-------+---------+----------|
+| MigrationHandler | sweepResidual         | 628   | 0       | 0        |
+|------------------+-----------------------+-------+---------+----------|
+| MigrationHandler | withdrawForSettlement | 640   | 0       | 0        |
+|------------------+-----------------------+-------+---------+----------|
+| MigrationHandler | withdrawLedger        | 576   | 0       | 0        |
+╰------------------+-----------------------+-------+---------+----------╯
+
+[PASS] invariant_RootIsImmutableAfterCommit() (runs: 128, calls: 8192, reverts: 0)
+
+╭------------------+-----------------------+-------+---------+----------╮
+| Contract         | Selector              | Calls | Reverts | Discards |
++=======================================================================+
+| MigrationHandler | activateClaims        | 651   | 0       | 0        |
+|------------------+-----------------------+-------+---------+----------|
+| MigrationHandler | claim                 | 598   | 0       | 0        |
+|------------------+-----------------------+-------+---------+----------|
+| MigrationHandler | commitRoot            | 623   | 0       | 0        |
+|------------------+-----------------------+-------+---------+----------|
+| MigrationHandler | deposit               | 631   | 0       | 0        |
+|------------------+-----------------------+-------+---------+----------|
+| MigrationHandler | expireClaims          | 649   | 0       | 0        |
+|------------------+-----------------------+-------+---------+----------|
+| MigrationHandler | expireCommit          | 621   | 0       | 0        |
+|------------------+-----------------------+-------+---------+----------|
+| MigrationHandler | expireExecution       | 656   | 0       | 0        |
+|------------------+-----------------------+-------+---------+----------|
+| MigrationHandler | fundV2                | 659   | 0       | 0        |
+|------------------+-----------------------+-------+---------+----------|
+| MigrationHandler | refund                | 616   | 0       | 0        |
+|------------------+-----------------------+-------+---------+----------|
+| MigrationHandler | sweepInWindow         | 644   | 0       | 0        |
+|------------------+-----------------------+-------+---------+----------|
+| MigrationHandler | sweepResidual         | 628   | 0       | 0        |
+|------------------+-----------------------+-------+---------+----------|
+| MigrationHandler | withdrawForSettlement | 640   | 0       | 0        |
+|------------------+-----------------------+-------+---------+----------|
+| MigrationHandler | withdrawLedger        | 576   | 0       | 0        |
+╰------------------+-----------------------+-------+---------+----------╯
+
+Suite result: ok. 7 passed; 0 failed; 0 skipped; finished in 3.47s (8.55s CPU time)
+
+Ran 22 tests for test/MigrationVaultInvariant.t.sol:MigrationVaultAdversarialTest
+[PASS] test_Adv_BitmapBoundaries_ClaimOnceThenLocked() (gas: 2716914)
+[PASS] test_Adv_ClaimAtExactWindowEndSucceeds() (gas: 251644)
+[PASS] test_Adv_DepositAtExactDeadlineSucceeds() (gas: 107126)
+[PASS] test_Adv_ProofIndexSwapFails() (gas: 228412)
+[PASS] test_Adv_ProofOfAAgainstBFails() (gas: 202644)
+[PASS] test_Adv_RefundPaysExactlyLedgerCredit() (gas: 467021)
+[PASS] test_Adv_RefundsPayTheLedgerAndIgnoreTheRoot() (gas: 416710)
+[PASS] test_Adv_ReusedLeafAtDifferentIndicesPaysTwice() (gas: 414829)
+[PASS] test_Adv_SiblingSubstitutionFails() (gas: 200314)
+[PASS] test_Adv_TruncatedAndExtendedProofsFail() (gas: 508242)
+[PASS] test_Finding_F1_ExpireExecutionWhileClaimsActive() (gas: 315762)
+[PASS] test_Finding_F2_ClaimWindowCanBeReopened() (gas: 177710)
+[PASS] test_Fuzz_ActivationRequiresFullBacking(uint96) (runs: 512, μ: 182809, ~: 182809)
+[PASS] test_Fuzz_ClaimAnyCallerThenAllReplaysLocked(uint16,address,uint96,address) (runs: 512, μ: 679695, ~: 679908)
+[PASS] test_Fuzz_DoubleClaimAtWordBoundaries(uint8,uint96,address) (runs: 512, μ: 587778, ~: 588349)
+[PASS] test_Fuzz_LedgerInterleavingsExact(uint96,uint96,uint96,uint96) (runs: 512, μ: 168807, ~: 184954)
+[PASS] test_PhaseMatrix_CancelledPostRoot() (gas: 343677)
+[PASS] test_PhaseMatrix_CancelledPreRoot() (gas: 193228)
+[PASS] test_PhaseMatrix_ClaimsActive() (gas: 441044)
+[PASS] test_PhaseMatrix_ClaimsExpired() (gas: 341318)
+[PASS] test_PhaseMatrix_CommittedPreActivation() (gas: 323066)
+[PASS] test_PhaseMatrix_Open() (gas: 179067)
+Suite result: ok. 22 passed; 0 failed; 0 skipped; finished in 3.47s (6.89s CPU time)
+
+Ran 10 test suites in 3.47s (11.23s CPU time): 118 tests passed, 0 failed, 0 skipped (118 total tests)
+
+> nx run @surplus/contracts.migration-launch:build
+
+> forge build --deny warnings
+
+No files changed, compilation skipped
+
+> nx run @surplus/contracts.payments:build
+
+> forge build --deny warnings
+
+No files changed, compilation skipped
+
+> nx run @surplus/contracts.migration-tools:build
+
+> forge build --deny warnings
+
+No files changed, compilation skipped
+
+> nx run @surplus/contracts.migration-tools:test
+
+> forge test
+
+No files changed, compilation skipped
+
+Ran 11 tests for test/TreeParity.t.sol:TreeParityTest
+[PASS] test_AllProofs_VerifyUnderOZ() (gas: 1625151)
+[PASS] test_Claim_SingleLeafTree() (gas: 3167771)
+[PASS] test_Claim_Succeeds_EdgeIndices() (gas: 553278)
+[PASS] test_Parity_OddSizes() (gas: 3013226)
+[PASS] test_Proofs_MatchIndependentBuilder() (gas: 8212856)
+[PASS] test_RevertIf_SiblingSubstitutedProof() (gas: 64950)
+[PASS] test_RevertIf_TamperedAmount() (gas: 64045)
+[PASS] test_RevertIf_TruncatedProof() (gas: 64800)
+[PASS] test_RevertIf_WrongAccount() (gas: 61995)
+[PASS] test_RevertIf_WrongIndex() (gas: 51799)
+[PASS] test_Root_MatchesIndependentBuilder() (gas: 224006)
+Suite result: ok. 11 passed; 0 failed; 0 skipped; finished in 13.19ms (20.60ms CPU time)
+
+Ran 1 test suite in 13.73ms (13.19ms CPU time): 11 tests passed, 0 failed, 0 skipped (11 total tests)
+
+> nx run @surplus/contracts.fee-hook:test
+
+> forge test --no-match-path 'test/fork/*'
+
+No files changed, compilation skipped
+
+Ran 1 test for test/HookOracleReview.t.sol:HookOracleReviewTest
+[PASS] test_ORACLE_hook_StrayTokensAreRecoverable() (gas: 201912)
+Suite result: ok. 1 passed; 0 failed; 0 skipped; finished in 1.19ms (92.88µs CPU time)
+
+Ran 1 test for test/HookStrayTokenRecovery.t.sol:HookStrayTokenRecoveryTest
+[PASS] test_ORACLE_hook_StrayTokensAreRecoverable() (gas: 319774)
+Suite result: ok. 1 passed; 0 failed; 0 skipped; finished in 1.55ms (452.83µs CPU time)
+
+Ran 6 tests for test/HookReviewRegressions.t.sol:HookReviewRegressionsTest
+[PASS] test_H3_BeforeInitializeRejectsCallersOtherThanThePoolManager() (gas: 18603)
+[PASS] test_H3_BeforeInitializeRejectsEveryKeyButTheOfficialOne() (gas: 38281)
+[PASS] test_H3_BeforeInitializeRejectsSendersOtherThanTheInitializer() (gas: 23910)
+[PASS] test_H3_ConstructorRejectsZeroAddressesAndUnsortedCurrencies() (gas: 61647)
+[PASS] test_H3_ConstructorRequiresExactlyTheGatedFlagBits() (gas: 32458)
+[PASS] test_H3_LaunchParametersAreImmutablesThatSurviveEtch() (gas: 31404)
+Suite result: ok. 6 passed; 0 failed; 0 skipped; finished in 2.01ms (3.11ms CPU time)
+
+Ran 5 tests for test/MineHookSalt.t.sol:MineHookSaltTest
+[PASS] test_MinedSaltDeploysAtThePredictedAddressAndPassesTheFlagCheck() (gas: 2458293)
+[PASS] test_MinedSaltDeploysThroughTheCreate2Proxy() (gas: 1687253)
+[PASS] test_MinedSaltIsTheSmallestMatchFromTheStart() (gas: 4340149)
+[PASS] test_MinerRevertsWhenNoSaltMatchesWithinTheBudget() (gas: 1497720)
+[PASS] test_ScriptWritesTheSaltJson() (gas: 4005485)
+Suite result: ok. 5 passed; 0 failed; 0 skipped; finished in 11.92ms (24.72ms CPU time)
+
+Ran 15 tests for test/SurplusFeeHook.t.sol:SurplusFeeHookTest
+[PASS] testFuzz_ChargesExactlyTheFeeOnTheUnspecifiedCurrency(bool,bool,uint256,uint256) (runs: 512, μ: 151051, ~: 164547)
+[PASS] test_AfterSwapRejectsNonManager() (gas: 16510)
+[PASS] test_ExactInOneForZeroChargesToken0() (gas: 156727)
+[PASS] test_ExactInZeroForOneChargesToken1() (gas: 156721)
+[PASS] test_FeeConstantsMatchSpec() (gas: 6553)
+[PASS] test_FeeSplitsIntoHalvesWithTheOddWeiToBuyback() (gas: 151826)
+[PASS] test_H1_ExactOutOneForZeroChargesTheInputToken1() (gas: 156766)
+[PASS] test_H1_ExactOutZeroForOneChargesTheInputToken0() (gas: 156791)
+[PASS] test_H2_AfterSwapTakesWithoutSyncing() (gas: 255057)
+[PASS] test_H4_WithdrawalInACurrencyWithoutCodeReverts() (gas: 130901)
+[PASS] test_H4_WithdrawalToTheZeroAddressReverts() (gas: 205538)
+[PASS] test_OwedAndPaidAreTrackedPerCurrencyAndHalf() (gas: 446051)
+[PASS] test_RejectsNativeEth() (gas: 14733)
+[PASS] test_WithdrawalRevertsWhenTheTokenFailsAndBooksNothing() (gas: 485876)
+[PASS] test_WithdrawalsAreTreasuryOnly() (gas: 163431)
+Suite result: ok. 15 passed; 0 failed; 0 skipped; finished in 12.11ms (18.68ms CPU time)
+
+Ran 5 test suites in 12.98ms (28.78ms CPU time): 28 tests passed, 0 failed, 0 skipped (28 total tests)
+
+> nx run @surplus/contracts.token-v2:test
+
+> forge test
+
+No files changed, compilation skipped
+
+Ran 1 test for test/SurplusTokenV2Migration.t.sol:SurplusTokenV2MigrationTest
+[PASS] test_VaultCannotReleaseV1BeforeRealV2BackingAndCanPayClaimAfterFunding() (gas: 4871167)
+Suite result: ok. 1 passed; 0 failed; 0 skipped; finished in 1.24ms (962.21µs CPU time)
+
+Ran 2 tests for test/SurplusTokenV2StorageLayout.t.sol:SurplusTokenV2StorageLayoutTest
+[PASS] test_CriticalStateSitsAtThePinnedSlots() (gas: 42269)
+[PASS] test_SafeUpgradeKeepsThePinnedSlotsAndAppendsAfterThem() (gas: 1902727)
+Suite result: ok. 2 passed; 0 failed; 0 skipped; finished in 1.86ms (334.00µs CPU time)
+
+Ran 26 tests for test/SurplusTokenV2.t.sol:SurplusTokenV2Test
+[PASS] test_BurnLowersSupplyAndFreesCapHeadroomWhereADeadAddressDoesNot() (gas: 177345)
+[PASS] test_BurnerBurnsOnlyItsOwnBalance() (gas: 120254)
+[PASS] test_DeployerCannotGrantAnyRole() (gas: 199520)
+[PASS] test_DeployerCannotMint() (gas: 83422)
+[PASS] test_DeployerCannotUpgrade() (gas: 1922453)
+[PASS] test_DeployerHoldsNoRoleOnProxyOrImplementation() (gas: 43921)
+[PASS] test_ImplementationCannotBeInitializedOrUpgradedDirectly() (gas: 2108553)
+[PASS] test_InitializationGrantsRolesToTheSafeAndNobodyElse() (gas: 305723)
+[PASS] test_InitializeAppliesDeployParametersWithZeroSupply() (gas: 328331)
+[PASS] test_InitializeRejectsChainsOtherThanBase() (gas: 92946)
+[PASS] test_InitializeRejectsEmptyMetadata() (gas: 182820)
+[PASS] test_InitializeRejectsGovernanceWithoutCode() (gas: 180264)
+[PASS] test_InitializeRejectsZeroCap() (gas: 140925)
+[PASS] test_LaunchBatchCanMintExactlyTheCapButNotOneWeiMore() (gas: 116248)
+[PASS] test_LaunchBatchMintsBackingToVaultAndBudgetToHelperInOneSafeTransaction() (gas: 115442)
+[PASS] test_LaunchBatchOneWeiOverTheCapMintsNothing() (gas: 97371)
+[PASS] test_NonBurnerCannotBurnEvenItsOwnBalance() (gas: 385612)
+[PASS] test_NonMinterCannotMint() (gas: 296073)
+[PASS] test_ProxyCannotBeInitializedTwiceEvenByTheSafe() (gas: 342396)
+[PASS] test_SafeCanDelegateAndRevokeMinting() (gas: 156380)
+[PASS] test_SafeCanGrantBurnToABuybackExecutorAndRevokeIt() (gas: 285694)
+[PASS] test_SafeCannotUpgradeToANonUUPSImplementation() (gas: 32001)
+[PASS] test_SafeHoldsEveryRoleAndAdministersEachOne() (gas: 42063)
+[PASS] test_SafeUpgradePreservesBalancesAllowancesSupplyMetadataCapAndRoles() (gas: 2122086)
+[PASS] test_StrangerCannotUpgrade() (gas: 1922484)
+[PASS] test_TransferApproveAndTransferFrom() (gas: 171677)
+Suite result: ok. 26 passed; 0 failed; 0 skipped; finished in 2.52ms (8.10ms CPU time)
+
+Ran 3 test suites in 6.26ms (5.63ms CPU time): 29 tests passed, 0 failed, 0 skipped (29 total tests)
+
+> nx run @surplus/contracts.token-v2:build
+
+> forge build --deny warnings
+
+No files changed, compilation skipped
+
+> nx run @surplus/contracts.migration:build
+
+> forge build --deny warnings
+
+No files changed, compilation skipped
+
+> nx run @surplus/contracts.fee-hook:build
+
+> forge build --deny warnings
+
+No files changed, compilation skipped
+
+> nx run @surplus/contracts.migration-launch:lint
+
+> forge fmt --check
+
+
+> nx run @surplus/contracts.migration:lint
+
+> forge fmt --check
+
+
+> nx run @surplus/contracts.payments:lint
+
+> forge fmt --check
+
+
+> nx run @surplus/contracts.fee-hook:lint
+
+> forge fmt --check
+
+
+> nx run @surplus/contracts.token-v2:lint
+
+> forge fmt --check
+
+
+> nx run @surplus/contracts.migration-tools:lint
+
+> forge fmt --check
+
+
+
+
+ NX   Successfully ran targets lint, test, build for 6 projects

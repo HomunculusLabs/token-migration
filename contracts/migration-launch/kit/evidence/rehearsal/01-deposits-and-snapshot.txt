@@ -1,0 +1,38 @@
+# §5 full-scale rehearsal — deposits and the kit snapshot
+# private anvil forked from the pinned fork (Base 51935583, hash 0x2a3d465c…aa1b6); monorepo contracts at their planned addresses
+
+## warm + preload (fullscale-260929 scripts, run for real on the private anvil)
+anvil <url> chain 8453, block 51935583 hash matches pin.json; 6338 cohort accounts to warm
+warmed 6338 accounts (332 were already cached) in 1342s
+exit=0
+upstream read at pin 51935583: 6338 holders in 5.5s, every balance == cohort.json | nonzero allowance to vault 0xae25063230a4a772cef934e5a7552f63b4dd83be: 0 | holders with a delegate: 0
+60 random slots re-read RAW from upstream at the pin: all equal the values to write (balances = slot 0, allowances = slot 1 nested, delegates = slot 8)
+wrote 19014 slots to local anvil in 4.6s
+local anvil view == upstream view for all 6338 holders (balance, allowance, delegate)
+local anvil head still 51935583 0x2a3d465ca7407d2373bce06a2741e104785fefd0d43db7574a8230a310caa1b6
+exit=0
+
+## deploy (kit/rehearse.py deploy from kit/output/deploy/plan.json; real SurplusFeeHook)
+safe     0xfaAaadF79b178ca2e3B0833ee08c7592a97728C9
+token    0xbF42Bac232d1586EF2C04031e1aF4c09aDe8770D
+vault    0xAE25063230A4A772cEF934e5a7552f63b4Dd83Be
+settler  0xDE699eb4ba0b3340261ff8109F424BC88024F1ED
+hook     0x4D7cF9C85c072D9F8f55623774362b21493BE044
+v2       0xbF42Bac232d1586EF2C04031e1aF4c09aDe8770D
+
+## every eligible holder deposits its full pin balance (kit/rehearse.py deposit)
+6338 holders deposited 91050022387755487790277973417 v1 (= cohort eligibleTotal); approve + deposit gas 777027474, avg 122598 per holder; 2426s
+last deposit block 51948266
+
+## the deposit window closes; the kit builds and verifies the tree from the vault's own ledger
+$ python3.14 kit/launch.py snapshot --rehearsal --block 51948267 --from-block 51935583 --vault 0xAE25063230A4A772cEF934e5a7552f63b4Dd83Be --rpc <private anvil> --log-chunk 2000
+snapshot at block 51948267: 6338 leaves, total 91050022387755487790277973417, root 0x703204306d075c428bc7a9436d6c50b5cbfcf96eb323fae2c0824d5954df79d4
+  VerifyTree: OK
+  VerifyTreeBulk: OK
+  python: OK
+  wrote kit/output/snapshot/51948267/{deposits.csv,tree.json,tree.csv,snapshot.json}
+
+expected root from the cohort file alone (fullscale-260929 report 14): 0x703204306d075c428bc7a9436d6c50b5cbfcf96eb323fae2c0824d5954df79d4
+root the kit built from the vault ledger:                              0x703204306d075c428bc7a9436d6c50b5cbfcf96eb323fae2c0824d5954df79d4
+identical: True | leaves 6338 | total 91050022387755487790277973417 | depositors scanned 6338
+sha256 {"deposits.csv": "bc85d740a70f59a5aa0898eaee3cedc235cfd1b9e13a34331aa1e13db9086ab2", "tree.json": "d6cc05cf92ca26d6090eaf330083d4e74dce4dd9982d805e45d71dd321f6f7ed", "tree.csv": "b8435b39c64c6203b16dd8f5468fdedd6953915796f90e2f04eb50497c063554"}

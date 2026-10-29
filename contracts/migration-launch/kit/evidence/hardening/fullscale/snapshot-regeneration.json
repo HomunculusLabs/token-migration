@@ -1,0 +1,9 @@
+{
+  "byteIdentical": true,
+  "sha256": {
+    "deposits.csv": "bc85d740a70f59a5aa0898eaee3cedc235cfd1b9e13a34331aa1e13db9086ab2",
+    "tree.csv": "b8435b39c64c6203b16dd8f5468fdedd6953915796f90e2f04eb50497c063554",
+    "snapshot.json": "19741c1e75105e28e4c95da99ba83cb0bf7e23f87d518af96de09bdc9fa7c3ef",
+    "tree.json": "d6cc05cf92ca26d6090eaf330083d4e74dce4dd9982d805e45d71dd321f6f7ed"
+  }
+}

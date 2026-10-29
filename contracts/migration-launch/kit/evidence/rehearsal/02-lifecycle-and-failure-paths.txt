@@ -1,0 +1,104 @@
+# §5 full-scale rehearsal — the launch and every failure path, from the kit snapshot's state
+# private anvil forked from the pinned fork; 6,338 real holders deposited; tree = kit snapshot at block 51948267
+$ SURPLUS_TREE=kit/output/snapshot/51948267/tree.json forge test --match-path 'test/fork/rehearsal/*' --fork-url <private anvil> -vv
+[PASS] test_00_TreeIsTheCohortAtOneToOne() (gas: 1174040403)
+  holders: 6338
+  v1_deposited_wei: 91050022387755487790277973417
+[PASS] test_01_FullLifecycle() (gas: 7319224324)
+[PASS] test_02_SafeNeverCommitsSoThePreCommitTimeoutRefundsEveryone() (gas: 807366386)
+  refund_batches: 32
+  refund_max_tx_gas: 12316359
+  refund_max_tx_bytes: 44868
+[PASS] test_03_NobodyActivatesSoTheExecutionTimeoutRefundsEveryone() (gas: 2424097691)
+[PASS] test_04_FrontRunPoolInitRevertsTheWholeBatch() (gas: 1148696545)
+[PASS] test_05_WithdrawalAfterTheDeadlineIsRejected() (gas: 59017)
+[PASS] test_06_PlainTransferToTheVaultIsRescued() (gas: 188172)
+Ran 1 test suite in 3.71s (3.66s CPU time): 7 tests passed, 0 failed, 0 skipped (7 total tests)
+exit=0
+
+# result.json (test_01_FullLifecycle)
+baseFeeWei                 7
+block                      51948267
+feeExactInBuy              646072814772224702964860
+feeExactInSell             3480880539589642
+feeExactOutBuy             3501877784183309
+feeExactOutSell            129246509998659897949638
+holders                    6338
+launchBatchExecGas         2109692
+minWethOutWei              137477720291896996289
+oldPoolSqrtPriceAfter      7214736425769295545842063317856935
+oldPoolSqrtPriceBefore     522622833624572954971583139164596
+positionId                 3097527
+pushBatches                53
+pushCalls                  6338
+pushExecGas                385982565
+pushL1FeeUpperWei          149576717145092
+pushMaxTxBytes             92228
+pushMaxTxGas               8403550
+pushSkipped                4
+pushTotalBytes             4852244
+pushTotalTxGas             442621529
+safe                       0xfaAaadF79b178ca2e3B0833ee08c7592a97728C9
+simulatedWethRaisedWei     138168563107434167125
+successorLiquidity         911418004248125258158355
+successorLpFeePips         3000
+successorSqrtPriceX96      522622833624572954971583139164596
+totalClaimableWei          91050022387755487790277973417
+v1DepositedWei             91050022387755487790277973417
+v1SoldOnV3TailWei          9105002238775548779027797341
+v1SupplyWei                100000000000000000000000000000
+v2BudgetWei                6018114931931691318889165781
+v2SeededWei                6012102829102588730159006765
+v2SupplyAfterLaunchWei     97068137319687179109167139198
+vault                      0xAE25063230A4A772cEF934e5a7552f63b4Dd83Be
+wethFromV3TailWei          3334817277155613020
+wethRaisedWei              138168563107434167125
+wethSeededWei              138168424938871059691
+
+# P/H regressions (spec §5: every P1–P7 and H1–H4 regression passes)
+[PASS] test_BackingPostedBeforeATimeoutIsRecoverable() (gas: 3261588)
+[PASS] test_P5_ExpiryModeLetsTheSafeRecoverLeftovers() (gas: 3401442)
+[PASS] test_P5_NoExpiryModeFreezesNothing() (gas: 3430130)
+[PASS] test_SweepNeverTakesOutstandingEntitlementsBeforeExpiry() (gas: 3395100)
+[PASS] test_P6_PlainTransferIsRescuableButDepositsAreNot() (gas: 3124200)
+[PASS] test_RescueNeverReachesDepositsInAnyPhase() (gas: 3242202)
+[PASS] test_RevertIf_RescueByOutsider() (gas: 2963343)
+[PASS] test_P3_TimeoutRefundsPayTheLedgerNotTheRoot() (gas: 6557730)
+[PASS] test_P4_BonusRootCannotTurnRefundsIntoABankRun() (gas: 3301444)
+[PASS] test_RefundIsOncePerCredit() (gas: 3128414)
+[PASS] test_CommitDeadlineIsHardForTheSafe() (gas: 3082235)
+[PASS] test_P1_WithdrawalAfterDepositDeadlineIsRejected() (gas: 3288460)
+[PASS] test_P1b_TimeoutPathPaysEachDepositorExactlyOnce() (gas: 3306247)
+[PASS] test_P2_OneWeiWithdrawalCannotBrickCommit() (gas: 3196365)
+[PASS] test_P7_PreCommitTimeoutRefundsEveryDepositor() (gas: 3230256)
+[PASS] test_WithdrawalBeforeTheDeadlineStillWorks() (gas: 3126271)
+Ran 4 test suites in 5.16ms (5.39ms CPU time): 16 tests passed, 0 failed, 0 skipped (16 total tests)
+[PASS] test_H1_ExactOutOneForZeroChargesTheInputToken1() (gas: 156943)
+[PASS] test_H1_ExactOutZeroForOneChargesTheInputToken0() (gas: 156968)
+[PASS] test_H2_AfterSwapTakesWithoutSyncing() (gas: 255235)
+[PASS] test_H4_WithdrawalInACurrencyWithoutCodeReverts() (gas: 130681)
+[PASS] test_H4_WithdrawalToTheZeroAddressReverts() (gas: 205539)
+[PASS] test_H3_BeforeInitializeRejectsCallersOtherThanThePoolManager() (gas: 18537)
+[PASS] test_H3_BeforeInitializeRejectsEveryKeyButTheOfficialOne() (gas: 38149)
+[PASS] test_H3_BeforeInitializeRejectsSendersOtherThanTheInitializer() (gas: 23822)
+[PASS] test_H3_ConstructorRejectsZeroAddressesAndUnsortedCurrencies() (gas: 56500)
+[PASS] test_H3_ConstructorRequiresExactlyTheGatedFlagBits() (gas: 31200)
+[PASS] test_H3_LaunchParametersAreImmutablesThatSurviveEtch() (gas: 30948)
+Ran 4 test suites in 4.51ms (2.99ms CPU time): 11 tests passed, 0 failed, 2 skipped (13 total tests)
+[PASS] test_H1_ExactOutputSwapsSettleAndChargeTheInput() (gas: 989233)
+[PASS] test_H2_NativeSettleLaterInTheSameUnlockSucceeds() (gas: 806484)
+[PASS] test_H3_NoOtherPoolKeyCanNameTheHook() (gas: 478618)
+[PASS] test_H3_OnlyTheInitializerCanInitializeTheOfficialKey() (gas: 331399)
+[PASS] test_H1_ExactOutputSwapsSettleAndChargeTheInput() (gas: 981206)
+[PASS] test_H2_NativeSettleLaterInTheSameUnlockSucceeds() (gas: 802179)
+[PASS] test_H3_NoOtherPoolKeyCanNameTheHook() (gas: 434343)
+[PASS] test_H3_OnlyTheInitializerCanInitializeTheOfficialKey() (gas: 324006)
+Ran 2 test suites in 18.77ms (17.34ms CPU time): 8 tests passed, 0 failed, 0 skipped (8 total tests)
+[PASS] test_S1_LaunchLeavesNoTokensOrApprovals() (gas: 11370215)
+[PASS] test_S2_DonationCannotBlockTheLaunch() (gas: 11424142)
+[PASS] test_S3_HookNotBoundToTheSettlerReverts() (gas: 11511419)
+[PASS] test_S3_NoSuccessorHookReverts() (gas: 11319211)
+[PASS] test_S3_WrongSuccessorFeeReverts() (gas: 11318541)
+[PASS] test_S3_WrongSuccessorTickSpacingReverts() (gas: 11318674)
+[PASS] test_S4_RivalOldPoolIsNotAVenue() (gas: 11837860)
+Ran 1 test suite in 19.10ms (14.64ms CPU time): 7 tests passed, 0 failed, 0 skipped (7 total tests)

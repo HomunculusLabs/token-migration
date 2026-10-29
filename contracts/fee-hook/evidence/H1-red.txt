@@ -1,0 +1,55 @@
+# H1-red — 2026-09-29T10:09:38Z
+# HEAD abaace831; modified vs HEAD: contracts/fee-hook/test/SurplusFeeHook.t.sol contracts/fee-hook/evidence/ contracts/fee-hook/test/fork/HookReviewRegressions.t.sol 
+
+$ forge test --match-test H1_
+No files changed, compilation skipped
+
+Ran 1 test for test/fork/HookReviewRegressions.t.sol:HookReviewRegressionsV2Currency1Test
+[SKIP: skipped: fork suite: run the project's Nx `fork` target] setUp() (gas: 0)
+Suite result: ok. 0 passed; 0 failed; 1 skipped; finished in 335.58µs (0.00ns CPU time)
+
+Ran 1 test for test/fork/HookReviewRegressions.t.sol:HookReviewRegressionsV2Currency0Test
+[SKIP: skipped: fork suite: run the project's Nx `fork` target] setUp() (gas: 0)
+Suite result: ok. 0 passed; 0 failed; 1 skipped; finished in 334.88µs (0.00ns CPU time)
+
+Ran 2 tests for test/SurplusFeeHook.t.sol:SurplusFeeHookTest
+[FAIL: hook delta is the fee on the input] test_H1_ExactOutOneForZeroChargesTheInputToken1() (gas: 167483)
+[FAIL: hook delta is the fee on the input] test_H1_ExactOutZeroForOneChargesTheInputToken0() (gas: 167522)
+Suite result: FAILED. 0 passed; 2 failed; 0 skipped; finished in 577.92µs (166.71µs CPU time)
+
+Ran 3 test suites in 4.17ms (1.25ms CPU time): 0 tests passed, 2 failed, 2 skipped (4 total tests)
+
+Failing tests:
+Encountered 2 failing tests in test/SurplusFeeHook.t.sol:SurplusFeeHookTest
+[FAIL: hook delta is the fee on the input] test_H1_ExactOutOneForZeroChargesTheInputToken1() (gas: 167483)
+[FAIL: hook delta is the fee on the input] test_H1_ExactOutZeroForOneChargesTheInputToken0() (gas: 167522)
+
+Encountered a total of 2 failing tests, 0 tests succeeded
+
+Tip: Run `forge test --rerun` to retry only the 2 failed tests
+# exit 1
+
+$ forge test --match-path 'test/fork/*' --match-test H1_ --fork-url http://127.0.0.1:18549 --fork-block-number 51935583
+No files changed, compilation skipped
+
+Ran 1 test for test/fork/HookReviewRegressions.t.sol:HookReviewRegressionsV2Currency0Test
+[FAIL: CurrencyNotSettled()] test_H1_ExactOutputSwapsSettleAndChargeTheInput() (gas: 744479)
+Suite result: FAILED. 0 passed; 1 failed; 0 skipped; finished in 2.43ms (1.34ms CPU time)
+
+Ran 1 test for test/fork/HookReviewRegressions.t.sol:HookReviewRegressionsV2Currency1Test
+[FAIL: CurrencyNotSettled()] test_H1_ExactOutputSwapsSettleAndChargeTheInput() (gas: 750757)
+Suite result: FAILED. 0 passed; 1 failed; 0 skipped; finished in 2.46ms (1.35ms CPU time)
+
+Ran 2 test suites in 7.82ms (4.89ms CPU time): 0 tests passed, 2 failed, 0 skipped (2 total tests)
+
+Failing tests:
+Encountered 1 failing test in test/fork/HookReviewRegressions.t.sol:HookReviewRegressionsV2Currency0Test
+[FAIL: CurrencyNotSettled()] test_H1_ExactOutputSwapsSettleAndChargeTheInput() (gas: 744479)
+
+Encountered 1 failing test in test/fork/HookReviewRegressions.t.sol:HookReviewRegressionsV2Currency1Test
+[FAIL: CurrencyNotSettled()] test_H1_ExactOutputSwapsSettleAndChargeTheInput() (gas: 750757)
+
+Encountered a total of 2 failing tests, 0 tests succeeded
+
+Tip: Run `forge test --rerun` to retry only the 2 failed tests
+# exit 1

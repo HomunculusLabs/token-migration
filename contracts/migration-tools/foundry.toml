@@ -1,0 +1,43 @@
+# House style: copied from contracts/migration (pinned solc + evm_version so bytecode is
+# reproducible, bytecode_hash=none so hashes are stable across machines — see that file's
+# header for the full rationale). This package is a SIBLING tools package: no deployable
+# contracts, just the pure Merkle engine (src/), the two forge scripts, and the parity suite.
+#
+# Differences from contracts/migration, all deliberate:
+#   1. fs_permissions — the tree scripts read input/ and write output/; that is the ONLY
+#      filesystem surface (no broadcast, no RPC: scripts are pure local computation).
+#   2. allow_paths — adds ../migration so the parity suite can import the REAL MigrationVault
+#      (and its MockERC20/TestMerkle doubles) instead of copying them.
+#   3. gas_limit — the scripts run inside the EVM, which prices memory quadratically, so a
+#      real-size tree needs far more than the 2^30 default gas. Local computation only; the
+#      default 128 MiB EVM memory cap stays the real bound.
+
+[profile.default]
+src = "src"
+test = "test"
+out = "out"
+libs = ["lib"]
+script = "script"
+# OZ lives in the workspace root's npm-pinned 4.9.6 (root package.json overrides) and the vault
+# lives in ../migration — see remappings.txt. solc's import sandbox only allows the project dir +
+# libs by default, so both shared roots must be allow-listed.
+allow_paths = ["../../node_modules", "../migration"]
+solc_version = "0.8.28"
+evm_version = "cancun"
+optimizer = true
+optimizer_runs = 200
+bytecode_hash = "none"
+via_ir = false
+fs_permissions = [
+    { access = "read", path = "./input" },
+    { access = "read-write", path = "./output" },
+]
+gas_limit = 100_000_000_000
+
+# block-timestamp: compiling the REAL MigrationVault (imported via remappings for the parity
+# suite) must stay warning-clean — the same exclude, for the same reason, as contracts/migration.
+[profile.default.lint]
+exclude_lints = ["block-timestamp"]
+
+[fuzz]
+runs = 512

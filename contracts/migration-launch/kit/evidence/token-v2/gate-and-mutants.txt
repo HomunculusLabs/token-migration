@@ -1,0 +1,37 @@
+# §3.3 SurplusTokenV2 at 12e055dca — sa-1's 4 commits cherry-picked (d2f688f32 9d3ccf3be 94a9376e4 12e055dca)
+$ npx nx run-many -t build test lint layout -p @surplus/contracts.token-v2 --skip-nx-cache
+Suite result: ok. 1 passed; 0 failed; 0 skipped; finished in 776.00µs (425.88µs CPU time)
+Suite result: ok. 2 passed; 0 failed; 0 skipped; finished in 1.86ms (508.08µs CPU time)
+Suite result: ok. 26 passed; 0 failed; 0 skipped; finished in 2.13ms (9.96ms CPU time)
+Ran 3 test suites in 5.73ms (4.76ms CPU time): 29 tests passed, 0 failed, 0 skipped (29 total tests)
+SurplusTokenV2 storage layout matches storage-layout.json
+ NX   Successfully ran targets build, test, lint, layout for project @surplus/contracts.token-v2
+
+# mutation check (scratch copy via git archive; each mutant must turn named tests red)
+M1 inheritance reordered
+  [FAIL: vault balance] test_CriticalStateSitsAtThePinnedSlots()
+  [FAIL: vault balance] test_SafeUpgradeKeepsThePinnedSlotsAndAppendsAfterThem()
+  27 tests passed, 2 failed, 0 skipped (29 total tests)
+  layout script: FAIL (killed)
+M2 burn without onlyRole(BURNER_ROLE)
+  [FAIL: Error != expected error: ERC20: burn amount exceeds balance != AccessControl: account 0x63f98f6e9cc0ca72e9e88d559a1fe7070d03a869 is missing role 0x3c11d16cbaffd01df69ce1c404f6340ee057498f5f00246190ea54220576a848] test_NonBurnerCannotBurnEvenItsOwnBalance()
+  [FAIL: next call did not revert as expected] test_SafeCanGrantBurnToABuybackExecutorAndRevokeIt()
+  27 tests passed, 2 failed, 0 skipped (29 total tests)
+M3 Safe not granted BURNER_ROLE
+  [FAIL: AccessControl: account 0x5615deb798bb3e4dfa0139dfa1b3d433cc23b72f is missing role 0x3c11d16cbaffd01df69ce1c404f6340ee057498f5f00246190ea54220576a848] test_BurnLowersSupplyAndFreesCapHeadroomWhereADeadAddressDoesNot()
+  [FAIL: Error != expected error: AccessControl: account 0x5615deb798bb3e4dfa0139dfa1b3d433cc23b72f is missing role 0x3c11d16cbaffd01df69ce1c404f6340ee057498f5f00246190ea54220576a848 != ERC20: burn amount exceeds balance] test_BurnerBurnsOnlyItsOwnBalance()
+  [FAIL: Safe holds the role] test_SafeHoldsEveryRoleAndAdministersEachOne()
+  22 tests passed, 7 failed, 0 skipped (29 total tests)
+M4 mint without onlyRole(MINTER_ROLE)
+  [FAIL: next call did not revert as expected] test_DeployerCannotMint()
+  [FAIL: next call did not revert as expected] test_NonMinterCannotMint()
+  [FAIL: next call did not revert as expected] test_SafeCanDelegateAndRevokeMinting()
+  26 tests passed, 3 failed, 0 skipped (29 total tests)
+M5 no _disableInitializers()
+  [FAIL: implementation initializers are disabled] test_CriticalStateSitsAtThePinnedSlots()
+  [FAIL: next call did not revert as expected] test_ImplementationCannotBeInitializedOrUpgradedDirectly()
+  27 tests passed, 2 failed, 0 skipped (29 total tests)
+M6 unguarded _authorizeUpgrade
+  [FAIL: next call did not revert as expected] test_DeployerCannotUpgrade()
+  [FAIL: next call did not revert as expected] test_StrangerCannotUpgrade()
+  27 tests passed, 2 failed, 0 skipped (29 total tests)

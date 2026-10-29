@@ -1,0 +1,7 @@
+Traceback (most recent call last):
+  File "$REHEARSAL/readiness-hardening-20260929/verification/contracts/migration-launch/kit/report.py", line 271, in <module>
+    main()
+    ~~~~^^
+  File "$REHEARSAL/readiness-hardening-20260929/verification/contracts/migration-launch/kit/report.py", line 219, in main
+    base_fee = int(pin_block["baseFeePerGas"])  # Base at the pin, not the rehearsal anvil's decayed base fee
+ValueError: invalid literal for int() with base 10: '0x4c4b40'

@@ -1,0 +1,18 @@
+# §3.4 settler S2 (a donation to the settler blocks the launch) — RED on e4423f3b3
+$ forge test --match-path test/fork/SettlerRegressions.fork.t.sol --fork-url <local anvil 127.0.0.1:18549, chainId 8453, block 51935583>
+Ran 1 test suite in 13.25ms (9.41ms CPU time): 1 tests passed, 1 failed, 0 skipped (2 total tests)
+[FAIL: a donation blocked the launch] test_S2_DonationCannotBlockTheLaunch() (gas: 10799206)
+[PASS] test_S1_LaunchLeavesNoTokensOrApprovals() (gas: 10996976)
+
+# GREEN after the fix (settler sha256 614916f3424674b8)
+$ forge test --match-path 'test/fork/**' --fork-url <local anvil 127.0.0.1:18549, chainId 8453, block 51935583>
+Ran 2 test suites in 72.62ms (83.23ms CPU time): 9 tests passed, 0 failed, 0 skipped (9 total tests)
+[PASS] test_FrontRunInitRevertsTheWholeBatch() (gas: 11798351)
+[PASS] test_GatedHookRejectsAnOutsiderInitialize() (gas: 7205508)
+[PASS] test_Launch_V2SortsAboveWeth() (gas: 11078141)
+[PASS] test_Launch_V2SortsBelowWeth() (gas: 11078996)
+[PASS] test_OnlyTheSafeCanSettle() (gas: 7121269)
+[PASS] test_S1_LaunchLeavesNoTokensOrApprovals() (gas: 11051447)
+[PASS] test_S2_DonationCannotBlockTheLaunch() (gas: 11105157)
+[PASS] test_SaleBelowTheSignedMinimumRevertsTheBatch() (gas: 11735037)
+[PASS] test_V2BudgetBelowTheSeedRevertsTheBatch() (gas: 11758039)

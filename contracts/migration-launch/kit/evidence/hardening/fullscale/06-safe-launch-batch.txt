@@ -1,0 +1,37 @@
+launch-batch: safeTxHash 0x8d0a903051c7738ac165f48e58dddf24eaf0df4d3b22cfd80f09b29fc1175ab0 (Safe 0xfaAaadF79b178ca2e3B0833ee08c7592a97728C9, nonce 1, DELEGATECALL to 0x9641d764fc13c8B624c04430C7356C1C7C8102e2)
+  ok  Safe 0xfaAaadF79b178ca2e3B0833ee08c7592a97728C9: singleton Safe 1.4.1, 2-of-3, next nonce 1
+  ok  Safe domainSeparator() == python EIP-712 domain {chainId, verifyingContract}
+  ok  deployment: vault.owner() == safe
+  ok  deployment: vault.V1() == params v1
+  ok  deployment: vault.V2() == v2
+  ok  deployment: settler.SAFE() == safe
+  ok  deployment: settler.V1() == params v1
+  ok  deployment: settler.V2() == v2
+  ok  deployment: settler.WETH() == params weth
+  ok  deployment: settler.POOL_MANAGER() == params poolManager
+  ok  deployment: settler.POSITION_MANAGER() == params positionManager
+  ok  deployment: settler.V3_TAIL() == params v3Tail
+  ok  deployment: settler.OLD_POOL_ID() == params oldPool.poolId
+  ok  deployment: settler.LP_FEE() == successorPool.lpFee
+  ok  deployment: settler.TICK_SPACING() == successorPool.tickSpacing
+  ok  deployment: hook address carries exactly the 0x2044 flags
+  ok  deployment: hook.INITIALIZER() == settler
+  ok  deployment: hook.TREASURY() == settler.FEE_RECIPIENT()
+  ok  deployment: hook.FEE_PIPS() == 15000 (1.5%)
+  ok  deployment: v2 MINTER_ROLE is held by the Safe
+  ok  MultiSendCallOnly 0x9641d764fc13c8B624c04430C7356C1C7C8102e2: runtime code hash == params (Safe 1.4.1)
+  ok  from the vault: backing = totalClaimable() = 91050022387755487790277973417; v1In = net ledger = 91050022387755487790277973417 (v1 held 91050022387755487790277973417)
+  ok  unconstrained run (minWethOut 0, budget = cap - supply - backing = 8949977612244512209722026583): executed, raised 138168563107434167125 WETH, used 6012102829102588730159006765 v2; state reverted
+  ok  signed run executed through the Safe (approveHash + execTransaction, DELEGATECALL to MultiSendCallOnly) and passed:
+  ok    wethRaised 138168563107434167125 >= minWethOut 137477720291896996289
+  ok    wethRaised == the unconstrained run's (same pre-state)
+  ok    v2 used 6012102829102588730159006765 <= budget 6018114931931691318889165781
+  ok    vault.claimsActive() and verifySettlement(): fully funded, v2 held == backing, claimable == backing
+  ok    vault v1 left == v1 held - v1In (0)
+  ok    LP NFT 3097527 owned by the Safe
+  ok    the settler holds no v1, WETH or v2
+  ok    the successor pool opened at the signed price
+  ok    v2 supply == before + backing + budget
+  ok  all five inner calls and the multiSend wrapper == cast calldata
+  wrote kit/output/safe-txs/launch-batch.{json,calldata.txt,safeTxHash.txt,safe-tx.json}
+  simulation: raised 138168563107434167125 WETH, used 6012102829102588730159006765 v2 -> signed minWethOut 137477720291896996289, v2 budget 6018114931931691318889165781

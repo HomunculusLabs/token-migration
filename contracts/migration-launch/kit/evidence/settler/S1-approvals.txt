@@ -1,0 +1,16 @@
+# §3.4 settler S1 (approvals left behind) — RED on the faithful port bcf70b7c4 (settler sha256 3846dcd8605a831e)
+$ forge test --match-path test/fork/SettlerRegressions.fork.t.sol --fork-url <local anvil 127.0.0.1:18549, chainId 8453, block 51935583>
+Ran 1 test suite in 75.99ms (71.43ms CPU time): 0 tests passed, 1 failed, 0 skipped (1 total tests)
+[FAIL: WETH: ERC20 allowance to Permit2 left behind] test_S1_LaunchLeavesNoTokensOrApprovals() (gas: 11227972)
+
+# GREEN after the fix (settler sha256 00a17f0892f5f07a)
+$ forge test --match-path 'test/fork/**' --fork-url <local anvil 127.0.0.1:18549, chainId 8453, block 51935583>
+Ran 2 test suites in 16.90ms (25.57ms CPU time): 8 tests passed, 0 failed, 0 skipped (8 total tests)
+[PASS] test_FrontRunInitRevertsTheWholeBatch() (gas: 11747050)
+[PASS] test_GatedHookRejectsAnOutsiderInitialize() (gas: 7162518)
+[PASS] test_Launch_V2SortsAboveWeth() (gas: 11023677)
+[PASS] test_Launch_V2SortsBelowWeth() (gas: 11024531)
+[PASS] test_OnlyTheSafeCanSettle() (gas: 7078276)
+[PASS] test_S1_LaunchLeavesNoTokensOrApprovals() (gas: 10996229)
+[PASS] test_SaleBelowTheSignedMinimumRevertsTheBatch() (gas: 11683735)
+[PASS] test_V2BudgetBelowTheSeedRevertsTheBatch() (gas: 11706737)

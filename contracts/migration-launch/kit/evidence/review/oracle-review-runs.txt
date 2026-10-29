@@ -1,0 +1,99 @@
+# §3.5 RepoPrompt oracle review: execution evidence (review worker, branch feat/sur-658-oracle-review)
+# Reviewed commit b62393184. Fork: local anvil 127.0.0.1:18549, chainId 8453, block 51935583,
+# hash 0x2a3d465ca7407d2373bce06a2741e104785fefd0d43db7574a8230a310caa1b6 (= kit/params.json pin).
+# Cross-checks against feat/sur-658-launch-readiness a9d1e0544 ran in a scratch `git archive` copy of it.
+
+## 1. Oracle runs: RepoPrompt, preset CLI·GPT-5.5 High, mode review; window 3 = a workspace rooted at this worktree
+contract          tab context_id                        round 1               round 2               sanity probe (quoted verbatim, checked byte for byte)
+MigrationVault    240CA4D3-60D4-40C6-91AE-C2BBE4E045F3  untitled-chat-5CD98D  untitled-chat-51656F  expireCommit (6 lines) / rescueV1 (9 lines): exact
+SurplusFeeHook    07EA4334-16E0-42A8-87E4-1894A2B239E4  untitled-chat-899A30  untitled-chat-6213BA  REQUIRED_FLAGS (2 lines) / _transfer (6 lines): exact
+SurplusTokenV2    473E5C30-E119-4EB1-812A-EB6081950D69  untitled-chat-AE33CF  untitled-chat-080F4D  role constants (3 lines) / burn (3 lines): exact
+MigrationSettler  5CF4A7F6-ED4C-45F6-945F-FAE563ED5AE5  untitled-chat-83B10F  untitled-chat-A0AE3B  _checkSuccessor (12 lines) / _revoke (8 lines): exact
+The exports stay in the git-excluded prompt-exports/.
+
+## 2. This branch (b62393184 + the review tests): the three new regressions are RED, everything else green
+### contracts/fee-hook
+$ forge build --deny warnings            -> Compiler run successful
+$ forge fmt --check                      -> clean
+$ forge test --no-match-path 'test/fork/*'
+Ran 4 test suites: 26 tests passed, 1 failed, 0 skipped (27 total tests)
+[FAIL: stray token1 is stranded: nothing returns it] test_ORACLE_hook_StrayTokensAreRecoverable() (gas: 310096)
+$ forge test --match-path 'test/fork/*' --fork-url <local anvil> --fork-block-number 51935583
+Ran 4 test suites: 20 tests passed, 0 failed, 0 skipped (20 total tests)
+### contracts/migration-launch
+$ forge build --deny warnings            -> Compiler run successful
+$ forge fmt --check                      -> clean
+$ forge test --no-match-path 'test/fork/**'
+Ran 1 test suite: 4 tests passed, 0 failed, 0 skipped (4 total tests)
+$ forge test --match-path 'test/fork/**' --fork-url <local anvil>
+Ran 5 test suites: 17 tests passed, 2 failed, 0 skipped (19 total tests)
+[FAIL: the settler opened the successor pool with a fee hook whose treasury is not the Safe] test_ORACLE_settler_AFeeHookPayingAnotherTreasuryIsRefused() (gas: 36837755)
+[FAIL: the settler opened the successor pool with a hook that charges no fee (the rehearsal stand-in)] test_ORACLE_settler_AHookWithoutTheFeeIsRefused() (gas: 25705344)
+(the 17 passing: the 15 launch/S1-S4/real-hook tests of b62393184 + the 2 exact-output threshold tests)
+### contracts/migration     $ forge build --deny warnings; forge fmt --check; forge test -> 114 passed, 0 failed (114 total)
+### contracts/token-v2      $ forge build --deny warnings; forge fmt --check; forge test -> 29 passed, 0 failed (29 total)
+
+## 3. Vault: the parent's regressions (contracts/migration/test/regressions/OracleReview.t.sol @ 189de9038)
+# on the REVIEWED vault b62393184 (WindowTooLong's selector spelled from its signature so the file compiles there)
+[FAIL: activateClaims succeeded after the execution deadline: the timeout exit was pre-empted] test_ORACLE_migration_ActivationAfterTheExecutionDeadline() (gas: 3368025)
+[FAIL: a vault that accepted deposits can never activate claims (claimPeriod overflow)] test_ORACLE_migration_ClaimPeriodThatOverflowsBricksActivation() (gas: 3259063)
+[FAIL: a vault whose timeout exit can overflow was deployed] test_ORACLE_migration_ExecutionWindowThatOverflowsIsRejected() (gas: 2958485)
+[FAIL: a leaf outside the committed total was paid] test_ORACLE_migration_PayoutsNeverExceedTheCommittedTotal() (gas: 3395536)
+# on launch-readiness a9d1e0544 (vault fixed in 189de9038): full migration suite
+[PASS] test_ORACLE_migration_ActivationAfterTheExecutionDeadline() (gas: 3384636)
+[PASS] test_ORACLE_migration_ClaimPeriodThatOverflowsBricksActivation() (gas: 1034484)
+[PASS] test_ORACLE_migration_ExecutionWindowThatOverflowsIsRejected() (gas: 1035967)
+[PASS] test_ORACLE_migration_PayoutsNeverExceedTheCommittedTotal() (gas: 3360751)
+Ran 10 test suites: 118 tests passed, 0 failed, 0 skipped (118 total tests)
+# earlier, this review's own scratch fix (activation deadline + a claimPeriod bound) on b62393184: 115 passed, 1 failed:
+[FAIL: MiniSafe: exec reverted] test_E2E_FullLifecycleUnderMultisig()   <- it activated 1s after the window, i.e. it pinned the defect
+# the claimPeriod overflow, traced on b62393184: MigrationVault::activateClaims() -> [Revert] panic: arithmetic underflow or overflow (0x11)
+
+## 4. Fee hook R2-2 (stray tokens): test/HookStrayTokenRecovery.t.sol
+# b62393184: FAIL (section 2). launch-readiness a9d1e0544 (recoverExcess added in 1ed281150):
+[PASS] test_ORACLE_hook_StrayTokensAreRecoverable() (gas: 201912)   <- the parent's, test/HookOracleReview.t.sol
+[PASS] test_ORACLE_hook_StrayTokensAreRecoverable() (gas: 319774)   <- this review's, test/HookStrayTokenRecovery.t.sol
+Ran 5 test suites: 28 tests passed, 0 failed (unit); fork: Ran 4 test suites: 20 tests passed, 0 failed
+# mutants of 1ed281150's recoverExcess (scratch copy)
+M-H1 unpaid = teamOwed + buybackOwed (ignores paid): HookOracleReviewTest PASS; HookStrayTokenRecoveryTest FAIL: exactly the stray token1 came back
+M-H2 unpaid = 0 (ignores owed fees):               HookOracleReviewTest FAIL: exactly the stray amount came back; HookStrayTokenRecoveryTest FAIL: exactly the stray token1 came back
+
+## 5. Fee hook R2-1 (exact-output take): HookExactOutputThresholdForkTest on the pool the launch batch opens
+# real hook (CREATE2, 0x2044) + real SurplusTokenV2 proxy + the settler's full-range seed; ppm = share of the pool's reserve of the output
+                                     v2 above WETH                     v2 below WETH
+pool WETH (wei)                      111709152600165348021             111709152600165348021
+pool v2 = PoolManager v2 (wei)       4860784312198980982010956185      4860784312198980982010963027
+PoolManager WETH, all v4 pools (wei) 4270653854339589358814            4270653854339589358814
+v2 totalSupply (wei)                 25705238475766617144193333110     25705238475766617144193339959
+sell: largest that fills (ppm WETH)  985177                            985177
+sell: smallest whose take fails      985178                            985178
+sell: v2 paid in at that fill (wei)  328894260002087760121621713917    328894260002087760340380991212
+buy: largest that fills (ppm v2)     999606                            999606
+buy: smallest whose take fails       999608                            999608
+buy: WETH paid in at that fill (wei) 288620644951492900171581          288620644951492900171579
+# failures attributed by the wrapped revert: afterSwap selector + HookCallFailed() + ERC20TransferFailed()
+# the mechanism on a deliberately thin pool (scratch probe, not committed): the PoolManager holds 158.113883 v2;
+# a 1 WETH exact-output sell reverts at v2.transfer <- PoolManager.take <- hook.afterSwap; the hookless twin fills
+# it, and the same hooked pool fills a 25,000 v2 exact-input sell.
+
+## 6. Settler R1-2 (hook identity): SettlerOracleReviewForkTest
+# launch-readiness a9d1e0544 + this file: both still FAIL
+[FAIL: the settler opened the successor pool with a fee hook whose treasury is not the Safe] test_ORACLE_settler_AFeeHookPayingAnotherTreasuryIsRefused() (gas: 14136868)
+[FAIL: the settler opened the successor pool with a hook that charges no fee (the rehearsal stand-in)] test_ORACLE_settler_AHookWithoutTheFeeIsRefused() (gas: 18085591)
+# scratch fix (NOT applied): _checkSuccessor also requires TREASURY() == SAFE and FEE_PIPS() == 15_000 (try/catch);
+# test/utils/HookDouble.sol answers TREASURY() (the settler's SAFE) and FEE_PIPS() like the real hook
+Ran 6 test suites: 19 tests passed, 0 failed, 1 skipped (20 total tests)   <- FullScaleLaunch skips without its deployment
+# the same fix WITHOUT the HookDouble change: 12 existing launch tests fail at "the simulation must launch"
+
+## 7. Settler R1-1 (Permit2 expiration 0): refuted
+# Uniswap/permit2 src/libraries/Allowance.sol:24  uint48 storedExpiration = expiration == BLOCK_TIMESTAMP_EXPIRATION ? uint48(block.timestamp) : expiration;   (BLOCK_TIMESTAMP_EXPIRATION = 0)
+# Uniswap/permit2 src/AllowanceTransfer.sol:79   if (block.timestamp > allowed.expiration) revert AllowanceExpired(allowed.expiration);
+# fork trace, test_Launch_V2SortsAboveWeth (Permit2 runtime code hash-pinned at the pin):
+Permit2::approve(WETH, PositionManager, 111709264309429657450, 0)  ... Permit2::approve(v2 proxy, PositionManager, ..., 0)
+Permit2::transferFrom(MigrationSettler -> PoolManager, ...)  x2, both succeed; then approve(..., 0, 0) revokes and allowance() reads 0
+
+## 8. Token R1-2 (launch vault parameters): probe through the real proxy (git-excluded .review-diffs/probes/)
+# MigrationVault(pro-rata on, rate 10_000, claimPeriod 0) + real SurplusTokenV2 proxy, run on b62393184:
+[PASS] test_probe_RealProxyUnderTheLaunchVaultParameters() (gas: 4948200)
+# claimProRata paid 100 through the proxy; claimWindowEnd == type(uint256).max; a relayed root claim paid 40 ten years
+# later; the vault ended with 0 v2; supply == backing; withdrawV1ForSettlement(140) worked.

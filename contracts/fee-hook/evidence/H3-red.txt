@@ -1,0 +1,67 @@
+# H3-red — 2026-09-29T10:24:28Z
+# HEAD 481321ce9; modified vs HEAD: contracts/fee-hook/test/SurplusFeeHook.t.sol contracts/fee-hook/test/fork/ForkHarness.sol contracts/fee-hook/test/fork/HookReviewRegressions.t.sol contracts/fee-hook/test/utils/HookTest.sol contracts/fee-hook/evidence/H3-red.txt contracts/fee-hook/test/HookReviewRegressions.t.sol 
+
+$ forge test --match-test H3_
+No files changed, compilation skipped
+
+Ran 1 test for test/fork/HookReviewRegressions.t.sol:HookReviewRegressionsV2Currency1Test
+[SKIP: skipped: fork suite: run the project's Nx `fork` target] setUp() (gas: 0)
+Suite result: ok. 0 passed; 0 failed; 1 skipped; finished in 464.75µs (0.00ns CPU time)
+
+Ran 1 test for test/fork/HookReviewRegressions.t.sol:HookReviewRegressionsV2Currency0Test
+[SKIP: skipped: fork suite: run the project's Nx `fork` target] setUp() (gas: 0)
+Suite result: ok. 0 passed; 0 failed; 1 skipped; finished in 463.29µs (0.00ns CPU time)
+
+Ran 6 tests for test/HookReviewRegressions.t.sol:HookReviewRegressionsTest
+[FAIL: call reverted as expected, but without data] test_H3_BeforeInitializeRejectsCallersOtherThanThePoolManager() (gas: 9666)
+[FAIL: call reverted as expected, but without data] test_H3_BeforeInitializeRejectsEveryKeyButTheOfficialOne() (gas: 13454)
+[FAIL: call reverted as expected, but without data] test_H3_BeforeInitializeRejectsSendersOtherThanTheInitializer() (gas: 9879)
+[FAIL: constructed with a zero address] test_H3_ConstructorRejectsZeroAddressesAndUnsortedCurrencies() (gas: 11865)
+[FAIL: constructed at an address without exactly the gated flags] test_H3_ConstructorRequiresExactlyTheGatedFlagBits() (gas: 10137)
+[FAIL: EvmError: Revert] test_H3_LaunchParametersAreImmutablesThatSurviveEtch() (gas: 10254)
+Suite result: FAILED. 0 passed; 6 failed; 0 skipped; finished in 813.75µs (745.79µs CPU time)
+
+Ran 3 test suites in 4.68ms (1.74ms CPU time): 0 tests passed, 6 failed, 2 skipped (8 total tests)
+
+Failing tests:
+Encountered 6 failing tests in test/HookReviewRegressions.t.sol:HookReviewRegressionsTest
+[FAIL: call reverted as expected, but without data] test_H3_BeforeInitializeRejectsCallersOtherThanThePoolManager() (gas: 9666)
+[FAIL: call reverted as expected, but without data] test_H3_BeforeInitializeRejectsEveryKeyButTheOfficialOne() (gas: 13454)
+[FAIL: call reverted as expected, but without data] test_H3_BeforeInitializeRejectsSendersOtherThanTheInitializer() (gas: 9879)
+[FAIL: constructed with a zero address] test_H3_ConstructorRejectsZeroAddressesAndUnsortedCurrencies() (gas: 11865)
+[FAIL: constructed at an address without exactly the gated flags] test_H3_ConstructorRequiresExactlyTheGatedFlagBits() (gas: 10137)
+[FAIL: EvmError: Revert] test_H3_LaunchParametersAreImmutablesThatSurviveEtch() (gas: 10254)
+
+Encountered a total of 6 failing tests, 0 tests succeeded
+
+Tip: Run `forge test --rerun` to retry only the 6 failed tests
+# exit 1
+
+$ forge test --match-path 'test/fork/*' --match-test H3_ --fork-url http://127.0.0.1:18549 --fork-block-number 51935583
+No files changed, compilation skipped
+
+Ran 2 tests for test/fork/HookReviewRegressions.t.sol:HookReviewRegressionsV2Currency1Test
+[FAIL: next call did not revert as expected] test_H3_NoOtherPoolKeyCanNameTheHook() (gas: 76765)
+[FAIL: next call did not revert as expected] test_H3_OnlyTheInitializerCanInitializeTheOfficialKey() (gas: 72920)
+Suite result: FAILED. 0 passed; 2 failed; 0 skipped; finished in 1.82ms (496.63µs CPU time)
+
+Ran 2 tests for test/fork/HookReviewRegressions.t.sol:HookReviewRegressionsV2Currency0Test
+[FAIL: next call did not revert as expected] test_H3_NoOtherPoolKeyCanNameTheHook() (gas: 73084)
+[FAIL: next call did not revert as expected] test_H3_OnlyTheInitializerCanInitializeTheOfficialKey() (gas: 69239)
+Suite result: FAILED. 0 passed; 2 failed; 0 skipped; finished in 1.84ms (452.58µs CPU time)
+
+Ran 2 test suites in 7.38ms (3.66ms CPU time): 0 tests passed, 4 failed, 0 skipped (4 total tests)
+
+Failing tests:
+Encountered 2 failing tests in test/fork/HookReviewRegressions.t.sol:HookReviewRegressionsV2Currency0Test
+[FAIL: next call did not revert as expected] test_H3_NoOtherPoolKeyCanNameTheHook() (gas: 73084)
+[FAIL: next call did not revert as expected] test_H3_OnlyTheInitializerCanInitializeTheOfficialKey() (gas: 69239)
+
+Encountered 2 failing tests in test/fork/HookReviewRegressions.t.sol:HookReviewRegressionsV2Currency1Test
+[FAIL: next call did not revert as expected] test_H3_NoOtherPoolKeyCanNameTheHook() (gas: 76765)
+[FAIL: next call did not revert as expected] test_H3_OnlyTheInitializerCanInitializeTheOfficialKey() (gas: 72920)
+
+Encountered a total of 4 failing tests, 0 tests succeeded
+
+Tip: Run `forge test --rerun` to retry only the 4 failed tests
+# exit 1

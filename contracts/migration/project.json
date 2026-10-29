@@ -1,0 +1,81 @@
+{
+  "name": "@surplus/contracts.migration",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "contracts/migration/src",
+  "projectType": "application",
+  "tags": [
+    "type:contracts",
+    "scope:contracts"
+  ],
+  "targets": {
+    "build": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "forge build --deny warnings",
+        "cwd": "contracts/migration",
+        "forwardAllArgs": false
+      },
+      "inputs": [
+        "{projectRoot}/src/**/*.sol",
+        "{projectRoot}/foundry.toml"
+      ],
+      "outputs": [
+        "{projectRoot}/out"
+      ]
+    },
+    "test": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "forge test",
+        "cwd": "contracts/migration",
+        "forwardAllArgs": false
+      },
+      "inputs": [
+        "{projectRoot}/src/**/*.sol",
+        "{projectRoot}/test/**/*.sol",
+        "{projectRoot}/foundry.toml"
+      ]
+    },
+    "lint": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "forge fmt --check",
+        "cwd": "contracts/migration",
+        "forwardAllArgs": false
+      },
+      "inputs": [
+        "{projectRoot}/src/**/*.sol",
+        "{projectRoot}/test/**/*.sol"
+      ]
+    },
+    "fmt": {
+      "executor": "nx:run-commands",
+      "cache": false,
+      "options": {
+        "command": "forge fmt",
+        "cwd": "contracts/migration"
+      }
+    },
+    "gas": {
+      "executor": "nx:run-commands",
+      "cache": false,
+      "options": {
+        "command": "forge test --gas-report",
+        "cwd": "contracts/migration"
+      }
+    },
+    "fuzz": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "FOUNDRY_PROFILE=deep forge test",
+        "cwd": "contracts/migration",
+        "forwardAllArgs": false
+      },
+      "inputs": [
+        "{projectRoot}/src/**/*.sol",
+        "{projectRoot}/test/**/*.sol",
+        "{projectRoot}/foundry.toml"
+      ]
+    }
+  }
+}

@@ -1,0 +1,30 @@
+# §4.2 deploy prep — plan + fork dry run (no broadcast), with the REAL contracts/fee-hook SurplusFeeHook.
+# Fork: the pinned local anvil (Base 51935583).
+$ python3.14 kit/deploy_plan.py --rehearsal --rpc <local fork>
+tokenImplementation  0x23092cCf5D386cC9C4278af50DcF07fC03AFEc9E  (python CREATE2 matches)
+token                0xbF42Bac232d1586EF2C04031e1aF4c09aDe8770D  (python CREATE2 matches)
+vault                0xAE25063230A4A772cEF934e5a7552f63b4Dd83Be  (python CREATE2 matches)
+settler              0xDE699eb4ba0b3340261ff8109F424BC88024F1ED  (python CREATE2 matches)
+hook                 0x4D7cF9C85c072D9F8f55623774362b21493BE044  (python CREATE2 matches)
+safe                 0xfaAaadF79b178ca2e3B0833ee08c7592a97728C9  (python CREATE2 matches)
+hook flags           0x2044 (exactly BEFORE_INITIALIZE | AFTER_SWAP | AFTER_SWAP_RETURNS_DELTA)
+DeployDryRun: every deployment landed at its predicted address with the decided settings
+wrote kit/output/deploy/{resolved,plan,basescan,deployment,summary}.json + dry-run.txt
+
+# init-code hashes and the mined hook salt (kit/output/deploy/summary.json):
+  tokenImplementationInitCodeHash: 0xe62032e0d8dbfcd71008f62b53bfe9009884bf716c7adce22cc381dcfe212aa4
+  tokenProxyInitCodeHash: 0x904bb9056be30a50e8f6d988b076cf5c96c6deaf777d7ce6b9e1bb51da2b2bd9
+  vaultInitCodeHash: 0x1fa1e8149d8efa1639b5b62e419cb3f37bde340a9112220c610cdb46bb1cfa6e
+  settlerInitCodeHash: 0x25ee7cb12197dea6a6a8c45f1d9754e1b2f11a7691d69ff8cc2763c0931844af
+  hookInitCodeHash: 0x342e92120b41f8dc0c964b00e6fdad642afafd49b32fa7d1e6fd5bfad7ed0db0
+  hookSalt: 0x000000000000000000000000000000000000000000000000000000000000554c
+  hook artifact: fee-hook/out/SurplusFeeHook.sol/SurplusFeeHook.json
+rerun: byte-identical (plan, resolved, basescan, deployment)
+
+# the dry run fails closed:
+M1 plan's vault address off by one →
+Error: script failed: vault: nothing deployed at the predicted address
+M2 decided threshold differs from the Safe the plan creates →
+Error: script failed: Safe: threshold
+M3 launch params.json (open decisions) →
+KIT STOP: open decisions block this phase: governance.owners (§6.1 (SUR-662)); governance.threshold (§6.1 (SUR-662)); token.name (§6.2); token.symbol (§6.2); token.capWei (§6.2); vault.depositDeadline (§6.3 dates, §6.5 claimPeriod (P5)); vault.commitDeadline (§6.3 dates, §6.5 claimPeriod (P5)); vault.executionWindowSeconds (§6.3 dates, §6.5 claimPeriod (P5)); vault.claimPeriodSeconds (§6.3 dates, §6.5 claimPeriod (P5)); hook.feeRecipient (§6.4 fee recipient); operators.deployer (§6.7)

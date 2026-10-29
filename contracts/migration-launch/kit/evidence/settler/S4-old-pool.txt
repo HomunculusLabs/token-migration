@@ -1,0 +1,24 @@
+# §3.4 settler S4 (a mis-built old key sells into a rival dust pool) — RED on 4a1a8815d
+$ forge test --match-test test_S4 --fork-url <local anvil 127.0.0.1:18549, chainId 8453, block 51935583> -vvv
+Ran 1 test suite in 4.85s (3.90s CPU time): 0 tests passed, 1 failed, 0 skipped (1 total tests)
+[FAIL: settle accepted: a rival old pool] test_S4_RivalOldPoolIsNotAVenue() (gas: 14026232)
+# the rival-pool settle that should have reverted (trace): whole cohort sold, 3.32 WETH raised vs 111.71 on the pinned pool
+emit Settled(v1Sold: 20839593379255437181200365959 [2.083e28], wethRaised: 3318527578676042739 [3.318e18], wethSeeded: 3318524260148464063 [3.318e18], v2Seeded: 144398469489039057692738174 [1.443e26], positionId: 3097528 [3.097e6], liquidity: 21890404841566637237008 [2.189e22])
+
+# GREEN after the fix (settler sha256 69b8fec5a1ba8ad9)
+$ forge test --match-path 'test/fork/**' --fork-url <local anvil 127.0.0.1:18549, chainId 8453, block 51935583>
+Ran 2 test suites in 26.82ms (44.84ms CPU time): 14 tests passed, 0 failed, 0 skipped (14 total tests)
+[PASS] test_FrontRunInitRevertsTheWholeBatch() (gas: 11988871)
+[PASS] test_GatedHookRejectsAnOutsiderInitialize() (gas: 7387428)
+[PASS] test_Launch_V2SortsAboveWeth() (gas: 11265610)
+[PASS] test_Launch_V2SortsBelowWeth() (gas: 11266445)
+[PASS] test_OnlyTheSafeCanSettle() (gas: 7302993)
+[PASS] test_S1_LaunchLeavesNoTokensOrApprovals() (gas: 11240019)
+[PASS] test_S2_DonationCannotBlockTheLaunch() (gas: 11293877)
+[PASS] test_S3_HookNotBoundToTheSettlerReverts() (gas: 11381280)
+[PASS] test_S3_NoSuccessorHookReverts() (gas: 11189072)
+[PASS] test_S3_WrongSuccessorFeeReverts() (gas: 11188402)
+[PASS] test_S3_WrongSuccessorTickSpacingReverts() (gas: 11188535)
+[PASS] test_S4_RivalOldPoolIsNotAVenue() (gas: 11707721)
+[PASS] test_SaleBelowTheSignedMinimumRevertsTheBatch() (gas: 11925555)
+[PASS] test_V2BudgetBelowTheSeedRevertsTheBatch() (gas: 11948559)
