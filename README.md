@@ -67,6 +67,16 @@ anvil --fork-url "$BASE_ARCHIVE_RPC" --fork-block-number 51935583 --port 18549
 (cd contracts/migration-launch && forge test --match-path 'test/fork/**' --fork-url http://127.0.0.1:18549)
 ```
 
+### On Base Sepolia
+
+The migration has also run end to end on the public Base Sepolia testnet with throwaway keys:
+refunds after a missed deadline, real wallets on the migration page and in the Safe app, the
+one-call launch contract, and a load rehearsal with 5,000 wallets and 800,000 test V1. Addresses,
+transactions and results for each run are in
+[`contracts/migration-launch/kit/evidence/sepolia/`](contracts/migration-launch/kit/evidence/sepolia/).
+Those runs prove the mechanics on a public chain. The sale and pool economics of record are the
+mainnet-fork rehearsal in [`kit/REPORT.md`](contracts/migration-launch/kit/REPORT.md).
+
 ## Security
 
 See [SECURITY.md](SECURITY.md): deployment and review status, known limitations and trust
