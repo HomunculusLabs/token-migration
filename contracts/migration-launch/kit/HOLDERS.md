@@ -30,11 +30,12 @@ Basescan before you approve anything.
    more than once.
 3. **Change your mind?** Until the deadline, `withdrawV1(<amount>)` returns your v1. From the deadline on,
    the ledger is frozen so the claim list can be built from it.
-4. **Get your v2.** You don't have to do anything. A relayer sends every depositor their v2 (it can only
-   pay each entry to its own account). Your claim never expires. If you would rather not wait, claim it
-   yourself:
-   - `claimProRata()` on the vault: no proof needed. It pays you exactly your net deposit × 1.
-   - or `claim(index, account, amount, proof)` with your entry from the published tree.
+4. **Claim your v2.** After the launch, claim it from the vault, on the migration page or directly.
+   Your claim never expires.
+   - `claimProRata()` on the vault, from the wallet you deposited with: no proof needed. It pays you
+     exactly your net deposit × 1.
+   - or `claim(index, account, amount, proof)` with your entry from the published tree. Anyone can
+     submit it for you; it always pays `account`.
 
    Either way, you are paid once.
 
