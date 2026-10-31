@@ -17,10 +17,17 @@
 
 - **Fee hook, exact-output swaps.** The hook takes its fee on an exact-output swap before the
   swapper's input arrives, so such a swap reverts if the PoolManager holds less of the input
-  currency than the fee. This is not reachable at launch: it would take a single exact-output sell
-  of roughly four times the whole V2 supply. It can only revert a swap, never lose funds; an
-  exact-input swap still fills. Details and the planned fix:
-  `contracts/migration-launch/kit/evidence/review/SUMMARY.md`.
+  currency than the fee. Reachability depends on the input-currency reserves, supply and actual
+  launch configuration; it is not an invariant enforced by the hook. The earlier estimate of a
+  sell roughly four times the whole V2 supply belongs to the historical two-sided full-range
+  rehearsal, not the current split seed. Do not carry that numerical assurance forward without a
+  new measurement bound to the intended source revision, block and final launch parameters, in
+  both currency orientations. This reserve limitation reverts the affected swap atomically; it
+  does not transfer funds on a reverted swap. Exact-input swaps do not have this pre-input
+  collection condition, but still have their normal liquidity and slippage constraints. The
+  historical mechanism analysis and proposed ERC-6909 redesign are in
+  [`SUMMARY.md`](contracts/migration-launch/kit/evidence/review/SUMMARY.md); that redesign is not
+  implemented in the current hook.
 - **The claims tree is checked off-chain per leaf.** On chain, the vault requires the committed
   total to equal the net deposit ledger at the migration rate (pro-rata mode, which this migration
   uses) and caps every payout at that total. That each leaf pays the right account the right amount

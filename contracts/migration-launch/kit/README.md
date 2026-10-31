@@ -32,7 +32,8 @@ python3.14 kit/launch.py <phase> …      # from contracts/migration-launch/
 - `RUNBOOK.md`: the launch-day sequence, who signs what, and every abort path.
 - `SIGNER-CHECKLIST.md`: what each Safe signer checks before signing.
 - `HOLDERS.md`: for holders. Addresses, how to deposit, how to check your own entry.
-- `REPORT.md`: the full-scale rehearsal's numbers at the pin.
+- `REPORT.md`: historical full-scale numbers at the pin, from the older MultiSendCallOnly/two-sided
+  full-range launch. They are not current split-seed economics or full-cohort `MigrationLaunch` acceptance.
 - `manifest.json`: sha256 of every artifact (`check` verifies it).
 - `evidence/`: command output behind every claim in REPORT.md and the spec's progress list.
 - `output/` (gitignored): large generated files. The manifest records their sha256.
@@ -60,6 +61,11 @@ root, tree and snapshot files under `kit/output/`. It refuses missing inputs, th
 skipped tests and partial runs. The large gas limit is for the aggregate harness only. Set
 `RESTORED_PRECOMMIT_RPC` to the loopback URL of a restored pre-commit fork, not the instance that has
 already executed the launch and payouts.
+
+This full-scale harness still executes a MultiSendCallOnly batch, not `MigrationLaunch.launch()`.
+Its current parameter builder uses split ranges and the +10-wei V2 budget, but a pass is not evidence
+that the production one-call launcher ran at full cohort. Publish that separate source- and
+block-pinned acceptance run before presenting current economics or gas as measured release results.
 
 ```bash
 SURPLUS_REHEARSAL_RPC="${RESTORED_PRECOMMIT_RPC:?set the restored pre-commit fork URL}" \

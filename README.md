@@ -96,6 +96,11 @@ Every swap on the V2/WETH pool pays a 0.30% fee to liquidity providers plus 1.5%
 at deployment can withdraw either half, and buybacks are not automatic: the Safe carries them out
 separately. The hook has no owner, admin, pause, setter or upgrade path.
 
+Exact-output swaps can revert if the PoolManager's balance of the input currency cannot cover the
+hook fee before the swapper's input arrives. Reachability depends on the actual launch reserves and
+supply; the older full-range rehearsal does not establish a bound for the current split seed. See
+[SECURITY.md](SECURITY.md#known-limitations-and-trust-assumptions).
+
 ### Who holds which power
 
 The Safe owns the vault. It commits the claims list, can cancel before the commit, and opens claims. It
@@ -105,9 +110,11 @@ upgradeable.
 
 The Safe also holds every V2 role (admin, minter, burner, upgrader) and receives every LP NFT, so it
 controls the new pool's liquidity. V2's supply is capped and `burn` only destroys the caller's own
-tokens, but V2 is upgradeable, and an upgrade can change any of its rules, the cap included. Each
-project's `DESIGN.md` lists every privileged function and its limits, and [SECURITY.md](SECURITY.md)
-lists the trust assumptions and known limits.
+tokens, but V2 is upgradeable, and an upgrade can change any of its rules, the cap included. Removing
+the last upgrader does not permanently disable upgrades while an admin remains: the admin can grant
+`UPGRADER_ROLE` again. See the [role and recovery rules](contracts/token-v2/DESIGN.md#3-role-matrix).
+Each project's `DESIGN.md` lists every privileged function and its limits, and
+[SECURITY.md](SECURITY.md) lists the trust assumptions and known limits.
 
 ## Layout
 
@@ -175,8 +182,19 @@ refunds after a missed deadline, real wallets on the migration page and in the S
 one-call launch contract, and a load rehearsal with 5,000 wallets and 800,000 test V1. Addresses,
 transactions and results for each run are in
 [`contracts/migration-launch/kit/evidence/sepolia/`](contracts/migration-launch/kit/evidence/sepolia/).
-Those runs prove the mechanics on a public chain. The sale and pool economics of record are the
-mainnet-fork rehearsal in [`kit/REPORT.md`](contracts/migration-launch/kit/REPORT.md).
+Those runs exercise mechanics on a public chain, not Base-mainnet sale economics.
+
+[`kit/REPORT.md`](contracts/migration-launch/kit/REPORT.md) preserves a **historical** mainnet-fork
+rehearsal: a MultiSendCallOnly batch, one two-sided full-range position, and a V2 budget of simulated
+usage + 0.1% + 10 wei. The current launch instead uses `MigrationLaunch`, separate V2-only ladder
+ranges and a WETH-only position, and a V2 budget of simulated usage + 10 wei. The old report's LP
+quantities, depth, supply and gas are not measurements of this current launch.
+
+Current full-cohort economics and gas require a separately published, source- and block-pinned run
+through the Safe's DELEGATECALL to `MigrationLaunch.launch()`, reconciling the claims, sale, LP
+positions and signed limits. The included full-scale harness still uses MultiSendCallOnly, even
+though its parameter builder now uses split ranges; it alone does not establish full-cohort
+acceptance of the one-call launcher. Do not treat the historical report as that release gate.
 
 ## Security
 

@@ -1,5 +1,14 @@
 # SURPLUS v1 → v2 launch: rehearsal report
 
+> **Historical report — not current-launch acceptance.** The results below describe the older
+> MultiSendCallOnly launch, one two-sided full-range LP and a simulated-usage + 0.1% + 10-wei V2
+> budget. The current launch uses a Safe DELEGATECALL to `MigrationLaunch.launch()`, separate V2-only
+> ladder ranges and a WETH-only position, and a simulated-usage + 10-wei V2 budget. The historical
+> measurements and policy statements below are retained for provenance, not restated as current
+> quantities, gas, approved geometry or release guarantees. Current full-cohort results require a
+> separately published, source- and block-pinned one-call rehearsal; see the repository
+> [README](../../../README.md#on-base-sepolia). No historical measurement below has been regenerated.
+
 Every number below comes from a file (sha256 at the end), measured at Base block **51,935,583**
 (`0x2a3d465ca7407d2373bce06a2741e104785fefd0d43db7574a8230a310caa1b6`) or produced by the full-scale fork rehearsal of the monorepo contracts from that
 state. USD figures use Chainlink ETH/USD at the pin, **$2,658.90**. The rehearsal runs on a

@@ -14,6 +14,17 @@ treasury Safe can withdraw either. **Not deployed; read [DESIGN.md](DESIGN.md) f
 - `test/`: unit suites. `test/fork/` holds the fork suites that run against the real Base PoolManager.
 - `evidence/`: red→green output for each review finding (H1, H3, H2/H4).
 
+## Exact-output reserve limitation
+
+For exact-output swaps, the hook collects its input-currency fee before the swapper's input reaches
+the PoolManager. The swap reverts if the manager's available balance cannot cover that fee. Whether
+this is reachable depends on the actual reserves and supply. The historical four-times-supply
+estimate used a two-sided full-range launch; it is not a bound for the current split seed. A current
+bound needs measurements tied to the final launch parameters, source revision and block, in both
+currency orientations. Exact-input swaps do not have this particular pre-input collection condition.
+See [SECURITY.md](../../SECURITY.md#known-limitations-and-trust-assumptions) for the scope and the
+unimplemented redesign proposal.
+
 ## Commands
 
 From the repository root, run `npm ci` first; the tests' OpenZeppelin interfaces come from the workspace pin.
