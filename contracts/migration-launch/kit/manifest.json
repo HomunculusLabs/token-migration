@@ -17,7 +17,7 @@
     "snapshot_plan.py": "271d82064289f94b7e5f55c966fbe779fe24ef3d1a3fae2e28993f6835a9d1ee",
     "README.md": "2df0e8a5718e1fb86c089af832425eb7da347938f0c614b3ab64cb0ae74c16e6",
     "RUNBOOK.md": "0dfaf82ff8325d963a631776606af26cac82865f6e95ce2fe9780bc76cd707cd",
-    "HOLDERS.md": "ad9aa8899c7e0070d90171f1bf1f22807200fa910c8aaf7f434d9b6808e76959",
+    "HOLDERS.md": "f5dce9808a60a6d08c3a823e58df027805a8df4986853c458f340a03fc9b713a",
     "REPORT.md": "80581bfa69221b8b5f983c259e71a820e3b19cf20a7caed87ab2270c8c4920ee",
     "SIGNER-CHECKLIST.md": "d3878aa202de40f5d9f7c4c643e9e47cfc98954fb17bdefa7ec61cb6addcafd4"
   },
@@ -454,8 +454,6 @@
     "vault.depositOpen": "\u00a76.3 deposit open",
     "vault.depositDeadline": "\u00a76.3 deposit deadline",
     "vault.commitDeadline": "\u00a76.3 pre-commit timeout",
-    "vault.executionWindowSeconds": "\u00a76.3 activation timeout",
-    "hook.feeRecipient": "\u00a76.4 hook fee recipient",
     "operators.deployer": "\u00a76.7 deployer EOA",
     "operators.relayer": "\u00a76.7 relayer EOA"
   },
@@ -464,9 +462,29 @@
       "value": 0,
       "why": "\u00a76.5 P5: claims never expire (Bill, 2026-09-29)"
     },
-    "singleSidedV2.enabled": {
-      "value": false,
-      "why": "\u00a76.6: no extra single-sided v2 (Bill, 2026-09-29)"
+    "vault.executionWindowSeconds": {
+      "value": 2419200,
+      "why": "\u00a76.3: the launch must execute within 28 days of the commit (Bill, 2026-10-25)"
+    },
+    "seed.openTick": {
+      "value": "pre-sale-tick-rounded",
+      "why": "SUR-658: open at v1's pre-sale tick, on the grid (Bill, 2026-10-25)"
+    },
+    "seed.v2Side": {
+      "value": "old-pool-ladder-copy",
+      "why": "SUR-658: v2 copies the old pool's v1 ladder (Bill, 2026-10-25)"
+    },
+    "seed.wethSide": {
+      "value": "full-range",
+      "why": "SUR-658: one WETH-only position, open tick to range end (Bill, 2026-10-25)"
+    },
+    "seed.mergeBps": {
+      "value": 100,
+      "why": "SUR-658: old-pool segments within 1% of liquidity merge (Bill, 2026-10-25)"
+    },
+    "successorPool.lpFee": {
+      "value": 12000,
+      "why": "a 1.2% LP fee is the successor pool's only fee; its hook takes none (Bill, 2026-11-02)"
     }
   }
 }

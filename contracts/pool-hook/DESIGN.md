@@ -17,6 +17,10 @@ split, and no hook withdrawal.
 Anyone who later adds liquidity to the same pool earns a share of the 1.2% in proportion to their in-range
 liquidity. Fees go to whoever provides the liquidity, not to a fixed recipient.
 
+Uniswap's protocol-fee controller can set a protocol fee on any v4 pool, hooks or not, of at most 1,000 pips
+(0.1%) per direction. The pool starts at zero. A protocol fee would add to what a swap pays (12,988 pips in
+all at the maximum) and leave the LPs about 1.2% of the rest. V1's pool pays no protocol fee today.
+
 ## What the hook enforces
 
 ### 1. Permissions: initialization only

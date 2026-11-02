@@ -94,7 +94,9 @@ launch transaction, and from then on the refund paths are closed for good.
 The V2/WETH pool has one fee: 1.2% of every swap, the LP fee set in the pool key. It goes to the
 pool's liquidity providers. At launch all of that liquidity is the Safe's, so the Safe earns the whole
 fee and collects it like any LP. Anyone who adds liquidity later earns a share in proportion to their
-in-range liquidity. There is no hook fee and no team or buyback split.
+in-range liquidity. There is no hook fee and no team or buyback split. As on any Uniswap v4 pool,
+Uniswap's governance could switch on its own protocol fee, at most 0.1% of a swap; V1's pool pays none
+today.
 
 The pool's hook, `SurplusPoolHook`, makes sure only the launch can create the pool, so nobody can open
 it first at a price of their choosing. Uniswap calls it once, when the pool is created, and never on a

@@ -20,7 +20,8 @@
 - **The pool hook only controls who creates the pool.** `SurplusPoolHook` lets only the launch
   initialize the official V2/WETH pool. It holds only the `BEFORE_INITIALIZE` permission, so
   Uniswap never calls it on a swap or a liquidity change, and it takes no fee: the pool's 1.2% LP
-  fee is the only fee. It cannot stop anyone from opening a separate V2/WETH pool elsewhere, at
+  fee is the only fee the launch sets. Uniswap's governance can switch on a protocol fee for any v4
+  pool, at most 0.1% of a swap. It cannot stop anyone from opening a separate V2/WETH pool elsewhere, at
   any fee. The exact-output limitation earlier versions of this file described belonged to the
   previous 1.5% fee hook, which was dropped before launch.
 - **The claims tree is checked off-chain per leaf.** On chain, the vault requires the committed
