@@ -600,8 +600,10 @@ def largest_fill(sold: Callable[[int], int | None], n: int) -> int:
     """The largest amount up to n that a leg sells in full, or 0. sold(x) is the v1 a quote of x sells: x when it
     fills, less when the pool reaches its price limit first, None when the quote reverts. A pool sells every amount
     from a few wei up to the most it can take, and stops at that most for anything larger, so a quote that sells only
-    part of n names the most: the search starts there, and otherwise halves from n until an amount sells in full.
-    Bisection then settles the limit to the wei: a coarser one could hide a narrow band of splits that fill."""
+    part of n names the most, and the search starts there. If the quote of n reverts instead, the search halves from
+    n until an amount sells in full, and can miss amounts that fill only in a band narrower than a factor of two: the
+    result is then 0, never an amount that does not fill. Bisection settles the limit to the wei: a coarser one could
+    hide a narrow band of splits that fill."""
     ok = sold(n)
     if ok == n:
         return n
