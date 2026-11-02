@@ -1,7 +1,7 @@
 {
-  "name": "@surplus/contracts.fee-hook",
+  "name": "@surplus/contracts.pool-hook",
   "$schema": "../../node_modules/nx/schemas/project-schema.json",
-  "sourceRoot": "contracts/fee-hook/src",
+  "sourceRoot": "contracts/pool-hook/src",
   "projectType": "application",
   "tags": [
     "type:contracts",
@@ -12,7 +12,7 @@
       "executor": "nx:run-commands",
       "options": {
         "command": "forge build --deny warnings",
-        "cwd": "contracts/fee-hook",
+        "cwd": "contracts/pool-hook",
         "forwardAllArgs": false
       },
       "inputs": [
@@ -30,7 +30,7 @@
       "executor": "nx:run-commands",
       "options": {
         "command": "forge test --no-match-path 'test/fork/*'",
-        "cwd": "contracts/fee-hook",
+        "cwd": "contracts/pool-hook",
         "forwardAllArgs": false
       },
       "inputs": [
@@ -46,7 +46,7 @@
       "cache": false,
       "options": {
         "command": "forge test --match-path 'test/fork/*' --fork-url ${FORK_URL:-http://127.0.0.1:18549} --fork-block-number ${FORK_BLOCK:-51935583}",
-        "cwd": "contracts/fee-hook",
+        "cwd": "contracts/pool-hook",
         "forwardAllArgs": false
       }
     },
@@ -54,7 +54,7 @@
       "executor": "nx:run-commands",
       "options": {
         "command": "forge fmt --check",
-        "cwd": "contracts/fee-hook",
+        "cwd": "contracts/pool-hook",
         "forwardAllArgs": false
       },
       "inputs": [
@@ -68,7 +68,7 @@
       "cache": false,
       "options": {
         "command": "forge fmt",
-        "cwd": "contracts/fee-hook"
+        "cwd": "contracts/pool-hook"
       }
     },
     "gas": {
@@ -76,7 +76,7 @@
       "cache": false,
       "options": {
         "command": "forge test --gas-report --no-match-path 'test/fork/*'",
-        "cwd": "contracts/fee-hook"
+        "cwd": "contracts/pool-hook"
       }
     },
     "mine-salt": {
@@ -84,14 +84,14 @@
       "cache": false,
       "options": {
         "command": "forge script script/MineHookSalt.s.sol --tc MineHookSalt",
-        "cwd": "contracts/fee-hook"
+        "cwd": "contracts/pool-hook"
       }
     },
     "fuzz": {
       "executor": "nx:run-commands",
       "options": {
         "command": "FOUNDRY_PROFILE=deep forge test --no-match-path 'test/fork/*'",
-        "cwd": "contracts/fee-hook",
+        "cwd": "contracts/pool-hook",
         "forwardAllArgs": false
       },
       "inputs": [

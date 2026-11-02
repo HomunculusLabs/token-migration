@@ -7,9 +7,10 @@
 - **What happens to the pool.** The v1 you deposit is sold, and all of the money raised opens the new
   v2/WETH pool at the opening price selected in the launch simulation. Matching an opening price does
   not guarantee what you can sell for: fees, available liquidity and other trades affect your proceeds.
-- **Trading fee.** On the new pool: 0.30% to liquidity providers plus 1.5% to the SURPLUS treasury (half
-  for the team, half allocated to buybacks). Purchases and any burns require separate treasury
-  decisions and transactions; fee accrual alone does not execute a buyback.
+- **Trading fee.** 1.2% on every swap on the new pool, the same as V1's pool today. It goes to the pool's
+  liquidity providers: at launch that is all the SURPLUS Safe, and anyone who adds liquidity later earns a
+  share. The launch adds no other fee. As on any Uniswap v4 pool, Uniswap's governance could switch on its
+  own protocol fee, at most 0.1% of a swap.
 - **Chain.** Base only.
 
 ## Contract addresses

@@ -46,9 +46,10 @@ import {LaunchMath} from "./LaunchMath.sol";
  * - It sells exactly the signed `v1In` and seeds exactly what that sale raised. A donation to this public
  *   address therefore cannot change the seed or block the launch; it goes back to the Safe.
  * - It opens only the decided successor: v2/WETH at the fee and tick spacing pinned at deployment, with a
- *   hook that carries exactly the launch flags, names this contract as its only initializer, charges the
- *   decided 1.5% and pays it to the fee recipient pinned at deployment. A mis-built key reverts; it can never
- *   open a pool without the 1.5% hook, one that pays its fees elsewhere, or one that nothing routes to.
+ *   hook that carries exactly the BEFORE_INITIALIZE flag and names this contract as its only initializer. Such a
+ *   hook is called once, at initialization, and can never touch a swap or a liquidity change, so the pool's static LP
+ *   fee is the only fee a swap pays. A mis-built key reverts; it can never open a pool with a fee-taking hook, or
+ *   one that nothing routes to.
  */
 contract MigrationSettler is IUnlockCallback {
     using SafeCast for uint256;
@@ -66,7 +67,6 @@ contract MigrationSettler is IUnlockCallback {
         bytes32 oldPoolId;
         uint24 lpFee;
         int24 tickSpacing;
-        address feeRecipient; // the successor hook's TREASURY (spec §6.4)
     }
 
     /// @dev One v2-only position: a range wholly on the v2 side of the opening tick, and its liquidity.
@@ -94,11 +94,12 @@ contract MigrationSettler is IUnlockCallback {
         uint128 liquidity;
     }
 
-    /// @notice The v4 permission bits the successor hook's address must carry, exactly: BEFORE_INITIALIZE
-    ///         (the initializer gate) | AFTER_SWAP | AFTER_SWAP_RETURNS_DELTA (the 1.5% fee).
-    uint160 public constant HOOK_FLAGS = 0x2044;
-    /// @notice The successor hook's fee, in pips (1,000,000 = 100%): the decided 1.5%.
-    uint24 public constant HOOK_FEE_PIPS = 15_000;
+    /// @notice The v4 permission bits the successor hook's address must carry, exactly: BEFORE_INITIALIZE (the
+    ///         initializer gate) and nothing else, so the hook can never be called on a swap or a liquidity change.
+    uint160 public constant HOOK_FLAGS = 0x2000;
+    /// @dev v4 LPFeeLibrary.MAX_LP_FEE. A larger fee is invalid or the dynamic-fee flag (0x800000), and a dynamic-fee
+    ///      pool opens at 0% with only its hook able to set a fee, which the successor hook never does.
+    uint24 internal constant MAX_LP_FEE = 1_000_000;
     /// @dev A v4 hook's permissions ARE the low 14 bits of its address.
     uint160 internal constant ALL_HOOK_MASK = (1 << 14) - 1;
     uint256 internal constant Q96 = 1 << 96;
@@ -120,8 +121,6 @@ contract MigrationSettler is IUnlockCallback {
     bytes32 public immutable OLD_POOL_ID;
     uint24 public immutable LP_FEE;
     int24 public immutable TICK_SPACING;
-    /// @notice The only treasury the successor hook may pay its fees to.
-    address public immutable FEE_RECIPIENT;
 
     /// @notice The launch receipt, read by the post-batch checks (RUNBOOK) and the rehearsal.
     uint256 public wethRaised;
@@ -167,7 +166,7 @@ contract MigrationSettler is IUnlockCallback {
             c.poolManager == address(0) || c.positionManager == address(0) || c.permit2 == address(0)
                 || c.safe == address(0) || c.v1 == address(0) || c.weth == address(0) || c.v2 == address(0)
                 || c.v3Tail == address(0) || c.v1 == c.weth || c.v1 == c.v2 || c.v2 == c.weth
-                || c.oldPoolId == bytes32(0) || c.tickSpacing <= 0
+                || c.oldPoolId == bytes32(0) || c.tickSpacing <= 0 || c.lpFee > MAX_LP_FEE
         ) revert InvalidConfig();
         POOL_MANAGER = IPoolManager(c.poolManager);
         POSITION_MANAGER = IPositionManager(c.positionManager);
@@ -180,7 +179,6 @@ contract MigrationSettler is IUnlockCallback {
         OLD_POOL_ID = c.oldPoolId;
         LP_FEE = c.lpFee;
         TICK_SPACING = c.tickSpacing;
-        FEE_RECIPIENT = c.feeRecipient;
     }
 
     /// @notice Sell `p.v1In` v1, then open and seed the successor pool. Safe-only.
@@ -269,18 +267,6 @@ contract MigrationSettler is IUnlockCallback {
         if ((uint160(k.hooks) & ALL_HOOK_MASK) != HOOK_FLAGS || k.hooks.code.length == 0) revert WrongHook(k.hooks);
         try ILaunchHook(k.hooks).INITIALIZER() returns (address initializer) {
             if (initializer != address(this)) revert WrongHook(k.hooks);
-        } catch {
-            revert WrongHook(k.hooks);
-        }
-        // A pool's hook is fixed for good at initialization, so the fee and where it goes are checked too: a hook
-        // bound to this settler that charges nothing, or pays another treasury, must not open the pool.
-        try ILaunchHook(k.hooks).TREASURY() returns (address treasury) {
-            if (treasury != FEE_RECIPIENT) revert WrongHook(k.hooks);
-        } catch {
-            revert WrongHook(k.hooks);
-        }
-        try ILaunchHook(k.hooks).FEE_PIPS() returns (uint24 feePips) {
-            if (feePips != HOOK_FEE_PIPS) revert WrongHook(k.hooks);
         } catch {
             revert WrongHook(k.hooks);
         }

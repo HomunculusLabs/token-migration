@@ -92,7 +92,7 @@ contract RehearsalLaunch {
         }
         require(vault.root() == root && vault.totalClaimable() == total, "commitRoot");
 
-        MigrationSettler.Params memory p = _params(vault, v2, hook);
+        MigrationSettler.Params memory p = _params(vault, v2, hook, settler.LP_FEE());
         uint256 budget;
         if (simulate) {
             budget = ILaunchToken(v2).cap() - total;
@@ -107,7 +107,8 @@ contract RehearsalLaunch {
         v2Seeded = settler.v2Seeded();
     }
 
-    function _params(MigrationVault vault, address v2, address hook)
+    /// @param lpFee the successor fee the settler pins (it refuses any other key)
+    function _params(MigrationVault vault, address v2, address hook, uint24 lpFee)
         internal
         view
         returns (MigrationSettler.Params memory p)
@@ -117,7 +118,7 @@ contract RehearsalLaunch {
         p.v1In = vault.totalDepositedV1() - vault.totalLedgerWithdrawnV1();
         p.tailIn = p.v1In / 10;
         p.tailLimit = MAX_SQRT_MINUS_1;
-        p.newKey = PoolKey(v2First ? v2 : WETH, v2First ? WETH : v2, 3000, 60, hook);
+        p.newKey = PoolKey(v2First ? v2 : WETH, v2First ? WETH : v2, lpFee, 60, hook);
         // The kit's rule: open at the old pool's tick rounded to the grid; the v2 side copies its v1 ladder.
         (, int24 oldTick) = LadderMirror.slot0(POOL_MANAGER, OLD_POOL_ID);
         int24 seamOld = LadderMirror.toGrid(oldTick, 60);

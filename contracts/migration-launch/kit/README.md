@@ -9,7 +9,7 @@ python3.14 kit/launch.py <phase> …      # from contracts/migration-launch/
 ```
 
 - `deploy-plan`: every address (the Safe, the v2 implementation and proxy, the vault, the settler, and the
-  hook at a mined 0x2044 salt), init-code hashes, Basescan inputs, and a dry run of all six deployments on
+  hook at a mined 0x2000 salt), init-code hashes, Basescan inputs, and a dry run of all six deployments on
   a fork.
 - `snapshot-plan`: sizes the snapshot's log pages for the real deposit window and proves the RPC serves them
   (`--probe` tests a candidate RPC before launch; `--vault … --run` plans and runs the launch-day snapshot).

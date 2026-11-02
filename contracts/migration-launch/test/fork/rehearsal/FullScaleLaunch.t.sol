@@ -4,7 +4,7 @@ pragma solidity 0.8.28;
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 import {MigrationVault} from "@surplus/migration/src/MigrationVault.sol";
-import {SurplusFeeHook} from "@surplus/fee-hook/src/SurplusFeeHook.sol";
+import {SurplusPoolHook} from "@surplus/pool-hook/src/SurplusPoolHook.sol";
 import {MigrationSettler} from "../../../src/MigrationSettler.sol";
 import {IPoolManager, IPositionManager, IUnlockCallback, PoolKey, SwapParams} from "../../../src/LaunchInterfaces.sol";
 import {LaunchMath} from "../../../src/LaunchMath.sol";
@@ -98,8 +98,8 @@ interface IExtsloadFull {
  *         predicted addresses (`kit/launch.py deploy-plan`, rehearsal driver `kit/rehearse.py deploy`), every
  *         eligible holder at the pin deposited its full balance (`rehearse.py deposit`), the deposit window
  *         closed, and the tree built and 3-way verified by `kit/launch.py snapshot`. From there it runs the
- *         Safe's `commitRoot`, the one atomic launch batch, the push to every holder, live trades through the
- *         real hook and the Safe's fee withdrawal. Each failure path starts from the same pre-commit state.
+ *         Safe's `commitRoot`, the one atomic launch batch, the push to every holder, live trades on the successor
+ *         pool and the Safe's collection of its LP fee. Each failure path starts from the same pre-commit state.
  * @dev    Runs only against a fork that holds that state; everywhere else it skips. Inputs: SURPLUS_TREE (the
  *         snapshot's tree.json), kit/output/deploy/{deployment,resolved}.json, kit/output/cohort/cohort.json,
  *         kit/params.rehearsal.json. Signs with the public throwaway rehearsal keys through the real Safe 1.4.1.
@@ -126,6 +126,10 @@ contract FullScaleLaunchRehearsal is Test, IUnlockCallback {
     uint256 internal constant FULL_SCALE_HOLDERS = 6338;
     /// @dev 250 refunds measured 15.4M gas (92% of the cap); 200 leaves margin.
     uint256 internal constant REFUNDS_PER_BATCH = 200;
+    uint256 internal constant PIPS = 1_000_000;
+    /// @dev v4-periphery Actions.
+    bytes1 internal constant DECREASE_LIQUIDITY = 0x01;
+    bytes1 internal constant TAKE_PAIR = 0x11;
     string internal constant LEAF_TYPE = "Leaf(uint256 index,address account,uint256 amount,bytes32[] proof)";
     string internal constant DEPLOYMENT = "kit/output/deploy/deployment.json";
 
@@ -164,7 +168,7 @@ contract FullScaleLaunchRehearsal is Test, IUnlockCallback {
     SurplusTokenV2Like internal v2;
     MigrationVault internal vault;
     MigrationSettler internal settler;
-    SurplusFeeHook internal hook;
+    SurplusPoolHook internal hook;
     address internal relayer;
     uint256[] internal ownerKeys;
     address[] internal holders;
@@ -186,7 +190,7 @@ contract FullScaleLaunchRehearsal is Test, IUnlockCallback {
         safe = IFullSafe(rvm.parseJsonAddress(d, ".safe"));
         v2 = SurplusTokenV2Like(rvm.parseJsonAddress(d, ".v2"));
         settler = MigrationSettler(rvm.parseJsonAddress(d, ".settler"));
-        hook = SurplusFeeHook(rvm.parseJsonAddress(d, ".hook"));
+        hook = SurplusPoolHook(rvm.parseJsonAddress(d, ".hook"));
         string memory r = rvm.readFile("kit/params.rehearsal.json");
         relayer = rvm.parseJsonAddress(r, ".operators.relayer");
         string[] memory keys = rvm.parseJsonStringArray(r, ".rehearsalKeys.owners");
@@ -236,9 +240,9 @@ contract FullScaleLaunchRehearsal is Test, IUnlockCallback {
         PushStats memory again = _push(leaves, new bytes[](0));
         require(again.failures == leaves.length, "a rerun of the push paid someone twice");
 
-        uint256[4] memory fees = _trades(l.p.newKey, leaves);
-        _withdrawFees();
-        _writeResult(l, s, total, v2SupplyAfterLaunch, fees);
+        uint256[2] memory paidIn = _trades(l.p.newKey, leaves);
+        uint256[2] memory lpFees = _collectLpFees(l.p.newKey, paidIn);
+        _writeResult(l, s, total, v2SupplyAfterLaunch, paidIn, lpFees);
     }
 
     // ---------------------------------------------------------------------------------------------
@@ -389,7 +393,8 @@ contract FullScaleLaunchRehearsal is Test, IUnlockCallback {
         p.v1In = v1In;
         p.tailIn = v1In / 10;
         p.tailLimit = V3_MAX_SQRT_MINUS_1;
-        p.newKey = PoolKey(v2First ? address(v2) : WETH, v2First ? WETH : address(v2), 3000, 60, address(hook));
+        p.newKey =
+            PoolKey(v2First ? address(v2) : WETH, v2First ? WETH : address(v2), settler.LP_FEE(), 60, address(hook));
         (, int24 oldTick) = LadderMirror.slot0(POOL_MANAGER, OLD_POOL_ID);
         int24 seamOld = LadderMirror.toGrid(oldTick, 60);
         p.openTick = v2First ? -seamOld : seamOld;
@@ -419,22 +424,38 @@ contract FullScaleLaunchRehearsal is Test, IUnlockCallback {
         return abi.encodePacked(uint8(0), to, uint256(0), uint256(data.length), data);
     }
 
-    function _withdrawFees() internal {
-        address[2] memory currencies = [WETH, address(v2)];
-        for (uint256 i; i < 2; ++i) {
-            address c = currencies[i];
-            uint256 team = hook.teamOwed(c) - hook.teamPaid(c);
-            uint256 buyback = hook.buybackOwed(c) - hook.buybackPaid(c);
-            uint256 before = IERC20(c).balanceOf(address(safe));
-            (bool a,) =
-                _safeCall(address(hook), abi.encodeCall(SurplusFeeHook.withdrawTeam, (c, address(safe), team)), 0, 2);
-            (bool b,) = _safeCall(
-                address(hook), abi.encodeCall(SurplusFeeHook.withdrawBuyback, (c, address(safe), buyback)), 0, 2
-            );
-            require(a && b, "fee withdrawal");
-            require(IERC20(c).balanceOf(address(safe)) - before == team + buyback, "the Safe received both halves");
-            require(IERC20(c).balanceOf(address(hook)) == 0, "fees left in the hook");
+    /// @dev One Safe transaction collects the LP fee from every launch position: DECREASE_LIQUIDITY by 0 credits each
+    ///      LP NFT's fees and TAKE_PAIR sends them to the Safe. The fee is 1.2% of every trade's input, exact-in or
+    ///      exact-out, and every in-range position is the Safe's, so the Safe collects 1.2% of what the trades paid in,
+    ///      less floor rounding. The hook takes nothing, before or after.
+    /// @return fees [WETH, v2] collected
+    function _collectLpFees(PoolKey memory key, uint256[2] memory paidIn) internal returns (uint256[2] memory fees) {
+        uint256 first = settler.firstPositionId();
+        uint256 n = settler.positionCount();
+        bytes memory actions = new bytes(n + 1);
+        bytes[] memory params = new bytes[](n + 1);
+        for (uint256 i; i < n; ++i) {
+            actions[i] = DECREASE_LIQUIDITY;
+            params[i] = abi.encode(first + i, uint256(0), uint128(0), uint128(0), bytes(""));
         }
+        actions[n] = TAKE_PAIR;
+        params[n] = abi.encode(key.currency0, key.currency1, address(safe));
+        uint256 wethBefore = IERC20(WETH).balanceOf(address(safe));
+        uint256 v2Before = v2.balanceOf(address(safe));
+        (bool ok,) = _safeCall(
+            POSITION_MANAGER,
+            abi.encodeCall(IPositionManager.modifyLiquidities, (abi.encode(actions, params), block.timestamp)),
+            0,
+            2
+        );
+        require(ok, "LP fee collection");
+        fees[0] = IERC20(WETH).balanceOf(address(safe)) - wethBefore;
+        fees[1] = v2.balanceOf(address(safe)) - v2Before;
+        for (uint256 i; i < 2; ++i) {
+            uint256 sharePips = fees[i] * PIPS / paidIn[i];
+            require(sharePips == 12_000 || sharePips == 11_999, "the Safe did not collect the 1.2% LP fee");
+        }
+        require(IERC20(WETH).balanceOf(address(hook)) == 0 && v2.balanceOf(address(hook)) == 0, "the hook holds tokens");
     }
 
     function _safeCall(address to, bytes memory data, uint8 operation, uint256 signers)
@@ -597,7 +618,7 @@ contract FullScaleLaunchRehearsal is Test, IUnlockCallback {
     }
 
     // ---------------------------------------------------------------------------------------------
-    // Trades through the hook (this contract is a minimal v4 router)
+    // Trades on the successor pool (this contract is a minimal v4 router)
     // ---------------------------------------------------------------------------------------------
 
     struct Trade {
@@ -605,7 +626,8 @@ contract FullScaleLaunchRehearsal is Test, IUnlockCallback {
         SwapParams params;
     }
 
-    function _trades(PoolKey memory key, Leaf[] memory leaves) internal returns (uint256[4] memory fees) {
+    /// @return paidIn [WETH, v2] the four trades paid in
+    function _trades(PoolKey memory key, Leaf[] memory leaves) internal returns (uint256[2] memory paidIn) {
         // v2 for the sells comes from the largest holder, so the trades change no supply.
         uint256 largest;
         for (uint256 i; i < leaves.length; ++i) {
@@ -613,25 +635,20 @@ contract FullScaleLaunchRehearsal is Test, IUnlockCallback {
         }
         vm.prank(leaves[largest].account);
         require(v2.transfer(address(this), 50_000_000 ether), "v2 for the sells");
-        fees[0] = _trade(key, true, -int256(1 ether));
-        fees[1] = _trade(key, false, -int256(10_000_000 ether));
-        fees[2] = _trade(key, true, int256(10_000_000 ether));
-        fees[3] = _trade(key, false, int256(0.2 ether));
+        paidIn[0] = _trade(key, true, -int256(1 ether)) + _trade(key, true, int256(10_000_000 ether));
+        paidIn[1] = _trade(key, false, -int256(10_000_000 ether)) + _trade(key, false, int256(0.2 ether));
     }
 
-    function _trade(PoolKey memory key, bool buyV2, int256 amount) internal returns (uint256 taken) {
+    /// @return input what the trader paid in: WETH when buying v2, v2 when selling it
+    function _trade(PoolKey memory key, bool buyV2, int256 amount) internal returns (uint256 input) {
         bool zeroForOne = buyV2 == (key.currency0 == WETH);
         SwapParams memory sp = SwapParams(zeroForOne, amount, zeroForOne ? MIN_SQRT_PRICE_PLUS_1 : V3_MAX_SQRT_MINUS_1);
-        bool exactIn = amount < 0;
-        address feeCurrency = exactIn == zeroForOne ? key.currency1 : key.currency0;
-        uint256 takenBefore = hook.totalTaken(feeCurrency);
         int256 delta = abi.decode(IPoolManager(POOL_MANAGER).unlock(abi.encode(Trade(key, sp))), (int256));
-        int128 unspecified = feeCurrency == key.currency0 ? LaunchMath.amount0(delta) : LaunchMath.amount1(delta);
-        taken = hook.totalTaken(feeCurrency) - takenBefore;
+        int128 paid = zeroForOne ? LaunchMath.amount0(delta) : LaunchMath.amount1(delta);
+        require(paid < 0, "the trader paid nothing in");
         // forge-lint: disable-next-line(unsafe-typecast)
-        uint256 traderSide = uint256(uint128(unspecified < 0 ? -unspecified : unspecified));
-        uint256 poolSide = exactIn ? traderSide + taken : traderSide - taken;
-        require(taken != 0 && taken == (poolSide * 15_000) / 1_000_000, "the hook did not take exactly 1.5%");
+        input = uint256(uint128(-paid));
+        require(IERC20(WETH).balanceOf(address(hook)) == 0 && v2.balanceOf(address(hook)) == 0, "the hook took a fee");
     }
 
     function unlockCallback(bytes calldata data) external returns (bytes memory) {
@@ -702,7 +719,8 @@ contract FullScaleLaunchRehearsal is Test, IUnlockCallback {
         PushStats memory s,
         uint256 total,
         uint256 v2SupplyAfterLaunch,
-        uint256[4] memory fees
+        uint256[2] memory paidIn,
+        uint256[2] memory lpFees
     ) internal {
         string memory o = "result";
         rvm.serializeUint(o, "block", block.number);
@@ -737,10 +755,10 @@ contract FullScaleLaunchRehearsal is Test, IUnlockCallback {
         rvm.serializeUint(o, "pushTotalBytes", s.totalBytes);
         rvm.serializeUint(o, "pushMaxTxBytes", s.maxBytes);
         rvm.serializeUint(o, "pushL1FeeUpperWei", s.l1FeeUpperWei);
-        rvm.serializeUint(o, "feeExactInBuy", fees[0]);
-        rvm.serializeUint(o, "feeExactInSell", fees[1]);
-        rvm.serializeUint(o, "feeExactOutBuy", fees[2]);
-        rvm.serializeUint(o, "feeExactOutSell", fees[3]);
+        rvm.serializeUint(o, "tradeWethInWei", paidIn[0]);
+        rvm.serializeUint(o, "tradeV2InWei", paidIn[1]);
+        rvm.serializeUint(o, "lpFeeCollectedWethWei", lpFees[0]);
+        rvm.serializeUint(o, "lpFeeCollectedV2Wei", lpFees[1]);
         rvm.serializeAddress(o, "v2", address(v2));
         rvm.serializeAddress(o, "safe", address(safe));
         string memory json = rvm.serializeAddress(o, "vault", address(vault));

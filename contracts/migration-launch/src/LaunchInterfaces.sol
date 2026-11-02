@@ -51,15 +51,11 @@ interface IPermit2 {
         returns (uint160 amount, uint48 expiration, uint48 nonce);
 }
 
-/// @dev The successor hook's immutables (contracts/fee-hook): its beforeInitialize admits only INITIALIZER, and
-///      only for its official PoolKey; it charges FEE_PIPS and only TREASURY can withdraw the fees.
+/// @dev The successor hook's initializer getter (contracts/pool-hook): its beforeInitialize admits only INITIALIZER,
+///      and only for its official PoolKey.
 interface ILaunchHook {
     // forge-lint: disable-next-line(mixed-case-function)
     function INITIALIZER() external view returns (address);
-    // forge-lint: disable-next-line(mixed-case-function)
-    function TREASURY() external view returns (address);
-    // forge-lint: disable-next-line(mixed-case-function)
-    function FEE_PIPS() external view returns (uint24);
 }
 
 /// @dev Uniswap v3 pool swap: a positive amountSpecified is exact input (v3 convention, opposite of v4).

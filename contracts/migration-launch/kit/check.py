@@ -36,7 +36,6 @@ SPEC_6 = {
     "vault.depositOpen": "§6.3 deposit open",
     "vault.depositDeadline": "§6.3 deposit deadline",
     "vault.commitDeadline": "§6.3 pre-commit timeout",
-    "hook.feeRecipient": "§6.4 hook fee recipient",
     "operators.deployer": "§6.7 deployer EOA",
     "operators.relayer": "§6.7 relayer EOA",
 }
@@ -50,6 +49,8 @@ DECIDED = {
     "seed.v2Side": ("old-pool-ladder-copy", "SUR-658: v2 copies the old pool's v1 ladder (Bill, 2026-10-25)"),
     "seed.wethSide": ("full-range", "SUR-658: one WETH-only position, open tick to range end (Bill, 2026-10-25)"),
     "seed.mergeBps": (100, "SUR-658: old-pool segments within 1% of liquidity merge (Bill, 2026-10-25)"),
+    "successorPool.lpFee": (12_000, "a 1.2% LP fee is the successor pool's only fee; its hook takes none "
+                                    "(Bill, 2026-11-02)"),
 }
 
 # Small reviewed kit files, including this checker; their hashes live in the separate manifest.

@@ -68,9 +68,10 @@ interface IExtsload {
 /**
  * @dev The launch path on the pinned Base fork. The Safe 1.4.1 proxy, MultiSendCallOnly, PoolManager,
  *      PositionManager, Permit2, the Doppler pool and the v3 tail are all the real deployed contracts. The
- *      vault, token and settler are the monorepo sources. Only the successor hook is a double (HookDouble,
- *      etched at an address carrying the 0x2044 flags); the real hook is proven in contracts/fee-hook. The
- *      cohort is the ten largest EOA holders at the pin, each depositing its live balance at the fork block.
+ *      vault, token and settler are the repository sources. Only the successor hook is a double (HookDouble,
+ *      etched at an address carrying the 0x2000 flag); the real hook is proven in contracts/pool-hook and launched
+ *      through in RealHookLaunch.fork.t.sol. The cohort is the ten largest EOA holders at the pin, each depositing
+ *      its live balance at the fork block.
  */
 abstract contract LaunchForkBase is Test {
     using SafeCast for uint256;
@@ -105,8 +106,8 @@ abstract contract LaunchForkBase is Test {
     uint256 internal constant POOLS_SLOT = 6;
     uint256 internal constant LIQUIDITY_OFFSET = 3;
 
-    // Launch parameters (kit params.json; §1 fixed decisions: 0.30% LP, 1:1, pro-rata on).
-    uint24 internal constant LP_FEE = 3000;
+    // Launch parameters (kit params.json; fixed decisions: 1.2% LP fee, no hook fee, 1:1, pro-rata on).
+    uint24 internal constant LP_FEE = 12_000;
     int24 internal constant TICK_SPACING = 60;
     /// @dev The v2 side copies the old pool's v1 ladder; adjacent segments within 1% of liquidity merge (kit seed).
     uint256 internal constant MIRROR_MERGE_BPS = 100;
@@ -119,8 +120,8 @@ abstract contract LaunchForkBase is Test {
     uint256 internal constant KEY_B = 0xB0B;
     uint256 internal constant KEY_C = 0xCA401;
     address internal constant OUTSIDER = address(0xBAD);
-    /// @dev Any address whose low 14 bits are 0x2044: BEFORE_INITIALIZE | AFTER_SWAP | AFTER_SWAP_RETURNS_DELTA.
-    address internal constant HOOK = address((uint160(0x5E11E7) << 136) | 0x2044);
+    /// @dev Any address whose low 14 bits are 0x2000: BEFORE_INITIALIZE only.
+    address internal constant HOOK = address((uint160(0x5E11E7) << 136) | 0x2000);
 
     ISafe internal safe;
     /// @dev The hook the successor key names: the double etched at HOOK, unless a test deploys the real one.
@@ -179,11 +180,10 @@ abstract contract LaunchForkBase is Test {
                 v3Tail: V3_TAIL,
                 oldPoolId: OLD_POOL_ID,
                 lpFee: LP_FEE,
-                tickSpacing: TICK_SPACING,
-                feeRecipient: address(safe) // §6.4 rehearsal default
+                tickSpacing: TICK_SPACING
             })
         );
-        vm.etch(HOOK, address(new HookDouble(address(settler), address(safe), gatedHook)).code);
+        vm.etch(HOOK, address(new HookDouble(address(settler), gatedHook)).code);
         _depositAll();
         _commit();
     }

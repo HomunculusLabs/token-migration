@@ -40,9 +40,9 @@ The test values (`PLACEHOLDER Surplus v2`, `PLACEHOLDER`, a 1,000,000-token cap,
   transaction is atomic, so if the second mint would exceed the cap, the first mint reverts with it.
   `backing + lpBudget <= cap` is a constraint that `params.json` must satisfy.
 - **Burn.** `burn(amount)` destroys the caller's own balance and lowers `totalSupply`. It requires
-  `BURNER_ROLE`. The fee-hook buyback needs a real burn: a transfer to a dead address only locks tokens and
-  leaves `totalSupply` unchanged. There is no `burnFrom`, so a burner can destroy only tokens it holds. The
-  Safe holds the role at launch and can grant it to a buyback executor later.
+  `BURNER_ROLE`. A buyback, if one is ever decided, needs a real burn: a transfer to a dead address only
+  locks tokens and leaves `totalSupply` unchanged. There is no `burnFrom`, so a burner can destroy only
+  tokens it holds. The Safe holds the role at launch and can grant it to a buyback executor later.
 - **The cap bounds outstanding supply, not lifetime issuance.** Every burn frees the same amount of mint
   headroom, and the Safe can mint it again. Tokenomics that promise a lifetime issuance limit would need a
   different rule, which would be an upgrade.
@@ -203,6 +203,6 @@ To write a successor:
 | Token name and symbol | Bill/Mac | exact bytes in `params.json` |
 | Cap, vault backing and LP budget | Bill/Mac | values in `params.json`, with `backing + lpBudget <= cap`. Backing is the committed claim total at the decided 1:1 ratio |
 | Governance Safe: address, signers, threshold, rotation | Bill/Mac (SUR-662) | a real Base Safe, a below-threshold rejection and a quorum-executed call, plus the section 3 read-backs |
-| Buyback executor that receives `BURNER_ROLE` | Bill/Mac (fee hook) | the executor's design and review; until then only the Safe can burn |
+| Buyback executor that receives `BURNER_ROLE` | Bill/Mac | nothing at launch (there is no buyback); a later executor needs its own design and review, and until then only the Safe can burn |
 | Bridge, if any | Bill/Mac (SUR-663) | a separate specification and review |
 | Independent security review | Bill/Mac + reviewer | an audit of the implementation and this layout, and a fork rehearsal of the deployment |

@@ -69,9 +69,9 @@ contract SettlerRegressionsForkTest is LaunchForkBase {
 
     /// @dev S3: a mistake in the signed successor key must revert the launch, never open and seed the wrong
     ///      pool. The rehearsal settler initialized whatever key Params named. With no hook, or with a hook that
-    ///      is not bound to the settler, the batch "succeeded" and put all the liquidity in a pool that never
-    ///      charges the 1.5% fee. With the wrong fee or spacing it opened a pool that nothing routes to. The
-    ///      selectors are spelled out so this file compiles against the settler before the fix.
+    ///      is not bound to the settler, the batch "succeeded" and put all the liquidity in a pool whose creation
+    ///      nothing gated. With the wrong fee or spacing it opened a pool that nothing routes to. The selectors are
+    ///      spelled out so this file compiles against the settler before the fix.
     bytes4 internal constant WRONG_SUCCESSOR_KEY = bytes4(keccak256("WrongSuccessorKey()"));
     bytes4 internal constant WRONG_HOOK = bytes4(keccak256("WrongHook(address)"));
 
@@ -83,16 +83,27 @@ contract SettlerRegressionsForkTest is LaunchForkBase {
 
     function test_S3_HookNotBoundToTheSettlerReverts() public {
         MigrationSettler.Params memory p = _readyToSettle();
-        // The right permission bits, but an ungated hook whose initializer is someone else.
-        address decoy = address((uint160(0xDEC0) << 136) | 0x2044);
-        vm.etch(decoy, address(new HookDouble(OUTSIDER, OUTSIDER, false)).code);
+        // The right permission bit, but an ungated hook whose initializer is someone else.
+        address decoy = address((uint160(0xDEC0) << 136) | 0x2000);
+        vm.etch(decoy, address(new HookDouble(OUTSIDER, false)).code);
         p.newKey.hooks = decoy;
         _expectSettleReverts(p, abi.encodeWithSelector(WRONG_HOOK, decoy), "a hook not bound to the settler");
     }
 
+    /// @dev A pool's hook is fixed for good at initialization. A hook bound to the settler whose address also carries
+    ///      swap permissions (here 0x2044, the old fee hook's set) could charge every swap the pool ever routes, so
+    ///      only exactly the BEFORE_INITIALIZE bit opens the pool.
+    function test_S3_HookWithSwapPermissionsReverts() public {
+        MigrationSettler.Params memory p = _readyToSettle();
+        address feeTaker = address((uint160(0xFEE1) << 136) | 0x2044);
+        vm.etch(feeTaker, address(new HookDouble(address(settler), true)).code);
+        p.newKey.hooks = feeTaker;
+        _expectSettleReverts(p, abi.encodeWithSelector(WRONG_HOOK, feeTaker), "a hook with swap permissions");
+    }
+
     function test_S3_WrongSuccessorFeeReverts() public {
         MigrationSettler.Params memory p = _readyToSettle();
-        p.newKey.fee = 10_000; // 1% instead of the decided 0.30%
+        p.newKey.fee = 10_000; // 1% instead of the decided 1.2%
         _expectSettleReverts(p, abi.encodeWithSelector(WRONG_SUCCESSOR_KEY), "wrong successor fee");
     }
 

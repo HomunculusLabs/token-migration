@@ -168,8 +168,8 @@ code and the numbers, and anyone sending it gets the same contract. Then check t
 Safe transaction. A Safe DELEGATECALL to an address with no code succeeds and does nothing: it spends the nonce
 and launches nothing (`test/fork/MigrationLaunch.fork.t.sol::test_NoCodeAtTheTargetIsASilentNoOp`).
 
-`settle` sells the v1 on the Doppler pool and the v3 1% tail. It then opens the v2/WETH pool (0.30% LP
-fee + the 1.5% hook) at v1's pre-sale tick rounded to the 60-tick grid, and seeds it with two single-sided
+`settle` sells the v1 on the Doppler pool and the v3 1% tail. It then opens the v2/WETH pool (1.2% LP
+fee, its only fee) at v1's pre-sale tick rounded to the 60-tick grid, and seeds it with two single-sided
 sides that meet at that tick (SUR-658, decided 2026-10-25):
 - the v2 side: signed ranges that copy the v1 the old pool still offered above its price at simulation
   time, the same amounts over the same ranges, paid from the v2 budget;
@@ -224,12 +224,15 @@ Production broadcasting stays with the relayer, not this helper. Replans never p
 
 - Claims never expire (P5: `claimPeriod = 0`), so there is no expiry to run. `sweepResidual` can only
   ever take v2 above what is still owed.
-- Watch every rival pool for the pair. Alert at $125k of in-range depth (REPORT.md, siphon table). The
-  launch seed is the sale proceeds only, with no extra depth.
+- Watch every rival pool for the pair. Alert at $125k of in-range depth (Bill, 2026-09-29, from the
+  REPORT.md siphon table). That table priced the old ~1.8% all-in fee; at 1.2% a rival of the same depth
+  takes fewer trades, so the alert errs early. Re-run the siphon table at 1.2% to re-size it. The launch
+  seed is the sale proceeds only, with no extra depth.
 
-- The hook accrues 1.5%: 0.75% team, 0.75% buyback, per currency. The Safe withdraws with
-  `hook.withdrawTeam(currency, to, amount)` and `hook.withdrawBuyback(...)`.
-- The LP NFT is the Safe's.
+- The LP NFTs are the Safe's, and so is the 1.2% LP fee they earn (anyone else's in-range liquidity earns
+  its own share). The Safe collects the fee with one PositionManager `modifyLiquidities` call:
+  `DECREASE_LIQUIDITY` by 0 on each launch NFT (`settler.firstPositionId()` onward, `positionCount()` of
+  them), then `TAKE_PAIR` to the Safe (`test/fork/RealHookLaunch.fork.t.sol`). The hook holds nothing.
 - A plain v1 transfer to the vault (outside `deposit`) is rescued with `vault.rescueV1(to)`, and only the
   excess above the ledger.
 
@@ -274,7 +277,7 @@ prove contract mechanics only; they are never production signers.
 - **Quorum unavailable:** a single remaining owner cannot rotate keys or lower the threshold. The
   planned Safe has no recovery module. Restore enough approved signer access through the agreed backup
   process; if quorum is permanently lost, there is no contractual admin back door. LP/admin operations
-  freeze, and hook withdrawals freeze too if that Safe is the immutable treasury. Never promise otherwise.
+  freeze, LP-fee collection included. Never promise otherwise.
 - **Holder exits do not need the Safe:** before activation, the documented permissionless timeout and
   ledger-refund paths remain available. After activation, backed v2 claims remain available without an
   expiry. Do not propose v1 refunds after activation.
@@ -282,8 +285,8 @@ prove contract mechanics only; they are never production signers.
   Require independent review and a fresh storage-layout/upgrade rehearsal for any future upgrade.
 
 The final go/no-go also needs a tested $125k rival-depth alert with an operator and destination, a
-supported-wallet/UI demonstration, and documented fee-withdrawal/buyback procedures. A configured
-threshold, a role-gated burn function, and this checklist are not evidence those operations are running.
+supported-wallet/UI demonstration, and a rehearsed LP-fee collection by the Safe. A configured threshold
+and this checklist are not evidence those operations are running.
 
 ## Before signing anything
 

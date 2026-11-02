@@ -1,40 +1,46 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.28;
 
-import {SurplusFeeHook} from "../src/SurplusFeeHook.sol";
+import {SurplusPoolHook} from "../src/SurplusPoolHook.sol";
 import {PoolKey} from "../src/V4Minimal.sol";
 import {HookMiner} from "../script/HookMiner.sol";
 import {MineHookSalt} from "../script/MineHookSalt.s.sol";
 import {Test} from "./Base.t.sol";
 
 contract MineHookSaltTest is Test {
-    uint160 internal constant FLAGS = 0x2044;
+    uint160 internal constant FLAGS = 0x2000;
     // Arachnid's deterministic-deployment proxy runtime, as deployed on Base.
     bytes internal constant CREATE2_PROXY_RUNTIME =
         hex"7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffe03601600081602082378035828234f58015156039578182fd5b8082525050506014600cf3";
 
     address internal constant MANAGER = 0x498581fF718922c3f8e6A244956aF099B2652b2b;
-    address internal constant TREASURY = address(0x7EA5);
     address internal constant INITIALIZER = address(0x1417);
     address internal constant V2 = address(0xB2);
     address internal constant WETH = 0x4200000000000000000000000000000000000006;
+    uint24 internal constant LP_FEE = 12_000;
+    int24 internal constant TICK_SPACING = 60;
 
     function _initCode() internal pure returns (bytes memory) {
         return abi.encodePacked(
-            type(SurplusFeeHook).creationCode,
-            abi.encode(MANAGER, TREASURY, INITIALIZER, V2, WETH, uint24(3000), int24(60))
+            type(SurplusPoolHook).creationCode, abi.encode(MANAGER, INITIALIZER, V2, WETH, LP_FEE, TICK_SPACING)
         );
     }
 
     function test_MinedSaltDeploysAtThePredictedAddressAndPassesTheFlagCheck() public {
         (bytes32 salt, address predicted) =
             HookMiner.find(address(this), keccak256(_initCode()), FLAGS, 0, HookMiner.MAX_ITERATIONS);
-        SurplusFeeHook hook = new SurplusFeeHook{salt: salt}(MANAGER, TREASURY, INITIALIZER, V2, WETH, 3000, 60);
+        SurplusPoolHook hook = new SurplusPoolHook{salt: salt}(MANAGER, INITIALIZER, V2, WETH, LP_FEE, TICK_SPACING);
         assertEq(address(hook), predicted, "deployed at the predicted address");
         assertEq(uint256(uint160(address(hook)) & 0x3FFF), FLAGS, "address carries exactly the hook flags");
         assertEq(hook.INITIALIZER(), INITIALIZER, "constructed with the mined arguments");
         vm.prank(MANAGER);
-        hook.beforeInitialize(INITIALIZER, PoolKey(V2, WETH, 3000, 60, address(hook)), 1 << 96);
+        hook.beforeInitialize(INITIALIZER, PoolKey(V2, WETH, LP_FEE, TICK_SPACING, address(hook)), 1 << 96);
+    }
+
+    function test_ScriptFlagsAreTheHooksDeclaredFlags() public {
+        address probe = address(uint160(uint256(keccak256("mine.declared-flags"))));
+        vm.etch(probe, vm.getDeployedCode("SurplusPoolHook.sol:SurplusPoolHook"));
+        assertEq(uint256(new MineHookSalt().HOOK_FLAGS()), uint256(SurplusPoolHook(probe).REQUIRED_FLAGS()), "flags");
     }
 
     function test_MinedSaltIsTheSmallestMatchFromTheStart() public pure {
@@ -62,7 +68,7 @@ contract MineHookSaltTest is Test {
         // Exactly 20 bytes, checked above.
         // forge-lint: disable-next-line(unsafe-typecast)
         assertEq(address(bytes20(ret)), predicted, "proxy deployed at the predicted address");
-        assertEq(SurplusFeeHook(predicted).REQUIRED_FLAGS(), FLAGS, "hook code at the predicted address");
+        assertEq(SurplusPoolHook(predicted).REQUIRED_FLAGS(), FLAGS, "hook code at the predicted address");
     }
 
     function test_MinerRevertsWhenNoSaltMatchesWithinTheBudget() public {
@@ -83,7 +89,6 @@ contract MineHookSaltTest is Test {
 
     function test_ScriptWritesTheSaltJson() public {
         string memory path = "output/hook-salt.test.json";
-        vm.setEnv("HOOK_TREASURY", vm.toString(TREASURY));
         vm.setEnv("HOOK_INITIALIZER", vm.toString(INITIALIZER));
         vm.setEnv("HOOK_CURRENCY0", vm.toString(V2));
         vm.setEnv("HOOK_CURRENCY1", vm.toString(WETH));
@@ -100,13 +105,12 @@ contract MineHookSaltTest is Test {
         assertEq(vm.parseJsonBytes32(json, ".salt"), salt, "json salt");
         assertEq(vm.parseJsonAddress(json, ".address"), hook, "json address");
         assertEq(vm.parseJsonBytes32(json, ".initCodeHash"), keccak256(_initCode()), "json initCodeHash");
-        assertEq(vm.parseJsonString(json, ".flags"), "0x2044", "json flags");
+        assertEq(vm.parseJsonString(json, ".flags"), "0x2000", "json flags");
         assertEq(vm.parseJsonAddress(json, ".constructorArgs.poolManager"), MANAGER, "json poolManager");
-        assertEq(vm.parseJsonAddress(json, ".constructorArgs.treasury"), TREASURY, "json treasury");
         assertEq(vm.parseJsonAddress(json, ".constructorArgs.initializer"), INITIALIZER, "json initializer");
         assertEq(vm.parseJsonAddress(json, ".constructorArgs.currency0"), V2, "json currency0");
         assertEq(vm.parseJsonAddress(json, ".constructorArgs.currency1"), WETH, "json currency1");
-        assertEq(vm.parseJsonUint(json, ".constructorArgs.lpFee"), 3000, "json lpFee");
-        assertEq(vm.parseJsonInt(json, ".constructorArgs.tickSpacing"), 60, "json tickSpacing");
+        assertEq(vm.parseJsonUint(json, ".constructorArgs.lpFee"), LP_FEE, "json lpFee: the 1.2% default");
+        assertEq(vm.parseJsonInt(json, ".constructorArgs.tickSpacing"), TICK_SPACING, "json tickSpacing");
     }
 }

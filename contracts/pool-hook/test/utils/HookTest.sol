@@ -2,7 +2,7 @@
 pragma solidity 0.8.28;
 
 import {Test} from "../Base.t.sol";
-import {SurplusFeeHook} from "../../src/SurplusFeeHook.sol";
+import {SurplusPoolHook} from "../../src/SurplusPoolHook.sol";
 import {HookFlags} from "../../src/V4Minimal.sol";
 
 /**
@@ -15,7 +15,6 @@ abstract contract HookTest is Test {
     /// @dev The hook's constructor arguments, in order.
     struct HookArgs {
         address poolManager;
-        address treasury;
         address initializer;
         address currency0;
         address currency1;
@@ -25,16 +24,16 @@ abstract contract HookTest is Test {
 
     function _hookInitCode(HookArgs memory a) internal pure returns (bytes memory) {
         return abi.encodePacked(
-            type(SurplusFeeHook).creationCode,
-            abi.encode(a.poolManager, a.treasury, a.initializer, a.currency0, a.currency1, a.lpFee, a.tickSpacing)
+            type(SurplusPoolHook).creationCode,
+            abi.encode(a.poolManager, a.initializer, a.currency0, a.currency1, a.lpFee, a.tickSpacing)
         );
     }
 
     /// @dev The permission bits the compiled hook declares.
     function _declaredFlags() internal returns (uint160) {
-        address probe = address(uint160(uint256(keccak256("fee-hook.declared-flags"))));
-        vm.etch(probe, vm.getDeployedCode("SurplusFeeHook.sol:SurplusFeeHook"));
-        return SurplusFeeHook(probe).REQUIRED_FLAGS();
+        address probe = address(uint160(uint256(keccak256("pool-hook.declared-flags"))));
+        vm.etch(probe, vm.getDeployedCode("SurplusPoolHook.sol:SurplusPoolHook"));
+        return SurplusPoolHook(probe).REQUIRED_FLAGS();
     }
 
     /// @dev A deterministic address derived from `seed` whose low 14 bits are exactly `flags`.
@@ -58,17 +57,10 @@ abstract contract HookTest is Test {
         }
     }
 
-    function _deployHook(string memory seed, HookArgs memory a) internal returns (SurplusFeeHook hook) {
-        hook = SurplusFeeHook(_flaggedAddress(seed, _declaredFlags()));
+    function _deployHook(string memory seed, HookArgs memory a) internal returns (SurplusPoolHook hook) {
+        hook = SurplusPoolHook(_flaggedAddress(seed, _declaredFlags()));
         _deployAt(address(hook), _hookInitCode(a));
         vm.label(address(hook), seed);
-    }
-
-    /// @dev v4-core toBalanceDelta: amount0 in the high 128 bits, amount1 in the low 128 bits.
-    function _delta(int128 amount0, int128 amount1) internal pure returns (int256 d) {
-        assembly ("memory-safe") {
-            d := or(shl(128, amount0), and(sub(shl(128, 1), 1), amount1))
-        }
     }
 
     function _abs(int256 x) internal pure returns (uint256) {

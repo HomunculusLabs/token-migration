@@ -54,7 +54,7 @@ one short transaction.
   - `V2_FOR_POOL()` equals `signed.v2Budget`, and `MIN_WETH_OUT()` equals `signed.minWethOut`;
   - `OPEN_TICK()` equals `opening.openTick`, and `NEW_POOL_ID()` equals `opening.newPoolId`;
   - `settleParams()` equals `settleParams` in `launch-batch.safe-tx.json`: its new pool key names v2, WETH,
-    fee 3000, tick spacing 60 and the hook in `deployment.json`.
+    fee 12000 (1.2%), tick spacing 60 and the hook in `deployment.json`.
 - **What `launch()` does**, top to bottom, all or nothing:
   1. v2 `mint(vault, V2_FOR_CLAIMS)`;
   2. vault `activateClaims()`;
@@ -64,9 +64,10 @@ one short transaction.
   It then checks that the claims are backed and active, that the settler holds nothing, and that the Safe's
   owners, threshold, modules, guard, fallback handler and singleton are unchanged. Any failure reverts all of
   it. It runs only at this Safe, and only once.
-- **The hook is the fee hook.** The hook in the new pool key reads `TREASURY()` = the decided fee
-  recipient and `FEE_PIPS()` = 15000. The settler reverts `WrongHook` otherwise, and the kit's deploy dry
-  run checks both before anyone signs.
+- **The hook is the pool hook.** The low 14 bits of the hook's address are exactly `0x2000` (pool
+  creation only, so it can never act on a swap), and it reads `INITIALIZER()` = the settler,
+  `LP_FEE()` = 12000 and `TICK_SPACING()` = 60. The settler reverts `WrongHook` on any other flags or
+  initializer, and the kit's deploy dry run checks all of it before anyone signs.
 - **The limits follow the rule.** `signed.minWethOut` = `unconstrained.wethRaised` × 0.995 and
   `signed.v2Budget` = `unconstrained.v2Seeded` + 10 wei. The signed run in
   `simulation.json` succeeded, raised the same WETH as the unconstrained run, and is recorded at

@@ -71,7 +71,7 @@ interface ISafe141Setup {
  * @notice Launch kit phase "deploy-plan": computes, WITHOUT broadcasting, every address and init code the
  *         launch deploys, in deploy order: the Safe 1.4.1 proxy (factory CREATE2 over its setup data), the v2
  *         implementation and its ERC1967 proxy, the vault and the settler (all through the canonical CREATE2
- *         deployer), and the successor hook (salt mined so its address carries exactly the 0x2044 flags).
+ *         deployer), and the successor hook (salt mined so its address carries exactly the 0x2000 flag).
  *         Everything is a pure function of the resolved params and the compiler output, so anyone can
  *         recompute it. It never calls vm.broadcast.
  * @dev    Input: kit/output/deploy/resolved.json, written by kit/deploy_plan.py after it has checked every
@@ -80,7 +80,7 @@ interface ISafe141Setup {
 contract DeployPlan {
     IDeployVm internal constant vm = IDeployVm(0x7109709ECfa91a80626fF3989D68f67F5b1DD12D);
 
-    uint160 internal constant HOOK_FLAGS = 0x2044;
+    uint160 internal constant HOOK_FLAGS = 0x2000;
     uint160 internal constant ALL_HOOK_MASK = (1 << 14) - 1;
     /// @dev The hook salt search is bounded so a wrong flag set fails in seconds rather than spinning.
     uint256 internal constant MAX_HOOK_SALTS = 2_000_000;
@@ -223,15 +223,13 @@ contract DeployPlan {
             // forge-lint: disable-next-line(unsafe-typecast)
             lpFee: uint24(vm.parseJsonUint(p, ".successorPool.lpFee")),
             // forge-lint: disable-next-line(unsafe-typecast)
-            tickSpacing: int24(vm.parseJsonInt(p, ".successorPool.tickSpacing")),
-            // The same address the hook is deployed with as its treasury: the settler refuses any other.
-            feeRecipient: vm.parseJsonAddress(p, ".hook.feeRecipient")
+            tickSpacing: int24(vm.parseJsonInt(p, ".successorPool.tickSpacing"))
         });
         return abi.encodePacked(type(MigrationSettler).creationCode, abi.encode(c));
     }
 
-    /// @dev The hook's creation code comes from contracts/fee-hook's build (resolved.json carries it); its
-    ///      constructor is (poolManager, treasury, initializer, currency0, currency1, lpFee, tickSpacing).
+    /// @dev The hook's creation code comes from contracts/pool-hook's build (resolved.json carries it); its
+    ///      constructor is (poolManager, initializer, currency0, currency1, lpFee, tickSpacing).
     ///      The salt is the smallest one whose CREATE2 address has exactly the launch flags in its low 14 bits.
     function _hook(string memory p, Addresses memory a, address deployer)
         internal
@@ -247,7 +245,7 @@ contract DeployPlan {
         revert("DeployPlan: no hook salt below MAX_HOOK_SALTS");
     }
 
-    /// @dev (poolManager, treasury, initializer = the settler, currency0, currency1, lpFee, tickSpacing).
+    /// @dev (poolManager, initializer = the settler, currency0, currency1, lpFee, tickSpacing).
     function _hookArgs(string memory p, Addresses memory a) internal pure returns (bytes memory) {
         address weth = vm.parseJsonAddress(p, ".weth");
         (address c0, address c1) = a.token < weth ? (a.token, weth) : (weth, a.token);
@@ -255,15 +253,7 @@ contract DeployPlan {
         uint24 lpFee = uint24(vm.parseJsonUint(p, ".successorPool.lpFee"));
         // forge-lint: disable-next-line(unsafe-typecast)
         int24 spacing = int24(vm.parseJsonInt(p, ".successorPool.tickSpacing"));
-        return abi.encode(
-            vm.parseJsonAddress(p, ".poolManager"),
-            vm.parseJsonAddress(p, ".hook.feeRecipient"),
-            a.settler,
-            c0,
-            c1,
-            lpFee,
-            spacing
-        );
+        return abi.encode(vm.parseJsonAddress(p, ".poolManager"), a.settler, c0, c1, lpFee, spacing);
     }
 
     function _create2(address deployer, bytes32 salt, bytes memory init) internal pure returns (address) {

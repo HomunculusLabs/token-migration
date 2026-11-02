@@ -3,7 +3,9 @@
 > **About this document.** This is the development team's own review, run with automated analysis
 > (Slither, Aderyn, deep fuzzing, Base-fork tests) and AI-assisted review rounds. It is not an
 > independent third-party audit. The gate results describe the revision named below; later
-> revisions are covered by each project's own suites (see the README).
+> revisions are covered by each project's own suites (see the README). Since this review the
+> successor hook (`SurplusFeeHook` below) was cut down to its initializer gate, with no fee; see
+> `contracts/pool-hook/DESIGN.md`.
 
 **Target:** `bill/sur-659-integrated` @ `c1092a39f` — `MigrationVault`, `SurplusTokenV2`,
 `SurplusFeeHook`(+`V4Minimal`), `MigrationSettler`(+`LaunchMath`), `ClaimTree`, plus the

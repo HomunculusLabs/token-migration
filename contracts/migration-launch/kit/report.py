@@ -6,7 +6,8 @@
 
 Inputs (each one's sha256 is listed at the end of the report):
 - the cohort run at the pin: cohort/cohort.json, cohort/not-in-root.json, outreach/outreach.json, pin.json
-- the siphon re-run at the ~1.8% fee: siphon/siphon.json
+- the siphon analysis at the successor's fee: siphon/siphon.json (the 2026-09-29 run priced the old ~1.8% all-in
+  fee, so it must be re-run at the current 1.2% before this report is regenerated)
 - the full-scale launch rehearsal: kit/output/rehearsal/result.json (FullScaleLaunch.t.sol)
 - the kit snapshot that built the tree: kit/output/snapshot/<N>/snapshot.json
 """
@@ -144,9 +145,9 @@ def main() -> None:
     w(f"- **Old pool price impact:** the sale drains the old pool's WETH. v1 per WETH went from {v1_per_weth_before:,.0f} to "
       f"{v1_per_weth_after:,.0f}, so v1 left outside the migration loses {(1 - v1_per_weth_before / v1_per_weth_after) * 100:.2f}% "
       "of its pool price. The v2 opening price is a separate signed simulation-time marker.")
-    w(f"- **Successor pool** (v2/WETH, LP fee {int(result['successorLpFeePips']) / 10_000:.2f}% on chain, plus the 1.5% "
-      f"hook): opens at **{v2_per_weth:,.0f} v2 per WETH**, the simulation's pre-sale price rounded to the "
-      "pool's tick grid.")
+    w(f"- **Successor pool** (v2/WETH, LP fee {int(result['successorLpFeePips']) / 10_000:.2f}% on chain, its only "
+      f"fee): opens at **{v2_per_weth:,.0f} v2 per WETH**, the simulation's pre-sale price rounded to the pool's "
+      "tick grid.")
     w("  This is not a guarantee of realizable sale value. Fees, finite liquidity and other trades change exit")
     w("  proceeds, especially for large sellers.")
     first, count = int(result["firstPositionId"]), int(result["positionCount"])
@@ -164,26 +165,23 @@ def main() -> None:
     w("")
 
     # --- fees ------------------------------------------------------------------------------------------
-    w("## Fee check (1.5% hook + 0.30% LP)")
+    fee_pct = f"{int(result['successorLpFeePips']) / 10_000:.2f}%"
+    w(f"## Pool fee check ({fee_pct} LP fee, no hook fee)")
     w("")
-    w("Live trades through the real hook after launch. In each one, the hook took exactly "
-      "floor(1.5% × the pool's side of the unspecified currency):")
-    w(f"- exact-in buy (1 WETH → v2): {tokens(result['feeExactInBuy'], 2)} v2")
-    w(f"- exact-in sell (10M v2 → WETH): {tokens(result['feeExactInSell'], 6)} WETH")
-    w(f"- exact-out buy (→ 10M v2): {tokens(result['feeExactOutBuy'], 6)} WETH")
-    w(f"- exact-out sell (→ 0.2 WETH): {tokens(result['feeExactOutSell'], 2)} v2")
-    w("")
-    w("The Safe then withdrew both halves (team and buyback) of both currencies, leaving the hook empty. The")
-    w("contracts/fee-hook fork suite measures a small trade's all-in cost at 0.3001% (LP fee + price impact) +")
-    w("1.4999% (hook): about 1.8%.")
+    w("Four live trades after launch: an exact-in and an exact-out buy, an exact-in and an exact-out sell. The hook")
+    w(f"is only called when the pool is created, so it took nothing. The {fee_pct} LP fee stayed in the pool, and one")
+    w("Safe transaction collected it from the launch positions:")
+    w(f"- WETH: {tokens(result['lpFeeCollectedWethWei'], 6)} of the {tokens(result['tradeWethInWei'], 4)} WETH the "
+      f"buys paid in")
+    w(f"- v2: {tokens(result['lpFeeCollectedV2Wei'], 2)} of the {tokens(result['tradeV2InWei'])} v2 the sells paid in")
     w("")
 
     # --- siphon ----------------------------------------------------------------------------------------
     s = siphon
     dist = s["distribution"]
-    w("## Rival venues at the ~1.8% fee (siphon table, re-run)")
+    w("## Rival venues at the successor's fee (siphon table, re-run)")
     w("")
-    w("A cheaper hookless pool for the same pair wins every trade up to V* ≈ fee gap × its depth ÷ 2. This is "
+    w("A pool for the same pair with a lower fee wins every trade up to V* ≈ fee gap × its depth ÷ 2. This is "
       f"on the last {dist['n_trades']} main-pool trades (median ${dist['median_usd']:,.0f}, largest "
       f"${dist['max_usd']:,.0f}).")
     by_depth: dict[int, list[str]] = {}
@@ -199,9 +197,9 @@ def main() -> None:
       f"is about {usd(2 * Decimal(seeded_weth) / WEI * eth_usd)}.")
     w(f"- Decided ops alert: in-range depth of **{usd(policy['monitoring']['rivalPoolInRangeDepthAlertUsd'])}** "
       "in any rival pool. This threshold is a decision, not evidence that monitoring is running.")
-    w(f"- Conditional model: breakeven leak {s['breakeven_leak']['leak_pct']}%. Revenue at the historical volume "
-      f"({usd(s['fee_revenue']['volume_24h_usd'])}/day): {usd(s['fee_revenue']['all_in_1_80pct_usd_per_day'])}/day, "
-      f"{usd(s['fee_revenue']['hook_1_50pct_usd_per_day'])} of it to the hook.")
+    w(f"- Conditional model: breakeven leak {s['breakeven_leak']['leak_pct']}%. LP fees at the historical volume "
+      f"({usd(s['fee_revenue']['volume_24h_usd'])}/day): {usd(s['fee_revenue']['lp_fee_usd_per_day'])}/day, all to "
+      "in-range liquidity.")
     w("")
 
     # --- failure paths -------------------------------------------------------------------------------
