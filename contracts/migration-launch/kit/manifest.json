@@ -12,7 +12,7 @@
     "safe_txs.py": "c210c2b7b7f3d2f2f05cccb4261face0e9fe26097ceaf5a648430dcddc189ebf",
     "push_plan.py": "fed6e73d8225cba9ccfe90f0e71bc27f129b098b85a7d60f26759d5ad0f0bea7",
     "rehearse.py": "60bfa3b5fe26d0c44ddf97eef56e6ef98755535e81e4241f84316e8d170b0e9c",
-    "rehearsal_gate.py": "8eb451eddc9ddd7da121b972e12887352a780b480a2a59824f5e8c992ba8f1e5",
+    "rehearsal_gate.py": "9d1c12c3c21a32abc6e7be18d5596c5b4e5f84e2ec579f091e74ac44c952da73",
     "report.py": "b12ff4a1afb01dc9ea6a864f06e485d2d6c996d0ccbd55765a819006e84234bd",
     "snapshot_plan.py": "271d82064289f94b7e5f55c966fbe779fe24ef3d1a3fae2e28993f6835a9d1ee",
     "README.md": "2df0e8a5718e1fb86c089af832425eb7da347938f0c614b3ab64cb0ae74c16e6",
@@ -485,6 +485,10 @@
     "successorPool.lpFee": {
       "value": 12000,
       "why": "a 1.2% LP fee is the successor pool's only fee; its hook takes none (Bill, 2026-11-02)"
+    },
+    "sale.tailShare": {
+      "value": "maximize-raise",
+      "why": "the v3 tail gets the share of the sale that raises the most WETH, quoted at signing (Bill, 2026-11-02, GitHub #2)"
     }
   }
 }

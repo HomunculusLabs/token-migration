@@ -63,9 +63,11 @@ skipped tests and partial runs. The large gas limit is for the aggregate harness
 already executed the launch and payouts.
 
 This full-scale harness still executes a MultiSendCallOnly batch, not `MigrationLaunch.launch()`.
-Its current parameter builder uses split ranges and the +10-wei V2 budget, but a pass is not evidence
-that the production one-call launcher ran at full cohort. Publish that separate source- and
-block-pinned acceptance run before presenting current economics or gas as measured release results.
+Its current parameter builder uses split ranges, the +10-wei V2 budget and the kit's own v3 tail
+split (the gate quotes it with `safe_txs.settle_params` and passes it as `SURPLUS_TAIL_IN`), but a
+pass is not evidence that the production one-call launcher ran at full cohort. Publish that separate
+source- and block-pinned acceptance run before presenting current economics or gas as measured
+release results.
 
 ```bash
 SURPLUS_REHEARSAL_RPC="${RESTORED_PRECOMMIT_RPC:?set the restored pre-commit fork URL}" \

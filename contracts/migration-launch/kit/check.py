@@ -51,6 +51,8 @@ DECIDED = {
     "seed.mergeBps": (100, "SUR-658: old-pool segments within 1% of liquidity merge (Bill, 2026-10-25)"),
     "successorPool.lpFee": (12_000, "a 1.2% LP fee is the successor pool's only fee; its hook takes none "
                                     "(Bill, 2026-11-02)"),
+    "sale.tailShare": ("maximize-raise", "the v3 tail gets the share of the sale that raises the most WETH, quoted "
+                                         "at signing (Bill, 2026-11-02, GitHub #2)"),
 }
 
 # Small reviewed kit files, including this checker; their hashes live in the separate manifest.

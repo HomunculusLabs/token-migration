@@ -1,5 +1,7 @@
 #!/usr/bin/env python3.14
-"""Run the full-scale local-fork suite with an explicit harness budget and no skipped tests."""
+"""Run the full-scale local-fork suite with an explicit harness budget and no skipped tests. Its launch sells on the
+v3 tail what the kit would sign on the same state: the gate quotes the split as launch-batch does and passes it to
+the suite as SURPLUS_TAIL_IN."""
 import argparse
 import json
 import os
@@ -10,6 +12,7 @@ import sys
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import kitlib as k
+import safe_txs
 
 
 def verify_output(output: str, exit_code: int) -> None:
@@ -38,8 +41,17 @@ def main() -> None:
     head = rpc.block()
     if int(head["number"], 16) != snapshot["block"] or head["hash"].lower() != snapshot["blockHash"].lower():
         k.fail("fork is not at the snapshot's recorded pre-commit block and hash; restore the rehearsal state")
-    env = dict(os.environ, SURPLUS_TREE=str(tree))
+    params = k.load_phase_params(rehearsal=True)
+    k.need(params, "successorPool", "sale")
+    k.run_tool(["forge", "build", "--deny", "warnings"], k.PROJECT, timeout=590)  # the sale quoter's artifact
+    d = json.loads((k.OUTPUT / "deploy/deployment.json").read_text())
+    v1_in = (safe_txs.uint(rpc, d["vault"], "totalDepositedV1()")
+             - safe_txs.uint(rpc, d["vault"], "totalLedgerWithdrawnV1()"))
+    p, _, split = safe_txs.settle_params(params, rpc, d, v1_in)
+    print(f"sale split: {p['tailIn']} of the {v1_in} v1 on the v3 tail raises the most WETH ({split['raised']})")
+    env = dict(os.environ, SURPLUS_TREE=str(tree), SURPLUS_TAIL_IN=str(p["tailIn"]))
     env["PATH"] = f"{Path.home() / '.foundry/bin'}:{env.get('PATH', '')}"
+    (k.OUTPUT / "rehearsal").mkdir(parents=True, exist_ok=True)  # the suite writes result.json there
     result = subprocess.run([
         "forge", "test", "--match-contract", "^FullScaleLaunchRehearsal$",
         "--match-path", "test/fork/rehearsal/*", "--gas-limit", "100000000000",

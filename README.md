@@ -51,7 +51,9 @@ Safe, or if the committed total or the ledger differ from the ones it was built 
    once claims are active;
 4. mints the V2 for the new pool to the settler;
 5. calls `MigrationSettler.settle`, which:
-   - sells the V1 on V1's two pools, the Doppler v4 pool and the Uniswap v3 1% pool;
+   - sells the V1 on V1's two pools, the Doppler v4 pool and the Uniswap v3 1% pool, in the split that raises
+     the most WETH. The kit works that split out from both pools as they stand when the launch is signed, so
+     the v3 pool gets none if it has nothing to add;
    - opens the V2/WETH pool at the opening price fixed in the launch contract: V1's price before the
      sale, as measured in the launch simulation;
    - seeds it on both sides of that price. The V2 side copies the V1 that V1's old pool still had for

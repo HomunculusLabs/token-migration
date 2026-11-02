@@ -101,8 +101,10 @@ interface IExtsloadFull {
  *         Safe's `commitRoot`, the one atomic launch batch, the push to every holder, live trades on the successor
  *         pool and the Safe's collection of its LP fee. Each failure path starts from the same pre-commit state.
  * @dev    Runs only against a fork that holds that state; everywhere else it skips. Inputs: SURPLUS_TREE (the
- *         snapshot's tree.json), kit/output/deploy/{deployment,resolved}.json, kit/output/cohort/cohort.json,
- *         kit/params.rehearsal.json. Signs with the public throwaway rehearsal keys through the real Safe 1.4.1.
+ *         snapshot's tree.json), SURPLUS_TAIL_IN (the v1 the launch sells on the v3 tail, the kit's split for this
+ *         state; kit/rehearsal_gate.py sets both), kit/output/deploy/{deployment,resolved}.json,
+ *         kit/output/cohort/cohort.json, kit/params.rehearsal.json. Signs with the public throwaway rehearsal keys
+ *         through the real Safe 1.4.1.
  */
 contract FullScaleLaunchRehearsal is Test, IUnlockCallback {
     RVm internal constant rvm = RVm(0x7109709ECfa91a80626fF3989D68f67F5b1DD12D);
@@ -385,13 +387,16 @@ contract FullScaleLaunchRehearsal is Test, IUnlockCallback {
         require(v2.totalSupply() == l.backing + l.budget, "v2 supply = backing + LP budget");
     }
 
-    /// @dev The kit's rule: open at the old pool's tick rounded to the grid; the v2 side copies the old pool's v1
-    ///      ladder above its price (adjacent segments within 1% merge).
+    /// @dev The kit's rules: open at the old pool's tick rounded to the grid; the v2 side copies the old pool's v1
+    ///      ladder above its price (adjacent segments within 1% merge); the v3 tail gets SURPLUS_TAIL_IN, the split
+    ///      the kit quotes on this state.
     function _params(uint256 v1In) internal view returns (MigrationSettler.Params memory p) {
         bool v2First = address(v2) < WETH;
         p.oldKey = PoolKey(WETH, V1, 0x800000, 200, OLD_HOOK);
         p.v1In = v1In;
-        p.tailIn = v1In / 10;
+        string memory tailIn = rvm.envOr("SURPLUS_TAIL_IN", string(""));
+        require(bytes(tailIn).length != 0, "SURPLUS_TAIL_IN unset: kit/rehearsal_gate.py quotes the kit's split");
+        p.tailIn = rvm.parseUint(tailIn);
         p.tailLimit = V3_MAX_SQRT_MINUS_1;
         p.newKey =
             PoolKey(v2First ? address(v2) : WETH, v2First ? WETH : address(v2), settler.LP_FEE(), 60, address(hook));

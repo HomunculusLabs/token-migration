@@ -28,10 +28,15 @@ then checks the result and that the Safe's settings did not change. backing and 
 never from a file. The seed is read from the fork before anything runs (kit/seed.py): the opening tick, and the
 v2 ranges that copy the v1 the old pool holds above its price. The kit deploys each launch contract through the
 pinned CREATE2 deployer (external.create2Deployer), so its address follows from its code and its numbers.
-Simulate, then sign: a launch contract with no floor and the whole remaining cap as budget runs first; then
-minWethOut = raised × sale.minWethOutBps / 10 000 and budget = v2 used + sale.v2BudgetExtraWei (0.995 and
-10 wei: the v2 side is fixed by the signed ranges, not by the sale, so it needs no drift margin), and the
-SIGNED launch contract runs from the same pre-state. It must succeed and pass every launch check.
+The sale's split comes next (sale.tailShare "maximize-raise"): src/SaleQuoter.sol quotes each leg, the Doppler pool
+and the v3 tail, inside eth_call (a state override places its code; nothing is deployed), and the kit sells on the
+v3 tail the share of v1 that raises the most WETH, none when the tail adds nothing. The tail is a third-party pool,
+so its depth is read at signing, never assumed.
+Simulate, then sign: a launch contract with no floor and the whole remaining cap as budget runs first, and must
+raise exactly the quoted split. Then minWethOut = raised × sale.minWethOutBps / 10 000 and budget = v2 used +
+sale.v2BudgetExtraWei (0.995 and 10 wei: the v2 side is fixed by the signed ranges, not by the sale, so it needs no
+drift margin), and the SIGNED launch contract runs from the same pre-state. It must succeed and pass every launch
+check.
 On the real chain, send launch-batch.deploy.json BEFORE the Safe transaction executes: a Safe DELEGATECALL to
 an address with no code succeeds and does nothing.
 
@@ -57,6 +62,7 @@ import argparse
 import json
 import sys
 import time
+from collections.abc import Callable
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
@@ -86,6 +92,13 @@ SETTLE_SIG = f"settle({SETTLE_PARAMS})"
 LAUNCH_ARTIFACT = k.PROJECT / "out" / "MigrationLaunch.sol" / "MigrationLaunch.json"
 LAUNCH_SALT = bytes.fromhex("7375727000000000000000000000000000000000000000000000000000000005")
 LAUNCH_CONSTRUCTOR = f"constructor((address,address,address,address,uint256,uint256),{SETTLE_PARAMS})"
+# The sale quoter (src/SaleQuoter.sol): its forge artifact, and the address eth_call puts its code at through a state
+# override. Nothing is deployed there, and the kit checks the address holds no code.
+QUOTER_ARTIFACT = k.PROJECT / "out" / "SaleQuoter.sol" / "SaleQuoter.json"
+QUOTER = k.checksum("0x" + k.keccak(b"surplus launch kit: sale quoter")[12:].hex())
+# The v3 tail shares, in basis points of the sale, the split search starts from: roughly logarithmic, because the
+# tail is usually a small share. They are clamped into the splits that fill, whose two ends join them.
+TAIL_GRID_BPS = (0, 1, 2, 5, 10, 20, 50, 100, 200, 500, 1000, 2000, 5000, 9999)
 # Safe 1.4.1: the head of the module list, and the guard and fallback-handler storage slots.
 SENTINEL = "0x" + "00" * 19 + "01"
 GUARD_SLOT = "0x" + k.keccak(b"guard_manager.guard.address").hex()
@@ -534,11 +547,129 @@ def launch_steps(d: dict, p: dict, backing: int, budget: int) -> list[dict]:
     ]
 
 
-def settle_params(params: dict, rpc: k.Rpc, d: dict, v1_in: int) -> tuple[dict, dict]:
+def quoter_code() -> str:
+    if not QUOTER_ARTIFACT.is_file():
+        k.fail(f"no sale quoter artifact at {QUOTER_ARTIFACT}: run forge build in contracts/migration-launch")
+    return json.loads(QUOTER_ARTIFACT.read_text())["deployedBytecode"]["object"]
+
+
+def quote(rpc: k.Rpc, code: str, data: bytes) -> tuple[int, int] | None:
+    """One leg's (wethOut, v1Paid), from the quoter's code run at QUOTER inside eth_call. None when the swap reverts,
+    because the settler would revert there too. Any other RPC error stops the phase."""
+    reply = rpc._request("eth_call", [{"to": QUOTER, "data": "0x" + data.hex()}, "latest", {QUOTER: {"code": code}}])
+    if "error" in reply:
+        error = reply["error"]
+        if error.get("code") != 3 and "revert" not in str(error.get("message", "")).lower():
+            k.fail(f"rpc eth_call (sale quote): {json.dumps(error)}")
+        return None
+    out = bytes.fromhex(reply["result"][2:])
+    return int.from_bytes(out[:32], "big"), int.from_bytes(out[32:64], "big")
+
+
+def best_tail(raised: Callable[[int], int | None], v1_in: int, lo: int = 0, hi: int | None = None) -> int:
+    """The v1 to sell on the v3 tail: the split of v1_in that raises the most WETH, searched over [lo, hi] (by default
+    every split settle accepts, 0 to v1_in - 1). raised(t) is what the sale raises with t v1 on the tail, or None where
+    the settler would refuse that split. sale_split passes the ends of the splits that fill as lo and hi, so the search
+    starts from splits that fill. Each pool pays less for every extra v1, so the total is concave in t: the best point
+    of a grid brackets the maximum between its neighbours, and each pass of nine points narrows that bracket fourfold,
+    down to a millionth of the sale. Ties go to the smaller tail."""
+    hi = v1_in - 1 if hi is None else hi
+    stop = ("no split of the sale fills: the Doppler pool and the v3 tail cannot take the whole sale between them, "
+            "or every quote reverted")
+
+    def best(points: list[int]) -> int:
+        scored = [(r, -t) for t in points if (r := raised(t)) is not None]
+        if not scored:
+            k.fail(stop)
+        return -max(scored)[1]
+
+    if lo > hi:
+        k.fail(stop)
+    points = sorted({min(max(v1_in * bps // 10_000, lo), hi) for bps in TAIL_GRID_BPS} | {lo, hi})
+    tail = best(points)
+    while True:  # every later pass includes the incumbent, so best() always has a candidate
+        i = points.index(tail)
+        lo, hi = points[max(i - 1, 0)], points[min(i + 1, len(points) - 1)]
+        if hi - lo <= max(v1_in // 1_000_000, 8):
+            return tail
+        points = sorted({lo + (hi - lo) * j // 8 for j in range(9)} | {tail})
+        tail = best(points)
+
+
+def largest_fill(sold: Callable[[int], int | None], n: int) -> int:
+    """The largest amount up to n that a leg sells in full, or 0. sold(x) is the v1 a quote of x sells: x when it
+    fills, less when the pool reaches its price limit first, None when the quote reverts. A pool sells every amount
+    from a few wei up to the most it can take, and stops at that most for anything larger, so a quote that sells only
+    part of n names the most, and the search starts there. If the quote of n reverts instead, the search halves from
+    n until an amount sells in full, and can miss amounts that fill only in a band narrower than a factor of two: the
+    result is then 0, never an amount that does not fill. Bisection settles the limit to the wei: a coarser one could
+    hide a narrow band of splits that fill."""
+    ok = sold(n)
+    if ok == n:
+        return n
+    bad = n
+    if ok is None or not 0 < ok < n:
+        ok = n // 2
+    while ok and sold(ok) != ok:
+        bad, ok = ok, ok // 2
+    if not ok:
+        return 0
+    while bad - ok > 1:
+        mid = (ok + bad) // 2
+        if sold(mid) == mid:
+            ok = mid
+        else:
+            bad = mid
+    return ok
+
+
+def sale_split(rpc: k.Rpc, ext: dict, old_key: dict, v1_in: int, tail_limit: int) -> dict:
+    """How much of the sale goes to the v3 tail (sale.tailShare "maximize-raise"): the split that raises the most WETH,
+    quoted leg by leg on the pre-launch state. The tail is a third-party pool, so its depth is read here, at signing,
+    and never assumed: when it adds nothing it gets nothing."""
+    code = quoter_code()
+    if rpc.call("eth_getCode", [QUOTER, "latest"]) not in ("0x", "0x0"):
+        k.fail(f"{QUOTER} holds code on the fork: the sale quote's override would replace it")
+    v4 = encode(f"quoteV4(address,{POOL_KEY},uint256)", k.addr_word(ext["poolManager"]), pool_key_words(old_key))
+    v3 = encode("quoteV3(address,uint256,uint160)", k.addr_word(ext["v3Tail"]))
+    on_doppler: dict[int, tuple[int, int] | None] = {}
+    on_tail: dict[int, tuple[int, int] | None] = {}
+    splits: set[int] = set()
+
+    # Each leg's quote: (WETH out, v1 sold), or None when the swap reverts.
+    def doppler(x: int) -> tuple[int, int] | None:
+        if x not in on_doppler:
+            on_doppler[x] = quote(rpc, code, v4 + k.word(x))
+        return on_doppler[x]
+
+    def tail(t: int) -> tuple[int, int] | None:
+        if t not in on_tail:  # settle skips the tail when t = 0
+            on_tail[t] = (0, 0) if t == 0 else quote(rpc, code, v3 + k.word(t) + k.word(tail_limit))
+        return on_tail[t]
+
+    def sold(leg: Callable[[int], tuple[int, int] | None]) -> Callable[[int], int | None]:
+        return lambda x: None if (q := leg(x)) is None else q[1]
+
+    def sale(t: int) -> int | None:
+        splits.add(t)
+        d, v = doppler(v1_in - t), tail(t)
+        if d is None or v is None or d[1] != v1_in - t or v[1] != t:
+            return None  # a revert, or v1 left unsold, which the settler refuses
+        return d[0] + v[0]
+
+    # The splits that fill are one interval: the tail must take what the Doppler pool cannot, and no more than it can.
+    lo, hi = v1_in - largest_fill(sold(doppler), v1_in), largest_fill(sold(tail), v1_in - 1)
+    tail_in = best_tail(sale, v1_in, lo, hi)
+    return {"tailIn": tail_in, "raised": sale(tail_in), "dopplerOnly": sale(0), "quotedSplits": len(splits)}
+
+
+def settle_params(params: dict, rpc: k.Rpc, d: dict, v1_in: int) -> tuple[dict, dict, dict]:
     """The unsigned settle() params: the seed (kit/seed.py; v2 opens at v1's pre-sale tick on the old pool rounded
-    to the grid, so at 1:1 every migrator keeps its value within half a tick spacing), and sale.tailShareBps of the
-    v1 sold on the v3 tail, the rest on the Doppler pool."""
+    to the grid, so at 1:1 every migrator keeps its value within half a tick spacing), and the split of the sale
+    between the v3 tail and the Doppler pool (sale_split)."""
     ext, pool, sale = params["external"], params["successorPool"], params["sale"]
+    if sale["tailShare"] != "maximize-raise":
+        k.fail(f"params sale.tailShare is {sale['tailShare']!r}; the kit supports \"maximize-raise\" only")
     old = ext["oldPool"]
     old_key = {"currency0": k.checksum(old["currency0"]), "currency1": k.checksum(old["currency1"]),
                "fee": old["fee"], "tickSpacing": old["tickSpacing"], "hooks": k.checksum(old["hooks"])}
@@ -551,10 +682,11 @@ def settle_params(params: dict, rpc: k.Rpc, d: dict, v1_in: int) -> tuple[dict, 
     new_key = {"currency0": v2 if v2_first else weth, "currency1": weth if v2_first else v2,
                "fee": pool["lpFee"], "tickSpacing": pool["tickSpacing"], "hooks": d["hook"]}
     built = seeds.build(rpc, params, v2_first)
-    p = {"oldKey": old_key, "v1In": v1_in, "tailIn": v1_in * sale["tailShareBps"] // 10_000,
-         "tailLimit": int(sale["tailSqrtPriceLimitX96"]), "newKey": new_key, "openTick": built["openTick"],
-         "v2Ranges": built["v2Ranges"], "minWethOut": 0}
-    return p, built
+    tail_limit = int(sale["tailSqrtPriceLimitX96"])
+    split = sale_split(rpc, ext, old_key, v1_in, tail_limit)
+    p = {"oldKey": old_key, "v1In": v1_in, "tailIn": split["tailIn"], "tailLimit": tail_limit, "newKey": new_key,
+         "openTick": built["openTick"], "v2Ranges": built["v2Ranges"], "minWethOut": 0}
+    return p, built, split
 
 
 def settle_params_json(p: dict) -> dict:
@@ -618,12 +750,15 @@ def launch_batch(args, params: dict, rpc: k.Rpc, d: dict, owners: dict, checks: 
         k.fail(f"vault backing {backing}, net ledger {v1_in}, v1 held {custody}: nothing coherent to launch")
     checks.append(f"from the vault: backing = totalClaimable() = {backing}; v1In = net ledger = {v1_in} "
                   f"(v1 held {custody})")
-    p, built = settle_params(params, rpc, d, v1_in)
+    p, built, split = settle_params(params, rpc, d, v1_in)
     old_sqrt = built["oldSqrtPriceX96"]
     checks.append(f"seed: opens at tick {p['openTick']} (the old pool's tick {built['oldTick']} rounded to the "
                   f"{p['newKey']['tickSpacing']} grid); v2 side = {len(p['v2Ranges'])} range(s) copying the "
                   f"{built['v1AboveOldPrice']} v1 the old pool holds above its price; WETH side "
                   f"[{built['wethSide']['tickLower']}, {built['wethSide']['tickUpper']}]")
+    checks.append(f"sale split: {p['tailIn']} of the {v1_in} v1 on the v3 tail, the rest on the Doppler pool, raises "
+                  f"the most WETH of {split['quotedSplits']} quoted splits ({split['raised']}; the Doppler pool "
+                  f"alone: {split['dopplerOnly']})")
     new_id = k.keccak(pool_key_words(p["newKey"]))
     if sqrt_price(rpc, ext["poolManager"], new_id) != 0:
         k.fail(f"the successor pool 0x{new_id.hex()} is already initialized: the launch would revert")
@@ -643,9 +778,12 @@ def launch_batch(args, params: dict, rpc: k.Rpc, d: dict, owners: dict, checks: 
     if free["v2Seeded"] != built["v2Need"]:
         k.fail(f"the v2 side took {free['v2Seeded']}, the kit's v4 rounding of the signed ranges says "
                f"{built['v2Need']}")
+    if free["wethRaised"] != split["raised"]:
+        k.fail(f"the unconstrained run raised {free['wethRaised']} WETH, the sale quote said {split['raised']}: "
+               "src/SaleQuoter.sol no longer swaps as the settler does")
     checks.append(f"unconstrained run (a launch contract with minWethOut 0 and budget = cap - supply - backing = "
-                  f"{headroom}): executed, raised {free['wethRaised']} WETH, used {free['v2Seeded']} v2 (= the signed "
-                  "ranges' need); state reverted")
+                  f"{headroom}): executed, raised {free['wethRaised']} WETH (= the quoted split), used "
+                  f"{free['v2Seeded']} v2 (= the signed ranges' need); state reverted")
 
     # 2. The signed limits. The v2 side depends on the signed ranges alone, so its budget needs no drift margin.
     p["minWethOut"] = free["wethRaised"] * sale["minWethOutBps"] // 10_000
@@ -747,6 +885,9 @@ def launch_batch(args, params: dict, rpc: k.Rpc, d: dict, owners: dict, checks: 
         "fromVault": {"backing": str(backing), "v1In": str(v1_in), "v1Held": str(custody)},
         "v2": {"cap": str(cap), "supplyBefore": str(supply), "headroom": str(headroom)},
         "sale": {"v1In": str(p["v1In"]), "tailIn": str(p["tailIn"]), "tailLimit": str(p["tailLimit"]),
+                 "tailShare": sale["tailShare"], "quotedRaise": str(split["raised"]),
+                 "dopplerOnlyRaise": None if split["dopplerOnly"] is None else str(split["dopplerOnly"]),
+                 "quotedSplits": split["quotedSplits"],
                  "oldPoolId": ext["oldPool"]["poolId"], "oldSqrtPriceX96Before": str(old_sqrt)},
         "opening": {"newPoolId": "0x" + new_id.hex(), "newKey": p["newKey"], "openTick": p["openTick"],
                     "openSqrtPriceX96": str(seeds.sqrt_at(p["openTick"])), "oldTick": built["oldTick"],
