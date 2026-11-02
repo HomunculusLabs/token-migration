@@ -75,7 +75,7 @@ proxy receives nothing.
 | `burn(amount)` | `BURNER_ROLE` | Safe | burns the caller's own balance only |
 | `upgradeTo(impl)`, `upgradeToAndCall(impl, data)` | `UPGRADER_ROLE` | Safe | only through the proxy; `impl` must be UUPS (ERC-1822 check) |
 | `grantRole(role, account)`, `revokeRole(role, account)` | `DEFAULT_ADMIN_ROLE` | Safe | covers every role, the admin role included |
-| `renounceRole(role, account)` | `account == msg.sender` | each holder, for itself | irreversible, see below |
+| `renounceRole(role, account)` | `account == msg.sender` | each holder, for itself | removes that grant; a surviving admin can grant it again, see below |
 | `initialize(name, symbol, cap, governance)` | `initializer`: one call | consumed by the proxy constructor | cannot run again; the implementation is locked |
 
 Transfers, approvals, `increaseAllowance` and `decreaseAllowance` are standard, permissionless ERC-20.
@@ -91,9 +91,13 @@ Role ids, for on-chain read-backs:
 
 - `DEFAULT_ADMIN_ROLE` can grant any role to anyone, including `UPGRADER_ROLE`. **Holding the admin role
   is therefore equivalent to holding upgrade authority.**
-- If the last `DEFAULT_ADMIN_ROLE` holder renounces or revokes that role, nobody can ever grant a role
-  again. If the last `UPGRADER_ROLE` holder does the same, the token can never be upgraded again. There is
-  no recovery path for either.
+- If the last `UPGRADER_ROLE` holder renounces or is revoked, upgrades are unavailable until a surviving
+  `DEFAULT_ADMIN_ROLE` holder grants that role again. Removing only the upgrader role therefore does not
+  permanently remove upgrade authority while an admin remains.
+- If every `DEFAULT_ADMIN_ROLE` holder is lost, ordinary role grants and revocations are unavailable
+  under this implementation. A surviving upgrader can still install a new implementation with deliberately
+  designed recovery logic; this contract has no built-in admin-recovery function. Permanent loss or removal
+  of governance must account for both the admin and upgrade paths, not just one role.
 - After deployment, verify on chain that:
   - `hasRole(role, safe)` is true for all four roles, and `hasRole(role, deployer)` is false for all four;
   - the proxy's creation transaction emitted exactly four `RoleGranted` events, each naming the Safe;

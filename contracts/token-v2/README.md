@@ -9,6 +9,10 @@ matrix, the upgrade risk and the storage-layout procedure are all there.
   It reverts on any chain other than Base (8453) and mints nothing.
 - The governance Safe receives `DEFAULT_ADMIN_ROLE`, `MINTER_ROLE`, `BURNER_ROLE` and `UPGRADER_ROLE`. The
   deploying account receives no role.
+- Renouncing the last `UPGRADER_ROLE` does not permanently remove upgrade authority while an admin
+  remains: `DEFAULT_ADMIN_ROLE` can grant it again. If every admin is lost, ordinary role grants are
+  unavailable in this implementation; a surviving upgrader can still replace the implementation.
+  There is no built-in admin-recovery function. See [DESIGN.md §3](DESIGN.md#3-role-matrix).
 - `mint(to, amount)` requires `MINTER_ROLE` and cannot exceed the cap. `burn(amount)` requires `BURNER_ROLE`
   and burns the caller's own balance.
 - `storage-layout.json` is the committed storage layout. `scripts/check-storage-layout.sh` fails when the
