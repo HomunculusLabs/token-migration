@@ -596,18 +596,25 @@ def best_tail(raised: Callable[[int], int | None], v1_in: int, lo: int = 0, hi: 
         tail = best(points)
 
 
-def largest_fill(fills: Callable[[int], bool], n: int) -> int:
-    """The largest amount up to n that a leg fills, given that n does not; 0 when it fills nothing. A leg fills every
-    amount from a few wei up to a limit and none above it, so halving from n reaches one that fills, and bisection
-    from there narrows the limit to a millionth of n, always returning an amount that fills."""
-    bad, ok = n, n // 2
-    while ok and not fills(ok):
+def largest_fill(sold: Callable[[int], int | None], n: int) -> int:
+    """The largest amount up to n that a leg sells in full, or 0. sold(x) is the v1 a quote of x sells: x when it
+    fills, less when the pool reaches its price limit first, None when the quote reverts. A pool sells every amount
+    from a few wei up to the most it can take, and stops at that most for anything larger, so a quote that sells only
+    part of n names the most: the search starts there, and otherwise halves from n until an amount sells in full.
+    Bisection then settles the limit to the wei: a coarser one could hide a narrow band of splits that fill."""
+    ok = sold(n)
+    if ok == n:
+        return n
+    bad = n
+    if ok is None or not 0 < ok < n:
+        ok = n // 2
+    while ok and sold(ok) != ok:
         bad, ok = ok, ok // 2
     if not ok:
         return 0
-    while bad - ok > max(n // 1_000_000, 1):
+    while bad - ok > 1:
         mid = (ok + bad) // 2
-        if fills(mid):
+        if sold(mid) == mid:
             ok = mid
         else:
             bad = mid
@@ -627,27 +634,29 @@ def sale_split(rpc: k.Rpc, ext: dict, old_key: dict, v1_in: int, tail_limit: int
     on_tail: dict[int, tuple[int, int] | None] = {}
     splits: set[int] = set()
 
-    # A leg that reverts or fills partially (v1 left unsold, which the settler refuses) is None.
+    # Each leg's quote: (WETH out, v1 sold), or None when the swap reverts.
     def doppler(x: int) -> tuple[int, int] | None:
         if x not in on_doppler:
-            q = quote(rpc, code, v4 + k.word(x))
-            on_doppler[x] = q if q is not None and q[1] == x else None
+            on_doppler[x] = quote(rpc, code, v4 + k.word(x))
         return on_doppler[x]
 
     def tail(t: int) -> tuple[int, int] | None:
-        if t not in on_tail:
-            q = (0, 0) if t == 0 else quote(rpc, code, v3 + k.word(t) + k.word(tail_limit))  # settle skips t = 0
-            on_tail[t] = q if q is not None and q[1] == t else None
+        if t not in on_tail:  # settle skips the tail when t = 0
+            on_tail[t] = (0, 0) if t == 0 else quote(rpc, code, v3 + k.word(t) + k.word(tail_limit))
         return on_tail[t]
+
+    def sold(leg: Callable[[int], tuple[int, int] | None]) -> Callable[[int], int | None]:
+        return lambda x: None if (q := leg(x)) is None else q[1]
 
     def sale(t: int) -> int | None:
         splits.add(t)
         d, v = doppler(v1_in - t), tail(t)
-        return None if d is None or v is None else d[0] + v[0]
+        if d is None or v is None or d[1] != v1_in - t or v[1] != t:
+            return None  # a revert, or v1 left unsold, which the settler refuses
+        return d[0] + v[0]
 
     # The splits that fill are one interval: the tail must take what the Doppler pool cannot, and no more than it can.
-    lo = 0 if doppler(v1_in) is not None else v1_in - largest_fill(lambda x: doppler(x) is not None, v1_in)
-    hi = v1_in - 1 if tail(v1_in - 1) is not None else largest_fill(lambda t: tail(t) is not None, v1_in - 1)
+    lo, hi = v1_in - largest_fill(sold(doppler), v1_in), largest_fill(sold(tail), v1_in - 1)
     tail_in = best_tail(sale, v1_in, lo, hi)
     return {"tailIn": tail_in, "raised": sale(tail_in), "dopplerOnly": sale(0), "quotedSplits": len(splits)}
 

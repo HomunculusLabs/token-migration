@@ -96,6 +96,43 @@ class BestTailTests(unittest.TestCase):
         self.assertLessEqual(abs(tail - 37), 8)
 
 
+def leg(low: int, limit: int, partial: bool = True):
+    """A leg that sells in full every amount from low to limit, reverts below low (it would pay nothing), and above
+    the limit sells only the limit, or reverts. Returns it and the list of amounts it was quoted."""
+    calls = []
+
+    def sold(x: int) -> int | None:
+        calls.append(x)
+        if x < low:
+            return None
+        if x <= limit:
+            return x
+        return limit if partial else None
+    return sold, calls
+
+
+class LargestFillTests(unittest.TestCase):
+    def test_a_partial_quote_names_the_limit(self):
+        # Only 4 or 5 of 100 sell in full: halving from 100 (50, 25, 12, 6, 3, 1) never lands on either.
+        sold, _ = leg(4, 5)
+        self.assertEqual(safe_txs.largest_fill(sold, 100), 5)
+
+    def test_the_limit_is_exact_to_the_wei(self):
+        limit = V1_IN // 3 + 7
+        for partial in (True, False):
+            with self.subTest(partial=partial):
+                sold, calls = leg(1, limit, partial)
+                self.assertEqual(safe_txs.largest_fill(sold, V1_IN), limit)
+                self.assertLessEqual(len(calls), 2 * V1_IN.bit_length() + 2)
+
+    def test_a_leg_that_sells_nothing_gives_zero(self):
+        for n in (0, 1, 2, V1_IN):
+            with self.subTest(n=n):
+                sold, calls = leg(n + 1, n + 1)
+                self.assertEqual(safe_txs.largest_fill(sold, n), 0)
+                self.assertLessEqual(len(calls), n.bit_length() + 1)
+
+
 class FakeChain:
     """eth_call against the stand-in pools, decoded the way SaleQuoter is called."""
     V4 = k.selector(f"quoteV4(address,{safe_txs.POOL_KEY},uint256)")
@@ -143,7 +180,8 @@ class SaleSplitTests(unittest.TestCase):
         chain = FakeChain()
         split = self.split(chain)
         self.assertTrue(all(block == "latest" and tx["to"] == safe_txs.QUOTER
-                            and overrides == {safe_txs.QUOTER: {"code": "0x6000"}} for tx, block, overrides in chain.calls))
+                            and overrides == {safe_txs.QUOTER: {"code": "0x6000"}}
+                            for tx, block, overrides in chain.calls))
         self.assertEqual(split["tailIn"], safe_txs.best_tail(sale(), V1_IN))
         self.assertEqual(split["raised"], sale()(split["tailIn"]))
         self.assertEqual(split["dopplerOnly"], DOPPLER(V1_IN))
@@ -177,6 +215,12 @@ class SaleSplitTests(unittest.TestCase):
         with contextlib.redirect_stderr(io.StringIO()) as err, self.assertRaises(SystemExit):
             self.split(FakeChain(doppler_fills=V1_IN * 40 // 100, tail_fills=V1_IN * 40 // 100))
         self.assertIn("no split of the sale fills", err.getvalue())
+
+    def test_a_one_wei_band_of_splits_that_fill_is_found(self):
+        # The Doppler pool takes at most half the sale and 1 wei, the tail half less 1 wei: exactly one split fills.
+        half = V1_IN // 2
+        split = self.split(FakeChain(doppler_fills=half + 1, tail_fills=half - 1))
+        self.assertEqual((split["tailIn"], split["raised"]), (half - 1, DOPPLER(half + 1) + TAIL(half - 1)))
 
     def test_code_at_the_quoter_address_stops_the_kit(self):
         with contextlib.redirect_stderr(io.StringIO()), self.assertRaises(SystemExit):
