@@ -101,8 +101,10 @@ class FakeChain:
     V4 = k.selector(f"quoteV4(address,{safe_txs.POOL_KEY},uint256)")
     V3 = k.selector("quoteV3(address,uint256,uint160)")
 
-    def __init__(self, tail_fills: int | None = None, tail_reverts: bool = False, quoter_code: str = "0x"):
+    def __init__(self, tail_fills: int | None = None, tail_reverts: bool = False, quoter_code: str = "0x",
+                 doppler_fills: int | None = None):
         self.tail_fills, self.tail_reverts, self.quoter_code = tail_fills, tail_reverts, quoter_code
+        self.doppler_fills = doppler_fills
         self.calls = []
 
     def call(self, method: str, params: list):
@@ -116,8 +118,11 @@ class FakeChain:
         data = bytes.fromhex(tx["data"][2:])
         words = [int.from_bytes(data[4 + 32 * i:36 + 32 * i], "big") for i in range((len(data) - 4) // 32)]
         if data[:4] == self.V4:
-            amount, out = words[6], DOPPLER(words[6])
-            paid = amount
+            amount = words[6]
+            paid = amount if self.doppler_fills is None else min(amount, self.doppler_fills)
+            out = DOPPLER(paid)
+            if out == 0:  # the quoter refuses a v4 leg that pays nothing, as the settler does
+                return {"error": {"code": 3, "message": "execution reverted: UnexpectedSwapDelta"}}
         elif data[:4] == self.V3:
             amount = words[1]
             if self.tail_reverts:
@@ -152,6 +157,26 @@ class SaleSplitTests(unittest.TestCase):
     def test_a_reverting_tail_leaves_the_whole_sale_on_the_doppler_pool(self):
         split = self.split(FakeChain(tail_reverts=True))
         self.assertEqual((split["tailIn"], split["raised"]), (0, DOPPLER(V1_IN)))
+
+    def test_a_fillable_band_between_the_grid_points_is_found(self):
+        # The Doppler pool fills at most 60% of the sale and the tail at most 45%: only 40%-45% on the tail fills,
+        # between the grid's 20% and 50%. Concave totals put the best of that band at its low end.
+        split = self.split(FakeChain(doppler_fills=V1_IN * 60 // 100, tail_fills=V1_IN * 45 // 100))
+        self.assertTrue(V1_IN * 40 // 100 <= split["tailIn"] <= V1_IN * 45 // 100)
+        self.assertLessEqual(split["tailIn"] - V1_IN * 40 // 100, V1_IN // 1_000_000)
+        self.assertIsNone(split["dopplerOnly"])
+
+    def test_a_split_above_the_grid_is_reachable(self):
+        # The Doppler pool takes at most 0.005% of the sale, so every split that fills sells over 99.99% on the tail.
+        fills = V1_IN // 20_000
+        split = self.split(FakeChain(doppler_fills=fills))
+        self.assertGreaterEqual(split["tailIn"], V1_IN - fills)
+        self.assertLess(split["tailIn"], V1_IN)
+
+    def test_no_split_fills_when_the_pools_together_cannot_take_the_sale(self):
+        with contextlib.redirect_stderr(io.StringIO()) as err, self.assertRaises(SystemExit):
+            self.split(FakeChain(doppler_fills=V1_IN * 40 // 100, tail_fills=V1_IN * 40 // 100))
+        self.assertIn("no split of the sale fills", err.getvalue())
 
     def test_code_at_the_quoter_address_stops_the_kit(self):
         with contextlib.redirect_stderr(io.StringIO()), self.assertRaises(SystemExit):

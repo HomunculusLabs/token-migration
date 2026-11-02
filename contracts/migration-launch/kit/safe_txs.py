@@ -96,8 +96,8 @@ LAUNCH_CONSTRUCTOR = f"constructor((address,address,address,address,uint256,uint
 # override. Nothing is deployed there, and the kit checks the address holds no code.
 QUOTER_ARTIFACT = k.PROJECT / "out" / "SaleQuoter.sol" / "SaleQuoter.json"
 QUOTER = k.checksum("0x" + k.keccak(b"surplus launch kit: sale quoter")[12:].hex())
-# The v3 tail shares, in basis points of the sale, the split search starts from: roughly logarithmic, from none to
-# all but 0.01% (settle needs some v1 for the Doppler pool).
+# The v3 tail shares, in basis points of the sale, the split search starts from: roughly logarithmic, because the
+# tail is usually a small share. They are clamped into the splits that fill, whose two ends join them.
 TAIL_GRID_BPS = (0, 1, 2, 5, 10, 20, 50, 100, 200, 500, 1000, 2000, 5000, 9999)
 # Safe 1.4.1: the head of the module list, and the guard and fallback-handler storage slots.
 SENTINEL = "0x" + "00" * 19 + "01"
@@ -566,19 +566,26 @@ def quote(rpc: k.Rpc, code: str, data: bytes) -> tuple[int, int] | None:
     return int.from_bytes(out[:32], "big"), int.from_bytes(out[32:64], "big")
 
 
-def best_tail(raised: Callable[[int], int | None], v1_in: int) -> int:
-    """The v1 to sell on the v3 tail: the split of v1_in that raises the most WETH. raised(t) is what the sale raises
-    with t v1 on the tail, or None where the settler would refuse that split. Each pool pays less for every extra v1,
-    so the total is concave in t: the best point of a grid brackets the maximum between its neighbours, and each pass
-    of nine points narrows that bracket fourfold, down to a millionth of the sale. Ties go to the smaller tail."""
+def best_tail(raised: Callable[[int], int | None], v1_in: int, lo: int = 0, hi: int | None = None) -> int:
+    """The v1 to sell on the v3 tail: the split of v1_in that raises the most WETH, searched over [lo, hi] (by default
+    every split settle accepts, 0 to v1_in - 1). raised(t) is what the sale raises with t v1 on the tail, or None where
+    the settler would refuse that split. sale_split passes the ends of the splits that fill as lo and hi, so the search
+    starts from splits that fill. Each pool pays less for every extra v1, so the total is concave in t: the best point
+    of a grid brackets the maximum between its neighbours, and each pass of nine points narrows that bracket fourfold,
+    down to a millionth of the sale. Ties go to the smaller tail."""
+    hi = v1_in - 1 if hi is None else hi
+    stop = ("no split of the sale fills: the Doppler pool and the v3 tail cannot take the whole sale between them, "
+            "or every quote reverted")
+
     def best(points: list[int]) -> int:
         scored = [(r, -t) for t in points if (r := raised(t)) is not None]
         if not scored:
-            k.fail("no split of the sale fills: every quote of the Doppler pool and the v3 tail reverted or filled "
-                   "partially")
+            k.fail(stop)
         return -max(scored)[1]
 
-    points = sorted({v1_in * bps // 10_000 for bps in TAIL_GRID_BPS})
+    if lo > hi:
+        k.fail(stop)
+    points = sorted({min(max(v1_in * bps // 10_000, lo), hi) for bps in TAIL_GRID_BPS} | {lo, hi})
     tail = best(points)
     while True:  # every later pass includes the incumbent, so best() always has a candidate
         i = points.index(tail)
@@ -587,6 +594,24 @@ def best_tail(raised: Callable[[int], int | None], v1_in: int) -> int:
             return tail
         points = sorted({lo + (hi - lo) * j // 8 for j in range(9)} | {tail})
         tail = best(points)
+
+
+def largest_fill(fills: Callable[[int], bool], n: int) -> int:
+    """The largest amount up to n that a leg fills, given that n does not; 0 when it fills nothing. A leg fills every
+    amount from a few wei up to a limit and none above it, so halving from n reaches one that fills, and bisection
+    from there narrows the limit to a millionth of n, always returning an amount that fills."""
+    bad, ok = n, n // 2
+    while ok and not fills(ok):
+        bad, ok = ok, ok // 2
+    if not ok:
+        return 0
+    while bad - ok > max(n // 1_000_000, 1):
+        mid = (ok + bad) // 2
+        if fills(mid):
+            ok = mid
+        else:
+            bad = mid
+    return ok
 
 
 def sale_split(rpc: k.Rpc, ext: dict, old_key: dict, v1_in: int, tail_limit: int) -> dict:
@@ -598,20 +623,33 @@ def sale_split(rpc: k.Rpc, ext: dict, old_key: dict, v1_in: int, tail_limit: int
         k.fail(f"{QUOTER} holds code on the fork: the sale quote's override would replace it")
     v4 = encode(f"quoteV4(address,{POOL_KEY},uint256)", k.addr_word(ext["poolManager"]), pool_key_words(old_key))
     v3 = encode("quoteV3(address,uint256,uint160)", k.addr_word(ext["v3Tail"]))
-    raised: dict[int, int | None] = {}
+    on_doppler: dict[int, tuple[int, int] | None] = {}
+    on_tail: dict[int, tuple[int, int] | None] = {}
+    splits: set[int] = set()
 
-    def sale(tail: int) -> int | None:
-        if tail not in raised:
-            doppler = quote(rpc, code, v4 + k.word(v1_in - tail))
-            on_v3 = quote(rpc, code, v3 + k.word(tail) + k.word(tail_limit)) if tail else (0, 0)
-            if doppler is None or on_v3 is None or doppler[1] != v1_in - tail or on_v3[1] != tail:
-                raised[tail] = None  # a revert, or a partial fill: v1 left unsold, which the settler refuses
-            else:
-                raised[tail] = doppler[0] + on_v3[0]
-        return raised[tail]
+    # A leg that reverts or fills partially (v1 left unsold, which the settler refuses) is None.
+    def doppler(x: int) -> tuple[int, int] | None:
+        if x not in on_doppler:
+            q = quote(rpc, code, v4 + k.word(x))
+            on_doppler[x] = q if q is not None and q[1] == x else None
+        return on_doppler[x]
 
-    tail = best_tail(sale, v1_in)
-    return {"tailIn": tail, "raised": sale(tail), "dopplerOnly": sale(0), "quotedSplits": len(raised)}
+    def tail(t: int) -> tuple[int, int] | None:
+        if t not in on_tail:
+            q = (0, 0) if t == 0 else quote(rpc, code, v3 + k.word(t) + k.word(tail_limit))  # settle skips t = 0
+            on_tail[t] = q if q is not None and q[1] == t else None
+        return on_tail[t]
+
+    def sale(t: int) -> int | None:
+        splits.add(t)
+        d, v = doppler(v1_in - t), tail(t)
+        return None if d is None or v is None else d[0] + v[0]
+
+    # The splits that fill are one interval: the tail must take what the Doppler pool cannot, and no more than it can.
+    lo = 0 if doppler(v1_in) is not None else v1_in - largest_fill(lambda x: doppler(x) is not None, v1_in)
+    hi = v1_in - 1 if tail(v1_in - 1) is not None else largest_fill(lambda t: tail(t) is not None, v1_in - 1)
+    tail_in = best_tail(sale, v1_in, lo, hi)
+    return {"tailIn": tail_in, "raised": sale(tail_in), "dopplerOnly": sale(0), "quotedSplits": len(splits)}
 
 
 def settle_params(params: dict, rpc: k.Rpc, d: dict, v1_in: int) -> tuple[dict, dict, dict]:
