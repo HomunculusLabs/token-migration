@@ -1,0 +1,168 @@
+"""The kit's split of the sale between the Doppler pool and the v3 tail (kit/safe_txs.py: best_tail, quote,
+sale_split). The pools here are constant-product stand-ins sized like the real ones at the pin; each pays less for
+every extra v1, which is the property the search relies on."""
+import contextlib
+import io
+import sys
+import unittest
+from pathlib import Path
+from unittest import mock
+
+KIT = Path(__file__).resolve().parents[2] / "kit"
+sys.path.insert(0, str(KIT))
+import kitlib as k  # noqa: E402
+import safe_txs  # noqa: E402
+
+E18 = 10**18
+V1_IN = 91_050_022_388 * E18
+POOL_MANAGER = "0x498581fF718922c3f8e6A244956aF099B2652b2b"
+V3_TAIL = "0xbCf23F30a90f6D7c288fACdc932fF8F8B68b0f30"
+OLD_KEY = {"currency0": "0x4200000000000000000000000000000000000006",
+           "currency1": "0xC52aeDec3374422d7510E294cfAa90799595CBa3",
+           "fee": 0x800000, "tickSpacing": 200, "hooks": "0xbB7784A4d481184283Ed89619A3e3ed143e1Adc0"}
+LIMIT = 1461446703485210103287273052203988822378723970341
+
+
+def pool(weth: int, v1: int, fee_pips: int):
+    """WETH out for x v1 in."""
+    def out(x: int) -> int:
+        net = x * (1_000_000 - fee_pips) // 1_000_000
+        return weth * net // (v1 + net)
+    return out
+
+
+# Both priced at ~8.75e-9 WETH per v1, as arbitrage keeps them: the Doppler pool (1.2%) and the v3 tail (1%).
+DOPPLER = pool(163_730 * E18 // 1000, 18_700_000_000 * E18, 12_000)
+TAIL = pool(3_557 * E18 // 1000, 406_000_000 * E18, 10_000)
+
+
+def sale(v1_in: int = V1_IN, doppler=DOPPLER, tail=TAIL, doppler_fills: int | None = None,
+         tail_fills: int | None = None):
+    """raised(t) as sale_split builds it: None where a leg would not fill."""
+    def raised(t: int) -> int | None:
+        if doppler_fills is not None and v1_in - t > doppler_fills:
+            return None
+        if t and tail is None or tail_fills is not None and t > tail_fills:
+            return None
+        return doppler(v1_in - t) + (tail(t) if t else 0)
+    return raised
+
+
+class BestTailTests(unittest.TestCase):
+    def test_no_other_split_raises_more(self):
+        raised = sale()
+
+        def value(t: int) -> int:
+            r = raised(t)
+            assert r is not None  # both stand-in pools fill any amount
+            return r
+
+        tail = safe_txs.best_tail(raised, V1_IN)
+        best = value(tail)
+        step = V1_IN // 1_000_000  # the search stops once the maximum is bracketed this tightly
+        coarse = [V1_IN * i // 20_000 for i in range(20_000)]
+        near = [tail + d * step for d in range(-50, 51) if 0 <= tail + d * step < V1_IN]
+        self.assertLessEqual(max(value(t) for t in coarse + near), best + 10**9)  # within a gwei
+        self.assertGreater(best, value(0))
+        self.assertGreater(best, value(V1_IN // 10))  # the fixed 10% this replaces
+        self.assertTrue(0 < tail < V1_IN // 10)
+
+    def test_a_tail_that_cannot_quote_gets_nothing(self):
+        self.assertEqual(safe_txs.best_tail(sale(tail=None), V1_IN), 0)
+
+    def test_a_tail_that_adds_nothing_gets_nothing(self):
+        self.assertEqual(safe_txs.best_tail(sale(tail=lambda t: 0), V1_IN), 0)
+
+    def test_a_tail_that_fills_only_so_far_gets_at_most_that(self):
+        unconstrained = safe_txs.best_tail(sale(), V1_IN)
+        cap = unconstrained // 3
+        tail = safe_txs.best_tail(sale(tail_fills=cap), V1_IN)
+        self.assertLessEqual(tail, cap)
+        self.assertLessEqual(cap - tail, V1_IN // 1_000_000)
+
+    def test_a_doppler_pool_that_cannot_take_the_whole_sale_pushes_the_rest_to_the_tail(self):
+        fills = V1_IN // 2
+        tail = safe_txs.best_tail(sale(doppler_fills=fills), V1_IN)
+        self.assertGreaterEqual(tail, V1_IN - fills)
+        self.assertIsNotNone(sale(doppler_fills=fills)(tail))
+
+    def test_no_split_that_fills_stops_the_kit(self):
+        with contextlib.redirect_stderr(io.StringIO()) as err, self.assertRaises(SystemExit):
+            safe_txs.best_tail(lambda t: None, V1_IN)
+        self.assertIn("no split of the sale fills", err.getvalue())
+
+    def test_a_tiny_sale_terminates_near_the_maximum(self):
+        tail = safe_txs.best_tail(lambda t: 10_000 - (t - 37) ** 2, 100)
+        self.assertLessEqual(abs(tail - 37), 8)
+
+
+class FakeChain:
+    """eth_call against the stand-in pools, decoded the way SaleQuoter is called."""
+    V4 = k.selector(f"quoteV4(address,{safe_txs.POOL_KEY},uint256)")
+    V3 = k.selector("quoteV3(address,uint256,uint160)")
+
+    def __init__(self, tail_fills: int | None = None, tail_reverts: bool = False, quoter_code: str = "0x"):
+        self.tail_fills, self.tail_reverts, self.quoter_code = tail_fills, tail_reverts, quoter_code
+        self.calls = []
+
+    def call(self, method: str, params: list):
+        assert method == "eth_getCode" and params[0] == safe_txs.QUOTER
+        return self.quoter_code
+
+    def _request(self, method: str, params: list) -> dict:
+        assert method == "eth_call"
+        tx, block, overrides = params
+        self.calls.append((tx, block, overrides))
+        data = bytes.fromhex(tx["data"][2:])
+        words = [int.from_bytes(data[4 + 32 * i:36 + 32 * i], "big") for i in range((len(data) - 4) // 32)]
+        if data[:4] == self.V4:
+            amount, out = words[6], DOPPLER(words[6])
+            paid = amount
+        elif data[:4] == self.V3:
+            amount = words[1]
+            if self.tail_reverts:
+                return {"error": {"code": 3, "message": "execution reverted: AS"}}
+            paid = amount if self.tail_fills is None else min(amount, self.tail_fills)
+            out = TAIL(paid)
+        else:
+            raise AssertionError("unexpected call")
+        return {"result": "0x" + (k.word(out) + k.word(paid)).hex()}
+
+
+class SaleSplitTests(unittest.TestCase):
+    def split(self, chain: FakeChain) -> dict:
+        with mock.patch.object(safe_txs, "quoter_code", return_value="0x6000"):
+            return safe_txs.sale_split(chain, {"poolManager": POOL_MANAGER, "v3Tail": V3_TAIL}, OLD_KEY, V1_IN, LIMIT)
+
+    def test_each_quote_runs_the_quoter_code_at_the_quoter_address_on_the_latest_block(self):
+        chain = FakeChain()
+        split = self.split(chain)
+        self.assertTrue(all(block == "latest" and tx["to"] == safe_txs.QUOTER
+                            and overrides == {safe_txs.QUOTER: {"code": "0x6000"}} for tx, block, overrides in chain.calls))
+        self.assertEqual(split["tailIn"], safe_txs.best_tail(sale(), V1_IN))
+        self.assertEqual(split["raised"], sale()(split["tailIn"]))
+        self.assertEqual(split["dopplerOnly"], DOPPLER(V1_IN))
+        self.assertGreater(split["quotedSplits"], len(safe_txs.TAIL_GRID_BPS))
+
+    def test_a_partial_fill_on_the_tail_is_never_chosen(self):
+        fills = 100_000_000 * E18
+        split = self.split(FakeChain(tail_fills=fills))
+        self.assertLessEqual(split["tailIn"], fills)
+
+    def test_a_reverting_tail_leaves_the_whole_sale_on_the_doppler_pool(self):
+        split = self.split(FakeChain(tail_reverts=True))
+        self.assertEqual((split["tailIn"], split["raised"]), (0, DOPPLER(V1_IN)))
+
+    def test_code_at_the_quoter_address_stops_the_kit(self):
+        with contextlib.redirect_stderr(io.StringIO()), self.assertRaises(SystemExit):
+            self.split(FakeChain(quoter_code="0x60"))
+
+    def test_an_rpc_error_that_is_not_a_revert_stops_the_kit(self):
+        chain = FakeChain()
+        chain._request = lambda method, params: {"error": {"code": -32602, "message": "invalid params"}}
+        with contextlib.redirect_stderr(io.StringIO()), self.assertRaises(SystemExit):
+            self.split(chain)
+
+
+if __name__ == "__main__":
+    unittest.main()

@@ -77,7 +77,8 @@
     "tickSpacing": 60
   },
   "sale": {
-    "tailShareBps": 1000,
+    "decision": "Bill 2026-11-02 (GitHub #2), replacing a fixed 10%: the v3 tail gets the share of the sale that raises the most WETH, quoted at signing; none when it adds nothing",
+    "tailShare": "maximize-raise",
     "tailSqrtPriceLimitX96": "1461446703485210103287273052203988822378723970341",
     "minWethOutBps": 9950,
     "v2BudgetExtraWei": 10

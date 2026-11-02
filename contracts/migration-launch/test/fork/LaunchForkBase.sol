@@ -279,7 +279,8 @@ abstract contract LaunchForkBase is Test {
 
     /// @dev Unsigned params: v2 opens at v1's pre-sale price rounded to the successor grid (at 1:1 every migrator keeps
     ///      its value, within half a tick spacing), the v2 side copies the v1 the old pool holds above its price, and
-    ///      10% of the v1 sells on the v3 tail, the rest on the Doppler pool (the fullscale-0928 split rule).
+    ///      10% of the v1 sells on the v3 tail, the rest on the Doppler pool: a fixed test split, where the kit
+    ///      chooses the real one at signing (kit/safe_txs.py, sale_split).
     function _params() internal view returns (MigrationSettler.Params memory p) {
         p.oldKey = _oldKey();
         p.v1In = total;

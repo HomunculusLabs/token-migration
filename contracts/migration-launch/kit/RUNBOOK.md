@@ -142,11 +142,15 @@ python3.14 kit/launch.py safe-txs launch-batch --deployment kit/output/deploy/de
 ```
 
 Simulate-then-sign:
-1. The kit runs a launch contract with no floor and the whole remaining cap as budget on a fork of the latest
-   block, and records what it raised and used.
-2. It signs `minWethOut` = simulated WETH × 0.995 and the v2 budget = simulated v2 + 10 wei. The v2 side is
+1. The kit chooses how much v1 to sell on the v3 1% tail. It quotes each leg of the sale on a fork of the latest
+   block (`src/SaleQuoter.sol`, run inside `eth_call`; nothing is deployed) and takes the split that raises the
+   most WETH. The tail is a third-party pool, so this reads its depth at signing; when it adds nothing, it gets
+   nothing.
+2. The kit runs a launch contract with that split, no floor and the whole remaining cap as budget, and records
+   what it raised and used. It must raise exactly the quoted amount.
+3. It signs `minWethOut` = simulated WETH × 0.995 and the v2 budget = simulated v2 + 10 wei. The v2 side is
    fixed by the signed ranges, not by the sale, so the budget needs no drift margin.
-3. It deploys the launch contract with those numbers and runs the exact signed transaction, which must succeed.
+4. It deploys the launch contract with those numbers and runs the exact signed transaction, which must succeed.
 
 The launch is one contract, `src/MigrationLaunch.sol`, built for these numbers, and one Safe transaction: a
 DELEGATECALL to its `launch()`. Signers read every number on the contract itself (SIGNER-CHECKLIST.md). It
@@ -168,9 +172,9 @@ code and the numbers, and anyone sending it gets the same contract. Then check t
 Safe transaction. A Safe DELEGATECALL to an address with no code succeeds and does nothing: it spends the nonce
 and launches nothing (`test/fork/MigrationLaunch.fork.t.sol::test_NoCodeAtTheTargetIsASilentNoOp`).
 
-`settle` sells the v1 on the Doppler pool and the v3 1% tail. It then opens the v2/WETH pool (1.2% LP
-fee, its only fee) at v1's pre-sale tick rounded to the 60-tick grid, and seeds it with two single-sided
-sides that meet at that tick (SUR-658, decided 2026-10-25):
+`settle` sells the v1 on the Doppler pool and the v3 1% tail, in the split chosen at signing. It then opens the
+v2/WETH pool (1.2% LP fee, its only fee) at v1's pre-sale tick rounded to the 60-tick grid, and seeds it with
+two single-sided sides that meet at that tick (SUR-658, decided 2026-10-25):
 - the v2 side: signed ranges that copy the v1 the old pool still offered above its price at simulation
   time, the same amounts over the same ranges, paid from the v2 budget;
 - the WETH side: one position from the opening tick to the end of the range, holding all the WETH raised.
@@ -249,6 +253,8 @@ Every abort leaves every holder whole. None needs a new contract.
 - **Sale slippage.** If the sale raises less than `minWethOut`, or the seed would need more v2 than the
   signed budget, the whole launch reverts. Nothing moves. Re-run `safe-txs launch-batch` against the new
   state: it builds a new launch contract (a new address) and a new hash. Deploy it, then sign again.
+  The v3 tail's LPs can withdraw at any time, so its depth falling after signing is one way to get here; the
+  re-run quotes the tail again and picks a new split.
 - **The Safe never commits a root.** After `commitDeadline`, anyone calls `vault.expireCommit()`. The
   migration is cancelled, and every depositor gets their exact v1 back through `vault.refund(account)`
   (anyone can call it for anyone, so the relayer can push refunds) or `withdrawV1`.
