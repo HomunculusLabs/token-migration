@@ -42,12 +42,11 @@ interface IDeployed {
     function LP_FEE() external view returns (uint24);
     function TICK_SPACING() external view returns (int24);
     function WETH() external view returns (address);
-    function FEE_RECIPIENT() external view returns (address);
     // hook
     function INITIALIZER() external view returns (address);
     function POOL_MANAGER() external view returns (address);
-    function TREASURY() external view returns (address);
-    function FEE_PIPS() external view returns (uint24);
+    function CURRENCY0() external view returns (address);
+    function CURRENCY1() external view returns (address);
 }
 
 /**
@@ -55,8 +54,8 @@ interface IDeployed {
  * @notice Launch kit phase "deploy-plan", step 2: replays every deployment in kit/output/deploy/plan.json on a
  *         fork, in order, from the planned deployer, and checks each lands at its predicted address with the
  *         decided settings: the Safe's owners and threshold; the token's metadata, cap, zero supply and roles
- *         (all held by the Safe, none by the deployer); the vault's deal; the settler's pins; the hook's flags
- *         and initializer. Run it WITHOUT --broadcast: forge then executes it in memory only.
+ *         (all held by the Safe, none by the deployer); the vault's deal; the settler's pins; the hook's flag,
+ *         initializer and official key. Run it WITHOUT --broadcast: forge then executes it in memory only.
  * @dev    A step whose address already has code is checked but not redeployed, so the same run confirms a
  *         partly finished launch-day deployment.
  */
@@ -202,22 +201,22 @@ contract DeployDryRun {
             "settler: successor fee/spacing"
         );
         require(s.WETH() == vm.parseJsonAddress(r, ".weth"), "settler: WETH");
-        require(s.FEE_RECIPIENT() == vm.parseJsonAddress(r, ".hook.feeRecipient"), "settler: fee recipient");
     }
 
     function _checkHook(string memory r, string memory p) internal view {
         address hook = vm.parseJsonAddress(p, ".hook");
-        require((uint160(hook) & ((1 << 14) - 1)) == 0x2044, "hook: flags are not exactly 0x2044");
+        require((uint160(hook) & ((1 << 14) - 1)) == 0x2000, "hook: flags are not exactly 0x2000");
         require(IDeployed(hook).INITIALIZER() == vm.parseJsonAddress(p, ".settler"), "hook: initializer");
         require(IDeployed(hook).POOL_MANAGER() == vm.parseJsonAddress(r, ".poolManager"), "hook: pool manager");
-        // The settler refuses a successor hook whose fee or treasury differs; catch it here, before anyone signs.
-        // Static calls, so a hook without these getters (not the fee hook) fails with a reason, not empty data.
-        (bool ok, bytes memory ret) = hook.staticcall(abi.encodeCall(IDeployed.TREASURY, ()));
+        // The hook admits only its official key, so a key that differs from the settler's would revert the launch.
+        address token = vm.parseJsonAddress(p, ".token");
+        address weth = vm.parseJsonAddress(r, ".weth");
+        (address c0, address c1) = token < weth ? (token, weth) : (weth, token);
+        require(IDeployed(hook).CURRENCY0() == c0 && IDeployed(hook).CURRENCY1() == c1, "hook: currencies");
         require(
-            ok && ret.length == 32 && abi.decode(ret, (address)) == vm.parseJsonAddress(r, ".hook.feeRecipient"),
-            "hook: fees do not go to the decided recipient"
+            uint256(IDeployed(hook).LP_FEE()) == vm.parseJsonUint(r, ".successorPool.lpFee")
+                && int256(IDeployed(hook).TICK_SPACING()) == vm.parseJsonInt(r, ".successorPool.tickSpacing"),
+            "hook: successor fee/spacing"
         );
-        (ok, ret) = hook.staticcall(abi.encodeCall(IDeployed.FEE_PIPS, ()));
-        require(ok && ret.length == 32 && abi.decode(ret, (uint256)) == 15_000, "hook: fee is not 1.5%");
     }
 }

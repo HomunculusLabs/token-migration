@@ -68,13 +68,12 @@
     "proRata": true
   },
   "hook": {
-    "decision": "\u00a76.4 fee recipient",
-    "feeRecipient": "TBD",
-    "feeBps": 150,
-    "flags": "0x2044"
+    "decision": "Bill 2026-11-02: the hook only gates who creates the pool; it takes no fee",
+    "flags": "0x2000"
   },
   "successorPool": {
-    "lpFee": 3000,
+    "decision": "Bill 2026-11-02: a 1.2% LP fee is the pool's only fee (no hook fee, no team or buyback split)",
+    "lpFee": 12000,
     "tickSpacing": 60
   },
   "sale": {

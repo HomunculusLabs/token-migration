@@ -251,7 +251,7 @@ contract MevRedTeamForkTest is LaunchForkBase {
         // TRUE wealth accounting: the buyback may be funded by wrapping raw ETH, so WETH-balance
         // deltas alone double-count. Wealth = WETH balance + raw ETH balance (raw ETH is exactly
         // pre-wrapped WETH). Path independence means dump + buy-back-your-own-impact is ~neutral:
-        // the honest grief price is LP/hook fees + gas, NOT the tranche's mark-to-market move.
+        // the honest grief price is LP fees + gas, NOT the tranche's mark-to-market move.
         uint256 proceeds = IWETH9(WETH).balanceOf(address(attacker)) - weth0;
         // forge-lint: disable-next-line(unsafe-typecast)
         uint256 preValue = Math.mulDiv(GRIEF_V1, 1 << 192, uint256(sqrtBefore) * uint256(sqrtBefore));

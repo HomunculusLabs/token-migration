@@ -24,7 +24,7 @@ def params() -> dict:
     return {"oldKey": {"currency0": WETH, "currency1": V1, "fee": 0x800000, "tickSpacing": 200, "hooks": SETTLER},
             "v1In": 2_200 * 10**18, "tailIn": 220 * 10**18,
             "tailLimit": 1461446703485210103287273052203988822378723970341,
-            "newKey": {"currency0": V2, "currency1": WETH, "fee": 3000, "tickSpacing": 60, "hooks": SETTLER},
+            "newKey": {"currency0": V2, "currency1": WETH, "fee": 12_000, "tickSpacing": 60, "hooks": SETTLER},
             "openTick": -175_920,
             "v2Ranges": [{"tickLower": -887_220, "tickUpper": -200_040, "liquidity": 10**18},
                          {"tickLower": -200_040, "tickUpper": -175_920, "liquidity": 3 * 10**23}],

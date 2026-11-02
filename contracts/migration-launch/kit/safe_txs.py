@@ -402,12 +402,12 @@ def load_deployment(path: Path, params: dict, rpc: k.Rpc) -> tuple[dict, list]:
         ("settler.LP_FEE() == successorPool.lpFee", uint(rpc, d["settler"], "LP_FEE()") == pool["lpFee"]),
         ("settler.TICK_SPACING() == successorPool.tickSpacing",
          sint(rpc, d["settler"], "TICK_SPACING()") == pool["tickSpacing"]),
-        ("hook address carries exactly the 0x2044 flags", (int(d["hook"], 16) & 0x3FFF) == 0x2044),
+        ("hook address carries exactly the 0x2000 flag", (int(d["hook"], 16) & 0x3FFF) == 0x2000),
         ("hook.INITIALIZER() == settler", address(rpc, d["hook"], "INITIALIZER()") == d["settler"]),
-        # The settler opens the pool only with a hook paying 1.5% to its FEE_RECIPIENT; fail here, before signing.
-        ("hook.TREASURY() == settler.FEE_RECIPIENT()",
-         address(rpc, d["hook"], "TREASURY()") == address(rpc, d["settler"], "FEE_RECIPIENT()")),
-        ("hook.FEE_PIPS() == 15000 (1.5%)", uint(rpc, d["hook"], "FEE_PIPS()") == 15_000),
+        # The hook admits only its official key: a fee or spacing that differs from the settler's reverts the launch.
+        ("hook.LP_FEE() == successorPool.lpFee", uint(rpc, d["hook"], "LP_FEE()") == pool["lpFee"]),
+        ("hook.TICK_SPACING() == successorPool.tickSpacing",
+         sint(rpc, d["hook"], "TICK_SPACING()") == pool["tickSpacing"]),
         ("v2 MINTER_ROLE is held by the Safe",
          uint(rpc, d["v2"], "hasRole(bytes32,address)", minter, k.addr_word(d["safe"])) == 1),
     )

@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.28;
 
-// The slice of the Uniswap v4-core 1.0.x ABI that the fee hook and its launch path touch, so neither
-// project needs a v4-core checkout. Every shape is ABI-identical to v4-core's: `Currency` and `IHooks`
+// The slice of the Uniswap v4-core 1.0.x ABI that the pool hook and its tests touch, so the project needs no
+// v4-core checkout. Every shape is ABI-identical to v4-core's: `Currency` and `IHooks`
 // are addresses on the wire and `BalanceDelta` is an int256 (amount0 in the high 128 bits, amount1 in
 // the low 128 bits), so selectors and encodings match what the deployed PoolManager sends and expects.
 

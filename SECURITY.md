@@ -11,23 +11,18 @@
   Slither and Aderyn; and AI-assisted review rounds whose findings were reproduced as failing tests
   before they were fixed. See `docs/internal-security-review-2026-10-04.md` and
   `contracts/migration-launch/kit/evidence/review/SUMMARY.md`. An internal review is not a
-  substitute for an independent audit.
+  substitute for an independent audit. The successor-pool hook was cut down after those reviews:
+  its initializer gate is unchanged and the fee code was removed
+  ([`contracts/pool-hook/DESIGN.md`](contracts/pool-hook/DESIGN.md)).
 
 ## Known limitations and trust assumptions
 
-- **Fee hook, exact-output swaps.** The hook takes its fee on an exact-output swap before the
-  swapper's input arrives, so such a swap reverts if the PoolManager holds less of the input
-  currency than the fee. Reachability depends on the input-currency reserves, supply and actual
-  launch configuration; it is not an invariant enforced by the hook. The earlier estimate of a
-  sell roughly four times the whole V2 supply belongs to the historical two-sided full-range
-  rehearsal, not the current split seed. Do not carry that numerical assurance forward without a
-  new measurement bound to the intended source revision, block and final launch parameters, in
-  both currency orientations. This reserve limitation reverts the affected swap atomically; it
-  does not transfer funds on a reverted swap. Exact-input swaps do not have this pre-input
-  collection condition, but still have their normal liquidity and slippage constraints. The
-  historical mechanism analysis and proposed ERC-6909 redesign are in
-  [`SUMMARY.md`](contracts/migration-launch/kit/evidence/review/SUMMARY.md); that redesign is not
-  implemented in the current hook.
+- **The pool hook only controls who creates the pool.** `SurplusPoolHook` lets only the launch
+  initialize the official V2/WETH pool. It holds only the `BEFORE_INITIALIZE` permission, so
+  Uniswap never calls it on a swap or a liquidity change, and it takes no fee: the pool's 1.2% LP
+  fee is the only fee. It cannot stop anyone from opening a separate V2/WETH pool elsewhere, at
+  any fee. The exact-output limitation earlier versions of this file described belonged to the
+  previous 1.5% fee hook, which was dropped before launch.
 - **The claims tree is checked off-chain per leaf.** On chain, the vault requires the committed
   total to equal the net deposit ledger at the migration rate (pro-rata mode, which this migration
   uses) and caps every payout at that total. That each leaf pays the right account the right amount

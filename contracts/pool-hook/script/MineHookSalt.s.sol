@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.28;
 
-import {SurplusFeeHook} from "../src/SurplusFeeHook.sol";
+import {SurplusPoolHook} from "../src/SurplusPoolHook.sol";
 import {HookMiner} from "./HookMiner.sol";
 
 /// @dev The cheatcodes this script uses (no forge-std in this monorepo).
@@ -34,13 +34,13 @@ interface ScriptVm {
 
 /**
  * @title MineHookSalt
- * @notice Mines the CREATE2 salt that deploys SurplusFeeHook at an address whose low 14 bits are exactly its
- *         permission flags (0x2044), and writes {deployer, salt, address, initCodeHash, flags, constructorArgs}
+ * @notice Mines the CREATE2 salt that deploys SurplusPoolHook at an address whose low 14 bits are exactly its
+ *         permission flags (0x2000), and writes {deployer, salt, address, initCodeHash, flags, constructorArgs}
  *         as JSON. Pure local computation: no RPC, no broadcast, nothing to sign.
  *
- *         ENV    HOOK_TREASURY, HOOK_INITIALIZER, HOOK_CURRENCY0, HOOK_CURRENCY1   required
+ *         ENV    HOOK_INITIALIZER, HOOK_CURRENCY0, HOOK_CURRENCY1   required
  *                HOOK_POOL_MANAGER   default: the Base v4 PoolManager
- *                HOOK_LP_FEE         default: 3000 pips (0.30%)
+ *                HOOK_LP_FEE         default: 12000 pips (1.2%)
  *                HOOK_TICK_SPACING   default: 60
  *                HOOK_DEPLOYER       default: Arachnid's CREATE2 proxy
  *                HOOK_SALT_START     default: 0; the result is the smallest matching salt from here upward
@@ -53,8 +53,8 @@ contract MineHookSalt {
     ScriptVm internal constant vm = ScriptVm(0x7109709ECfa91a80626fF3989D68f67F5b1DD12D);
 
     address internal constant BASE_POOL_MANAGER = 0x498581fF718922c3f8e6A244956aF099B2652b2b;
-    /// @notice SurplusFeeHook.REQUIRED_FLAGS: BEFORE_INITIALIZE | AFTER_SWAP | AFTER_SWAP_RETURNS_DELTA.
-    uint160 public constant HOOK_FLAGS = 0x2044;
+    /// @notice SurplusPoolHook.REQUIRED_FLAGS: BEFORE_INITIALIZE. A drift fails the constructor dry run below.
+    uint160 public constant HOOK_FLAGS = 0x2000;
 
     /// @dev Script stdout: forge prints these DSTest-style events under `== Logs ==`.
     event log_named_address(string key, address val);
@@ -62,7 +62,6 @@ contract MineHookSalt {
 
     struct Args {
         address poolManager;
-        address treasury;
         address initializer;
         address currency0;
         address currency1;
@@ -93,18 +92,17 @@ contract MineHookSalt {
 
     function initCodeFor(Args memory a) public pure returns (bytes memory) {
         return abi.encodePacked(
-            type(SurplusFeeHook).creationCode,
-            abi.encode(a.poolManager, a.treasury, a.initializer, a.currency0, a.currency1, a.lpFee, a.tickSpacing)
+            type(SurplusPoolHook).creationCode,
+            abi.encode(a.poolManager, a.initializer, a.currency0, a.currency1, a.lpFee, a.tickSpacing)
         );
     }
 
     function _args() internal view returns (Args memory a) {
         a.poolManager = vm.envOr("HOOK_POOL_MANAGER", BASE_POOL_MANAGER);
-        a.treasury = vm.envAddress("HOOK_TREASURY");
         a.initializer = vm.envAddress("HOOK_INITIALIZER");
         a.currency0 = vm.envAddress("HOOK_CURRENCY0");
         a.currency1 = vm.envAddress("HOOK_CURRENCY1");
-        uint256 lpFee = vm.envOr("HOOK_LP_FEE", uint256(3000));
+        uint256 lpFee = vm.envOr("HOOK_LP_FEE", uint256(12_000));
         int256 tickSpacing = vm.envOr("HOOK_TICK_SPACING", int256(60));
         if (lpFee > type(uint24).max) revert ArgOutOfRange("HOOK_LP_FEE");
         if (tickSpacing < type(int24).min || tickSpacing > type(int24).max) revert ArgOutOfRange("HOOK_TICK_SPACING");
@@ -114,8 +112,9 @@ contract MineHookSalt {
     }
 
     /// @dev Runs the constructor AT the mined address, where it sees the same address(this) as the real
-    ///      deployment, so arguments it would reject (zero addresses, unsorted currencies, wrong flags) fail
-    ///      here rather than in a signed deploy. Local simulation only: the etched code never leaves the script.
+    ///      deployment, so arguments it would reject (zero addresses, unsorted currencies, a dynamic or invalid fee,
+    ///      wrong flags) fail here rather than in a signed deploy. Local simulation only: the etched code never
+    ///      leaves the script.
     function _dryRunConstructor(address hook, bytes memory initCode) internal {
         vm.etch(hook, initCode);
         (bool ok, bytes memory reason) = hook.call("");
@@ -135,7 +134,6 @@ contract MineHookSalt {
         Args memory a
     ) internal {
         vm.serializeAddress("constructorArgs", "poolManager", a.poolManager);
-        vm.serializeAddress("constructorArgs", "treasury", a.treasury);
         vm.serializeAddress("constructorArgs", "initializer", a.initializer);
         vm.serializeAddress("constructorArgs", "currency0", a.currency0);
         vm.serializeAddress("constructorArgs", "currency1", a.currency1);
@@ -146,7 +144,7 @@ contract MineHookSalt {
         vm.serializeBytes32("hookSalt", "salt", salt);
         vm.serializeAddress("hookSalt", "address", hook);
         vm.serializeBytes32("hookSalt", "initCodeHash", initCodeHash);
-        // The address's 14 flag bits, rendered as two bytes ("0x2044").
+        // The address's 14 flag bits, rendered as two bytes ("0x2000").
         // forge-lint: disable-next-line(unsafe-typecast)
         uint16 flagBits = uint16(uint160(hook) & 0x3FFF);
         vm.serializeString("hookSalt", "flags", vm.toString(abi.encodePacked(flagBits)));

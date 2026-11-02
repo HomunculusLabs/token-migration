@@ -4,6 +4,9 @@ Every item is **[owner: Bill]** except where noted. Recommendations are grounded
 constructor's constraints, the internal review's timing facts, and the design docs; each needs an explicit
 decision before `deploy_plan.py` will run (the kit fails loudly on any TBD it needs).
 
+> **Update 2026-11-02.** Section D is withdrawn. The successor hook takes no fee (Bill: the pool's only
+> fee is its 1.2% LP fee), so `hook.feeRecipient` is no longer in `params.json`.
+
 ## A. Vault windows — `vault.*` (4 TBDs)
 
 The vault pins these immutably at deploy; they are the holder-facing offer.
@@ -30,7 +33,7 @@ The vault pins these immutably at deploy; they are the holder-facing offer.
 | C2 | `symbol` | **SURPLUS** (unchanged) | Same. |
 | C3 | `capWei` | **100,000,000,000 × 10¹⁸ — exactly v1 totalSupply at the pin (verified 100B on-chain, block 51935583)** | 1:1 flat migration ⇒ the cap must be ≥ 100B + LP-budget headroom. Capping at exactly v1's supply is the honest maximum: nothing can ever be minted beyond the migrated supply + explicitly-budgeted LP seed (the batch mints backing+budget and the cap rejects anything past it). A larger cap invites "why?" at review; exactly-100B is self-justifying. NOTE: `capWei` interacts with the LP budget math — the kit computes backing (100% of committed) + v2 seed budget; if cap == totalClaimable exactly, the seed budget won't fit. Recommend **cap = 100.1B** (0.1% LP headroom over v1 supply) so backing + seed + tiny reserve fits without a future cap raise (cap can only be changed by upgrade). |
 
-## D. Hook fee recipient — `hook.feeRecipient` (1 TBD)
+## D. Hook fee recipient — `hook.feeRecipient` (withdrawn 2026-11-02: the hook takes no fee)
 
 | # | Param | Recommendation | Why |
 |---|---|---|---|
@@ -49,6 +52,6 @@ The vault pins these immutably at deploy; they are the holder-facing offer.
 - Chain = Base — Bill 2026-09-24
 - Ratio = 1:1 flat, PRO_RATA_ENABLED — Bill 2026-09-28
 - Launch order = pool-first single batch — Bill 2026-09-28
-- Hook fee 1.5% (150 bps) split 0.75/0.75 — params already carry it
+- ~~Hook fee 1.5% (150 bps) split 0.75/0.75~~ superseded: no hook fee; the pool's 1.2% LP fee is its only fee — Bill 2026-11-02
 - Bridged holders: no special outreach — Bill 2026-09-29
 - Rival-pool depth alert $125k — Bill 2026-09-29

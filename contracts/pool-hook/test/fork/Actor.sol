@@ -14,7 +14,6 @@ import {
 /// @dev v4-core errors the fork suites expect, declared so forge decodes them in failure output.
 interface IPoolManagerErrors {
     error CurrencyNotSettled();
-    error NonzeroNativeValue();
     error HookAddressNotValid(address hooks);
     error PoolAlreadyInitialized();
     error HookCallFailed();
@@ -31,8 +30,7 @@ contract Actor is IUnlockCallback {
 
     enum Op {
         ModifyLiquidity,
-        Swap,
-        SwapThenSettleNative
+        Swap
     }
 
     IPoolManager internal immutable manager;
@@ -41,22 +39,17 @@ contract Actor is IUnlockCallback {
         manager = manager_;
     }
 
-    receive() external payable {}
-
-    function modifyLiquidity(PoolKey calldata key, ModifyLiquidityParams calldata params) external returns (int256) {
+    /// @return delta The caller's BalanceDelta: what it paid in (negative) and took out (positive), fees included.
+    function modifyLiquidity(PoolKey calldata key, ModifyLiquidityParams calldata params)
+        external
+        returns (int256 delta)
+    {
         return _run(Op.ModifyLiquidity, key, abi.encode(params));
     }
 
-    /// @return delta The swapper's BalanceDelta, i.e. after the hook's return delta is applied.
+    /// @return delta The swapper's BalanceDelta.
     function swap(PoolKey calldata key, SwapParams calldata params) external returns (int256 delta) {
         return _run(Op.Swap, key, abi.encode(params));
-    }
-
-    /// @dev A swap followed, in the same unlock, by a native settle{value:} and take: what a router batch with an
-    ///      ETH leg does. A native settle carries no sync(), so it reverts NonzeroNativeValue if the swap left any
-    ///      ERC-20 synced.
-    function swapThenSettleNative(PoolKey calldata key, SwapParams calldata params) external returns (int256) {
-        return _run(Op.SwapThenSettleNative, key, abi.encode(params));
     }
 
     function _run(Op op, PoolKey memory key, bytes memory args) internal returns (int256) {
@@ -71,10 +64,6 @@ contract Actor is IUnlockCallback {
             (delta,) = manager.modifyLiquidity(key, abi.decode(args, (ModifyLiquidityParams)), "");
         } else {
             delta = manager.swap(key, abi.decode(args, (SwapParams)), "");
-        }
-        if (op == Op.SwapThenSettleNative) {
-            manager.settle{value: 1}();
-            manager.take(address(0), address(this), 1);
         }
         _settle(key.currency0, delta.amount0());
         _settle(key.currency1, delta.amount1());

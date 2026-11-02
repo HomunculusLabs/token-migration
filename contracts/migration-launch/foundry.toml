@@ -1,6 +1,6 @@
 # Mirrors contracts/token-v2 (itself mirroring contracts/payments): a pinned toolchain keeps review
 # and deployment bytecode reproducible. The launch helper's tests compile the REAL sibling contracts
-# (MigrationVault, the ClaimTree engine, SurplusTokenV2, SurplusFeeHook) through remappings.txt, never copies.
+# (MigrationVault, the ClaimTree engine, SurplusTokenV2, SurplusPoolHook) through remappings.txt, never copies.
 [profile.default]
 src = "src"
 test = "test"
@@ -8,8 +8,8 @@ script = "script"
 out = "out"
 libs = ["lib"]
 # solc's import sandbox only allows the project dir: OpenZeppelin comes from the workspace's npm pin,
-# the vault, the tree engine, the token and the fee hook from their sibling projects.
-allow_paths = ["../../node_modules", "../fee-hook", "../migration", "../migration-tools", "../token-v2"]
+# the vault, the tree engine, the token and the pool hook from their sibling projects.
+allow_paths = ["../../node_modules", "../pool-hook", "../migration", "../migration-tools", "../token-v2"]
 solc_version = "0.8.28"
 evm_version = "cancun"
 optimizer = true

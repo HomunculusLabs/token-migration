@@ -8,6 +8,8 @@
 > quantities, gas, approved geometry or release guarantees. Current full-cohort results require a
 > separately published, source- and block-pinned one-call rehearsal; see the repository
 > [README](../../../README.md#on-base-sepolia). No historical measurement below has been regenerated.
+> Its fee figures are for a 0.30% LP fee plus a 1.5% hook fee; the current pool's only fee is a 1.2%
+> LP fee.
 
 Every number below comes from a file (sha256 at the end), measured at Base block **51,935,583**
 (`0x2a3d465ca7407d2373bce06a2741e104785fefd0d43db7574a8230a310caa1b6`) or produced by the full-scale fork rehearsal of the monorepo contracts from that

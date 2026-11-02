@@ -25,13 +25,12 @@ class ReportTests(unittest.TestCase):
                 "wethRaisedWei", "wethFromV3TailWei", "wethSeededWei", "launchBatchExecGas",
                 "simulatedWethRaisedWei", "minWethOutWei", "v2BudgetWei", "v1DepositedWei",
                 "v1SoldOnV3TailWei", "v2SeededWei", "firstPositionId", "v2SupplyAfterLaunchWei",
-                "totalClaimableWei", "feeExactInBuy", "feeExactInSell", "feeExactOutBuy",
-                "feeExactOutSell", "pushTotalTxGas", "pushL1FeeUpperWei", "pushBatches",
-                "pushCalls", "pushMaxTxGas", "pushMaxTxBytes", "pushSkipped")}
+                "totalClaimableWei", "lpFeeCollectedWethWei", "lpFeeCollectedV2Wei", "pushTotalTxGas",
+                "pushL1FeeUpperWei", "pushBatches", "pushCalls", "pushMaxTxGas", "pushMaxTxBytes", "pushSkipped")}
             result.update(v1SupplyWei=10**18, holders=1, oldPoolSqrtPriceBefore=2**96,
                           oldPoolSqrtPriceAfter=2**97, successorSqrtPriceX96=2**96,
-                          successorLpFeePips=3000, pushTotalTxGas=200_000, firstPositionId=7, positionCount=3,
-                          v2="0x" + "ff" * 20)
+                          successorLpFeePips=12_000, pushTotalTxGas=200_000, firstPositionId=7, positionCount=3,
+                          tradeWethInWei=10**18, tradeV2InWei=10**22, v2="0x" + "ff" * 20)
             result.update(result_overrides)
             files = {
                 run / "pin.json": {"block": 100, "hash": "0x" + "11" * 32},
@@ -47,8 +46,7 @@ class ReportTests(unittest.TestCase):
                     "distribution": {"n_trades": 1, "median_usd": 1, "max_usd": 1}, "table": [],
                     "take_every_trade_depth_usd": {}, "depth_target": {"successor_target_rounded_usd": 200},
                     "ops_alert": {"recommended_trigger_usd": 999}, "breakeven_leak": {"leak_pct": 0},
-                    "fee_revenue": {"volume_24h_usd": 1, "all_in_1_80pct_usd_per_day": 0,
-                                    "hook_1_50pct_usd_per_day": 0}},
+                    "fee_revenue": {"volume_24h_usd": 1, "lp_fee_usd_per_day": 0}},
                 kit / "output/rehearsal/result.json": result,
                 kit / "output/rehearsal/pin-block.json": {"baseFeePerGas": base_fee},
                 kit / "output/snapshot/100/snapshot.json": {"block": 100, "leaves": 1,
@@ -72,6 +70,15 @@ class ReportTests(unittest.TestCase):
         below = self.render_report(v2="0x" + "01" * 20, successorSqrtPriceX96=2**96 // 1000)
         for text in (above, below):
             self.assertIn("opens at **1,000,000 v2 per WETH**", text)
+
+    def test_report_describes_the_lp_fee_and_no_hook_fee(self):
+        text = self.render_report(lpFeeCollectedWethWei=12 * 10**15, lpFeeCollectedV2Wei=12 * 10**19)
+        self.assertIn("LP fee 1.20% on chain, its only fee", text)
+        self.assertIn("## Pool fee check (1.20% LP fee, no hook fee)", text)
+        self.assertIn("- WETH: 0.012000 of the 1.0000 WETH the buys paid in", text)
+        self.assertIn("- v2: 120.00 of the 10,000 v2 the sells paid in", text)
+        for gone in ("1.5%", "1.8%", "buyback", "of it to the hook", "withdrew"):
+            self.assertNotIn(gone, text)
 
     def test_report_describes_the_split_seed(self):
         text = self.render_report()

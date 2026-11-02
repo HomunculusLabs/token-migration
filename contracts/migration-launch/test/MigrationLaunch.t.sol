@@ -118,7 +118,7 @@ contract MigrationLaunchTest is Test {
         p.v1In = 2_200 ether;
         p.tailIn = 220 ether;
         p.tailLimit = 1461446703485210103287273052203988822378723970341;
-        p.newKey = PoolKey(WETH, V2, 3000, 60, address(0x2044));
+        p.newKey = PoolKey(WETH, V2, 12_000, 60, address(0x2000));
         p.openTick = 57_480;
         p.v2Ranges = new MigrationSettler.V2Range[](3);
         p.v2Ranges[0] = MigrationSettler.V2Range(-887_220, 40_020, 1e18);

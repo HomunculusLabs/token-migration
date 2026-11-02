@@ -1,7 +1,7 @@
 # SURPLUS token migration
 
 Contracts and launch tooling for the 1:1 migration of SURPLUS from V1 to V2 on Base: the vault holders
-deposit into, the V2 token, the fee hook for the new V2/WETH pool, the Merkle tooling, and the launch
+deposit into, the V2 token, the hook that guards the new V2/WETH pool, the Merkle tooling, and the launch
 contract and kit that stage every Safe transaction for launch day.
 
 > **Status:** not yet deployed to Base mainnet, and not independently audited. Read
@@ -91,15 +91,14 @@ launch transaction, and from then on the refund paths are closed for good.
 
 ### The new pool
 
-Every swap on the V2/WETH pool pays a 0.30% fee to liquidity providers plus 1.5% taken by
-`SurplusFeeHook`, booked half to the team and half to buybacks. Only the treasury Safe fixed in the hook
-at deployment can withdraw either half, and buybacks are not automatic: the Safe carries them out
-separately. The hook has no owner, admin, pause, setter or upgrade path.
+The V2/WETH pool has one fee: 1.2% of every swap, the LP fee set in the pool key. It goes to the
+pool's liquidity providers. At launch all of that liquidity is the Safe's, so the Safe earns the whole
+fee and collects it like any LP. Anyone who adds liquidity later earns a share in proportion to their
+in-range liquidity. There is no hook fee and no team or buyback split.
 
-Exact-output swaps can revert if the PoolManager's balance of the input currency cannot cover the
-hook fee before the swapper's input arrives. Reachability depends on the actual launch reserves and
-supply; the older full-range rehearsal does not establish a bound for the current split seed. See
-[SECURITY.md](SECURITY.md#known-limitations-and-trust-assumptions).
+The pool's hook, `SurplusPoolHook`, makes sure only the launch can create the pool, so nobody can open
+it first at a price of their choosing. Uniswap calls it once, when the pool is created, and never on a
+swap or a liquidity change. It has no owner, admin, pause, setter, upgrade path or funds.
 
 ### Who holds which power
 
@@ -122,7 +121,7 @@ Each project's `DESIGN.md` lists every privileged function and its limits, and
 |---|---|
 | `contracts/migration/` | `MigrationVault`: the depositor-facing V1 → V2 escrow (deposits, Merkle commit, claims, timeout refunds). |
 | `contracts/token-v2/` | `SurplusTokenV2`: the successor token (upgradeable, Safe-governed). |
-| `contracts/fee-hook/` | `SurplusFeeHook`, the Uniswap v4 hook that takes the 1.5% fee on the successor V2/WETH pool. |
+| `contracts/pool-hook/` | `SurplusPoolHook`, the Uniswap v4 hook on the successor V2/WETH pool: only the launch can create the pool. It takes no fee. |
 | `contracts/migration-tools/` | Merkle tree build and proof tooling (deposits CSV → root, claim proofs). |
 | `contracts/migration-launch/` | `MigrationLaunch`, the one-call launch contract the Safe DELEGATECALLs once: it backs and opens claims, sells the migrated V1, opens and seeds the successor pool, and delivers the LP NFTs to the Safe. Also the `kit/` Python tooling (plan → simulate → snapshot → Safe packets → launch batch), the fuzz and invariant suites, and the runbook. |
 | `anvil-lab/` | A self-contained Base-fork diagnostic harness: v4 pool discovery, hook/LP probes, sale route comparisons, offline math tests (`anvil-lab/run.sh probe\|compare`). |
@@ -151,7 +150,7 @@ npm ci
 (cd contracts/migration && forge build --deny warnings && forge test)
 (cd contracts/migration-tools && forge build --deny warnings && forge test)
 (cd contracts/token-v2 && forge build --deny warnings && forge test && python3 -m unittest discover -s __tests__ -p 'test_*.py')
-(cd contracts/fee-hook && forge build --deny warnings && forge test)
+(cd contracts/pool-hook && forge build --deny warnings && forge test)
 
 # migration-launch: its fork suites need a Base fork (below), so exclude them here
 (cd contracts/migration-launch && forge build --deny warnings && forge test --no-match-path 'test/fork/**')
@@ -159,19 +158,19 @@ npm ci
 ```
 
 Green at this release: `migration` 118 tests, `migration-tools` 11, `token-v2` 42 (+2 Python),
-`fee-hook` 28 (its 4 fork tests skip without a fork), `migration-launch` 27 (unit, fuzz and
-invariant), and the kit's 91. On the pinned fork below: `fee-hook` 20 and `migration-launch` 40
+`pool-hook` 14 (its fork suites skip without a fork), `migration-launch` 29 (unit, fuzz and
+invariant), and the kit's 92. On the pinned fork below: `pool-hook` 22 and `migration-launch` 35
 (one rehearsal-only suite skips without a rehearsal deployment).
 
 ### Fork suites
 
-`fee-hook` and `migration-launch` also have suites under `test/fork/` that run against Base
+`pool-hook` and `migration-launch` also have suites under `test/fork/` that run against Base
 mainnet at block 51,935,583, using the live PoolManager, Permit2 and Safe deployments. Start a
 pinned fork from an archive RPC, then point the suites at it:
 
 ```bash
 anvil --fork-url "$BASE_ARCHIVE_RPC" --fork-block-number 51935583 --port 18549
-(cd contracts/fee-hook && forge test --match-path 'test/fork/**' --fork-url http://127.0.0.1:18549)
+(cd contracts/pool-hook && forge test --match-path 'test/fork/**' --fork-url http://127.0.0.1:18549)
 (cd contracts/migration-launch && forge test --match-path 'test/fork/**' --fork-url http://127.0.0.1:18549)
 ```
 
@@ -188,7 +187,8 @@ Those runs exercise mechanics on a public chain, not Base-mainnet sale economics
 rehearsal: a MultiSendCallOnly batch, one two-sided full-range position, and a V2 budget of simulated
 usage + 0.1% + 10 wei. The current launch instead uses `MigrationLaunch`, separate V2-only ladder
 ranges and a WETH-only position, and a V2 budget of simulated usage + 10 wei. The old report's LP
-quantities, depth, supply and gas are not measurements of this current launch.
+quantities, depth, supply and gas are not measurements of this current launch, and its fee figures
+are for a 0.30% LP fee plus a 1.5% hook fee that the launch no longer has.
 
 Current full-cohort economics and gas require a separately published, source- and block-pinned run
 through the Safe's DELEGATECALL to `MigrationLaunch.launch()`, reconciling the claims, sale, LP
