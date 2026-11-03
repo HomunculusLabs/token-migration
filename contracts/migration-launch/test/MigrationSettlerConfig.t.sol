@@ -36,4 +36,18 @@ contract MigrationSettlerConfigTest is Test {
         }
         assertEq(uint256(new MigrationSettler(_config(1_000_000)).LP_FEE()), 1_000_000, "the largest static fee");
     }
+
+    /// `settle` is the Safe's to call and nothing else records that it ran, so it refuses a second run itself:
+    /// a settled settler has `positionCount` = v2 ranges + 1, and a fresh one 0. `positionCount` is slot 4
+    /// (`forge inspect MigrationSettler storage-layout`).
+    function test_RefusesASecondSettle() public {
+        MigrationSettler settler = new MigrationSettler(_config(12_000));
+        vm.store(address(settler), bytes32(uint256(4)), bytes32(uint256(3)));
+        assertEq(settler.positionCount(), 3, "positionCount");
+
+        MigrationSettler.Params memory p;
+        vm.prank(address(0x5AFE));
+        vm.expectRevert(abi.encodeWithSelector(MigrationSettler.AlreadySettled.selector, 3));
+        settler.settle(p);
+    }
 }

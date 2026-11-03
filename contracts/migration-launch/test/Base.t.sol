@@ -22,6 +22,7 @@ interface Vm {
     function snapshotState() external returns (uint256 snapshotId);
     function revertToState(uint256 snapshotId) external returns (bool success);
     function expectRevert(bytes calldata revertData) external;
+    function store(address target, bytes32 slot, bytes32 value) external;
 }
 
 contract Test {

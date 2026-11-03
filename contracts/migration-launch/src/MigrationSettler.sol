@@ -143,6 +143,7 @@ contract MigrationSettler is IUnlockCallback {
 
     error InvalidConfig();
     error NotSafe(address caller);
+    error AlreadySettled(uint256 positionCount);
     error NotPoolManager(address caller);
     error NotTailPool(address caller);
     error WrongOldPool(bytes32 poolId);
@@ -187,6 +188,9 @@ contract MigrationSettler is IUnlockCallback {
     ///      the launch. Any such donation goes back to the Safe with the rest.
     function settle(Params calldata p) external {
         if (msg.sender != SAFE) revert NotSafe(msg.sender);
+        // One sale, one pool. Nothing else records that a launch happened, so without this a later Safe
+        // transaction could sell and seed again into a successor under a different hook and overwrite the receipt.
+        if (positionCount != 0) revert AlreadySettled(positionCount);
         // Only the pinned Doppler pool is a venue: anyone can open a dust v1/WETH pool, and a simulation run
         // on the same wrong key would sign a floor that does not stop the sale.
         bytes32 oldId = keccak256(abi.encode(p.oldKey));
