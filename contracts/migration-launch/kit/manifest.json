@@ -16,10 +16,10 @@
     "report.py": "b12ff4a1afb01dc9ea6a864f06e485d2d6c996d0ccbd55765a819006e84234bd",
     "snapshot_plan.py": "271d82064289f94b7e5f55c966fbe779fe24ef3d1a3fae2e28993f6835a9d1ee",
     "README.md": "2df0e8a5718e1fb86c089af832425eb7da347938f0c614b3ab64cb0ae74c16e6",
-    "RUNBOOK.md": "0dfaf82ff8325d963a631776606af26cac82865f6e95ce2fe9780bc76cd707cd",
+    "RUNBOOK.md": "ff438df82b64a13f0b06ff2ce14f3c74a8c9b9d34aaf44fee3a346081ce57fb6",
     "HOLDERS.md": "f5dce9808a60a6d08c3a823e58df027805a8df4986853c458f340a03fc9b713a",
     "REPORT.md": "80581bfa69221b8b5f983c259e71a820e3b19cf20a7caed87ab2270c8c4920ee",
-    "SIGNER-CHECKLIST.md": "d3878aa202de40f5d9f7c4c643e9e47cfc98954fb17bdefa7ec61cb6addcafd4"
+    "SIGNER-CHECKLIST.md": "47173def45d1321e42885fbc4bd689dfe8ba9b43c7024c0017d5e5afa81b1469"
   },
   "evidence": {
     "evidence/00-pin.json": "583585fae1f193436c7d0f0eafbda1df3badaa4aa04dcec7d48979bfc9e5f1a8",

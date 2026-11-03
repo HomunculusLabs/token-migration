@@ -252,7 +252,11 @@ Every abort leaves every holder whole. None needs a new contract.
   gate) and `RealHookLaunch.fork.t.sol` (the real hook).
 - **Sale slippage.** If the sale raises less than `minWethOut`, or the seed would need more v2 than the
   signed budget, the whole launch reverts. Nothing moves. Re-run `safe-txs launch-batch` against the new
-  state: it builds a new launch contract (a new address) and a new hash. Deploy it, then sign again.
+  state: it builds a new launch contract (a new address) and a new hash. Before anyone signs the new one,
+  spend the nonce: execute a Safe rejection (an empty transaction at that nonce, "Reject" in the Safe app).
+  The failed launch did not consume it (`safeTxGas` and `gasPrice` are 0, so the Safe reverts the whole
+  transaction), its signatures are still valid, and its contract stays deployed, so until the nonce is spent
+  the old launch can still be executed by anyone holding them. Then deploy the new contract and sign again.
   The v3 tail's LPs can withdraw at any time, so its depth falling after signing is one way to get here; the
   re-run quotes the tail again and picks a new split.
 - **The Safe never commits a root.** After `commitDeadline`, anyone calls `vault.expireCommit()`. The
