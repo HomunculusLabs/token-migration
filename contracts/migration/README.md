@@ -6,7 +6,7 @@ touching anything**: it records the phase machine, the ordering rule that makes 
 the leaf format, and the list of things deliberately left out.
 
 ```bash
-forge build --deny warnings   # must be warning-clean (CI gate, mirrors contracts/payments)
+forge build --deny warnings   # must be warning-clean
 forge test                    # 58 behavior tests
 forge fmt --check
 ```

@@ -40,15 +40,14 @@ python3.14 kit/launch.py <phase> …      # from contracts/migration-launch/
 
 ## Verification
 
-From the repository root:
+From `contracts/migration-launch/`:
 
 ```bash
-npx nx run @surplus/contracts.migration-launch:kit-test
-npx nx run-many -t lint test build -p '@surplus/contracts.*' --skip-nx-cache
+python3 -m unittest discover -s __tests__/kit -p 'test_*.py'
 ```
 
-The ordinary migration-launch test target includes the offline Python regression tests. Python 3.14
-is installed explicitly in CI; no Python packages are needed.
+The Foundry gates for every project are the repository root README's "Build and test" block. Python
+3.10 or newer is required (the kit is tested on 3.14); no Python packages are needed.
 
 If a deposit rehearsal is interrupted, inspect the printed transaction hash before restarting: a receipt
 wait timing out does not prove a revert. Rerun the same `rehearse.py deposit` command only after pending
@@ -72,7 +71,7 @@ release results.
 ```bash
 SURPLUS_REHEARSAL_RPC="${RESTORED_PRECOMMIT_RPC:?set the restored pre-commit fork URL}" \
 SURPLUS_TREE=kit/output/snapshot/51948266/tree.json \
-npx nx run @surplus/contracts.migration-launch:rehearsal
+python3.14 kit/rehearsal_gate.py
 ```
 
 Those paths identify the recorded rehearsal, not production. A clean checkout needs the reviewed

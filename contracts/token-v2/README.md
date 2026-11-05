@@ -28,11 +28,6 @@ forge build --deny warnings
 forge test
 forge fmt --check
 bash scripts/check-storage-layout.sh
-cd ../..
-npx nx run @surplus/contracts.token-v2:build
-npx nx run @surplus/contracts.token-v2:test
-npx nx run @surplus/contracts.token-v2:lint
-npx nx run @surplus/contracts.token-v2:layout
 ```
 
 The tests use placeholder metadata and amounts and a contract that stands in for the Safe

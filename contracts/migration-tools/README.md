@@ -6,7 +6,7 @@ deposits CSV into a deployable, independently verifiable claim tree for
 vault on-chain. No deployable contracts live here.
 
 ```bash
-forge build --deny warnings            # warning-clean (CI gate, mirrors contracts/migration)
+forge build --deny warnings            # must be warning-clean (mirrors contracts/migration)
 forge script script/BuildTree.s.sol    # input/deposits.csv → output/tree.{json,csv}; no RPC
 forge script script/VerifyTree.s.sol   # re-verify tree.json locally; non-zero exit on any failure
 forge test --match-contract TreeParity # on-chain parity vs the real MigrationVault
