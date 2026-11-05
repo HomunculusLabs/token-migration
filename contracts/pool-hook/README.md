@@ -22,17 +22,18 @@ cd contracts/pool-hook
 forge build --deny warnings
 forge test --no-match-path 'test/fork/*'   # unit suites
 forge fmt --check
-cd ../..
-npx nx run @surplus/contracts.pool-hook:build
-npx nx run @surplus/contracts.pool-hook:test
-npx nx run @surplus/contracts.pool-hook:lint
-npx nx run @surplus/contracts.pool-hook:fork   # needs a Base fork, see below
 ```
 
 ### Fork suite
 
-The `fork` target runs `test/fork/*` against `${FORK_URL:-http://127.0.0.1:18549}` at block
-`${FORK_BLOCK:-51935583}`. It asserts that the chain id is 8453 and the block is the pin. Set `FORK_BLOCK` to
+`test/fork/*` runs against a Base fork at `${FORK_URL:-http://127.0.0.1:18549}`, block
+`${FORK_BLOCK:-51935583}`:
+
+```sh
+forge test --match-path 'test/fork/*' --fork-url "${FORK_URL:-http://127.0.0.1:18549}"
+```
+
+It asserts that the chain id is 8453 and the block is the pin. Set `FORK_BLOCK` to
 re-pin. Forge forks in-process: it only reads state from the node and never sends it a transaction. Without a fork,
 every fork suite skips.
 
