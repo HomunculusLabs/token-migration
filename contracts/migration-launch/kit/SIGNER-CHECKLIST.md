@@ -81,7 +81,9 @@ one short transaction.
 - **Execute soon after the last signature.** If the old pool's price moves first, so that the sale would
   raise more than 0.5% less (below `minWethOut`), the launch reverts and nothing moves. Raising more only
   deepens the WETH side; the v2 side is fixed by the signed ranges. Rerun `safe-txs launch-batch`: it builds a
-  new launch contract, at a new address, and a new hash to sign.
+  new launch contract, at a new address, and a new hash to sign. Do not sign it until the old nonce has been
+  spent with a Safe rejection: the reverted launch kept its nonce and its signatures, so two signed launches
+  would be live at once (RUNBOOK, "Sale slippage").
 
 ## After execution
 
