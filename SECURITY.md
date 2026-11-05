@@ -28,7 +28,10 @@
   total to equal the net deposit ledger at the migration rate (pro-rata mode, which this migration
   uses) and caps every payout at that total. That each leaf pays the right account the right amount
   is verified by the kit's independent tree checks and by the Safe signers before they commit the
-  root (finding M-01 in the internal review).
+  root (finding M-01 in the internal review). Should a mis-allocated tree be committed anyway, an
+  account the tree omits is still paid in full by `claimProRata()`, but a relayed under-paying leaf
+  forecloses that account's proofless claim (issue #10); the audit's optional leaf-bound and
+  partial-payment hardenings are the recorded backstops if a future contract change is cut.
 - **The Safe governs.** The migration Safe holds every V2 token role (admin, minter, burner,
   upgrader) and receives every LP NFT the launch mints. Each privileged function and its limits are
   listed in the projects' `DESIGN.md` files.
