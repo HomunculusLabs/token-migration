@@ -41,8 +41,8 @@ every depositor can take their V1 back.
 
 ### 3. The launch, in one Safe transaction
 
-The Safe DELEGATECALLs `MigrationLaunch.launch()` once. The launch contract refuses to run except as the
-Safe, or if the committed total or the ledger differ from the ones it was built for. Then it:
+The Safe DELEGATECALLs `MigrationLaunch.launch()` once. The launch contract runs only as the Safe, and
+only if the committed total and the ledger match the ones it was built for. Then it:
 
 1. mints the V2 for every claim into the vault;
 2. calls `activateClaims()`, which requires the vault to hold that full backing and the execution window
@@ -53,12 +53,12 @@ Safe, or if the committed total or the ledger differ from the ones it was built 
 5. calls `MigrationSettler.settle`, which:
    - sells the V1 on V1's two pools, the Doppler v4 pool and the Uniswap v3 1% pool, in the split that raises
      the most WETH. The kit works that split out from both pools as they stand when the launch is signed, so
-     the v3 pool gets none if it has nothing to add;
+     the v3 pool gets no V1 if it has nothing to add;
    - opens the V2/WETH pool at the opening price fixed in the launch contract: V1's price before the
      sale, as measured in the launch simulation;
-   - seeds it on both sides of that price. The V2 side copies the V1 that V1's old pool still had for
-     sale above its price, with the same amounts over the same price ranges. The WETH side holds the
-     WETH the sale raised;
+   - seeds it on both sides of that price. The V2 side copies the V1 that V1's old pool (the Doppler
+     pool) still had for sale above V1's price, with the same amounts over the same price ranges. The
+     WETH side holds the WETH the sale raised;
    - mints every LP NFT to the Safe and sends anything left over (unused V2, rounding dust) back to the
      Safe.
 
@@ -71,8 +71,8 @@ moves.
 
 After the launch, each depositor claims their V2 on the migration page or by calling the vault directly:
 
-- `claimProRata()`, sent from the depositing wallet, pays that wallet's net deposit × 1 straight from the
-  vault's ledger. No proof is needed.
+- `claimProRata()`, sent from the depositing wallet, pays that wallet's net deposit at 1 V2 per V1 straight
+  from the vault's ledger. No proof is needed.
 - `claim(index, account, amount, proof)` pays one entry of the committed list. Anyone can submit it, and
   the V2 always goes to `account`.
 
@@ -117,7 +117,7 @@ tokens, but V2 is upgradeable, and an upgrade can change any of its rules, the c
 the last upgrader does not permanently disable upgrades while an admin remains: the admin can grant
 `UPGRADER_ROLE` again. See the [role and recovery rules](contracts/token-v2/DESIGN.md#3-role-matrix).
 Each project's `DESIGN.md` lists every privileged function and its limits, and
-[SECURITY.md](SECURITY.md) lists the trust assumptions and known limits.
+[SECURITY.md](SECURITY.md) lists the trust assumptions and known limitations.
 
 ## Layout
 
@@ -191,14 +191,14 @@ Those runs exercise mechanics on a public chain, not Base-mainnet sale economics
 rehearsal: a MultiSendCallOnly batch, one two-sided full-range position, and a V2 budget of simulated
 usage + 0.1% + 10 wei. The current launch instead uses `MigrationLaunch`, separate V2-only ladder
 ranges and a WETH-only position, and a V2 budget of simulated usage + 10 wei. The old report's LP
-quantities, depth, supply and gas are not measurements of this current launch, and its fee figures
+quantities, depth, supply and gas are not measurements of the current launch, and its fee figures
 are for a 0.30% LP fee plus a 1.5% hook fee that the launch no longer has.
 
 Current full-cohort economics and gas require a separately published, source- and block-pinned run
 through the Safe's DELEGATECALL to `MigrationLaunch.launch()`, reconciling the claims, sale, LP
 positions and signed limits. The included full-scale harness still uses MultiSendCallOnly, even
 though its parameter builder now uses split ranges; it alone does not establish full-cohort
-acceptance of the one-call launcher. Do not treat the historical report as that release gate.
+acceptance of the one-call launcher. Do not treat the historical report as the release gate.
 
 ## Security
 
