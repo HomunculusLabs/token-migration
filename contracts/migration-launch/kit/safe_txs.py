@@ -31,7 +31,8 @@ pinned CREATE2 deployer (external.create2Deployer), so its address follows from 
 The sale's split comes next (sale.tailShare "maximize-raise"): src/SaleQuoter.sol quotes each leg, the Doppler pool
 and the v3 tail, inside eth_call (a state override places its code; nothing is deployed), and the kit sells on the
 v3 tail the share of v1 that raises the most WETH, none when the tail adds nothing. The tail is a third-party pool,
-so its depth is read at signing, never assumed.
+so its depth is read at signing, never assumed. It gets at most sale.tailCapacityBps / 10 000 of what it can take
+then, which leaves room for v1 that others sell on it before the launch executes.
 Simulate, then sign: a launch contract with no floor and the whole remaining cap as budget runs first, and must
 raise exactly the quoted split. Then minWethOut = raised × sale.minWethOutBps / 10 000 and budget = v2 used +
 sale.v2BudgetExtraWei (0.995 and 10 wei: the v2 side is fixed by the signed ranges, not by the sale, so it needs no
@@ -623,10 +624,11 @@ def largest_fill(sold: Callable[[int], int | None], n: int) -> int:
     return ok
 
 
-def sale_split(rpc: k.Rpc, ext: dict, old_key: dict, v1_in: int, tail_limit: int) -> dict:
+def sale_split(rpc: k.Rpc, ext: dict, old_key: dict, v1_in: int, tail_limit: int, tail_capacity_bps: int) -> dict:
     """How much of the sale goes to the v3 tail (sale.tailShare "maximize-raise"): the split that raises the most WETH,
     quoted leg by leg on the pre-launch state. The tail is a third-party pool, so its depth is read here, at signing,
-    and never assumed: when it adds nothing it gets nothing."""
+    and never assumed: when it adds nothing it gets nothing. It gets at most tail_capacity_bps / 10 000 of the most it
+    can take (its capacity), which leaves the rest for v1 others sell on it before the launch executes."""
     code = quoter_code()
     if rpc.call("eth_getCode", [QUOTER, "latest"]) not in ("0x", "0x0"):
         k.fail(f"{QUOTER} holds code on the fork: the sale quote's override would replace it")
@@ -657,10 +659,33 @@ def sale_split(rpc: k.Rpc, ext: dict, old_key: dict, v1_in: int, tail_limit: int
             return None  # a revert, or v1 left unsold, which the settler refuses
         return d[0] + v[0]
 
-    # The splits that fill are one interval: the tail must take what the Doppler pool cannot, and no more than it can.
-    lo, hi = v1_in - largest_fill(sold(doppler), v1_in), largest_fill(sold(tail), v1_in - 1)
+    # The splits the kit considers are one interval: the tail must take what the Doppler pool cannot, and no more than
+    # its cap. The cap binds only below the sale, so the tail's capacity is measured up to v1_in × 10 000 / bps; a tail
+    # that takes all of that reports that much.
+    lo = v1_in - largest_fill(sold(doppler), v1_in)
+    capacity = largest_fill(sold(tail), -(-v1_in * 10_000 // tail_capacity_bps))
+    cap = capacity * tail_capacity_bps // 10_000
+    hi = min(v1_in - 1, cap)
+    if lo > hi:
+        uncapped = min(v1_in - 1, capacity)
+        k.fail(f"no split of the sale fills: the Doppler pool takes at most {v1_in - lo} of the {v1_in} v1, and the v3 "
+               f"tail is capped at {cap} (sale.tailCapacityBps {tail_capacity_bps} of its measured capacity, "
+               f"{capacity}). " + ("The cap is what stops it: the tail's whole capacity would fill the sale."
+                                   if lo <= uncapped else
+                                   f"The cap is not what stops it: with no cap the tail could take {uncapped}."))
     tail_in = best_tail(sale, v1_in, lo, hi)
-    return {"tailIn": tail_in, "raised": sale(tail_in), "dopplerOnly": sale(0), "quotedSplits": len(splits)}
+    return {"tailIn": tail_in, "raised": sale(tail_in), "dopplerOnly": sale(0), "quotedSplits": len(splits),
+            "tailCapacity": capacity}
+
+
+def sale_record(p: dict, sale: dict, split: dict, old_pool_id: str, old_sqrt: int) -> dict:
+    """simulation.json's "sale": the split that was quoted and signed, as SIGNER-CHECKLIST.md reads it."""
+    return {"v1In": str(p["v1In"]), "tailIn": str(p["tailIn"]), "tailLimit": str(p["tailLimit"]),
+            "tailShare": sale["tailShare"], "quotedRaise": str(split["raised"]),
+            "tailCapacity": str(split["tailCapacity"]), "tailCapacityBps": sale["tailCapacityBps"],
+            "dopplerOnlyRaise": None if split["dopplerOnly"] is None else str(split["dopplerOnly"]),
+            "quotedSplits": split["quotedSplits"],
+            "oldPoolId": old_pool_id, "oldSqrtPriceX96Before": str(old_sqrt)}
 
 
 def settle_params(params: dict, rpc: k.Rpc, d: dict, v1_in: int) -> tuple[dict, dict, dict]:
@@ -670,6 +695,9 @@ def settle_params(params: dict, rpc: k.Rpc, d: dict, v1_in: int) -> tuple[dict, 
     ext, pool, sale = params["external"], params["successorPool"], params["sale"]
     if sale["tailShare"] != "maximize-raise":
         k.fail(f"params sale.tailShare is {sale['tailShare']!r}; the kit supports \"maximize-raise\" only")
+    tail_capacity_bps = k.get(params, "sale.tailCapacityBps")
+    if type(tail_capacity_bps) is not int or not 1 <= tail_capacity_bps <= 10_000:
+        k.fail(f"params sale.tailCapacityBps is {tail_capacity_bps!r}; it must be an integer from 1 to 10000")
     old = ext["oldPool"]
     old_key = {"currency0": k.checksum(old["currency0"]), "currency1": k.checksum(old["currency1"]),
                "fee": old["fee"], "tickSpacing": old["tickSpacing"], "hooks": k.checksum(old["hooks"])}
@@ -683,7 +711,7 @@ def settle_params(params: dict, rpc: k.Rpc, d: dict, v1_in: int) -> tuple[dict, 
                "fee": pool["lpFee"], "tickSpacing": pool["tickSpacing"], "hooks": d["hook"]}
     built = seeds.build(rpc, params, v2_first)
     tail_limit = int(sale["tailSqrtPriceLimitX96"])
-    split = sale_split(rpc, ext, old_key, v1_in, tail_limit)
+    split = sale_split(rpc, ext, old_key, v1_in, tail_limit, tail_capacity_bps)
     p = {"oldKey": old_key, "v1In": v1_in, "tailIn": split["tailIn"], "tailLimit": tail_limit, "newKey": new_key,
          "openTick": built["openTick"], "v2Ranges": built["v2Ranges"], "minWethOut": 0}
     return p, built, split
@@ -758,7 +786,8 @@ def launch_batch(args, params: dict, rpc: k.Rpc, d: dict, owners: dict, checks: 
                   f"[{built['wethSide']['tickLower']}, {built['wethSide']['tickUpper']}]")
     checks.append(f"sale split: {p['tailIn']} of the {v1_in} v1 on the v3 tail, the rest on the Doppler pool, raises "
                   f"the most WETH of {split['quotedSplits']} quoted splits ({split['raised']}; the Doppler pool "
-                  f"alone: {split['dopplerOnly']})")
+                  f"alone: {split['dopplerOnly']}), with the tail capped at {sale['tailCapacityBps']} / 10000 of its "
+                  f"measured capacity, {split['tailCapacity']} v1")
     new_id = k.keccak(pool_key_words(p["newKey"]))
     if sqrt_price(rpc, ext["poolManager"], new_id) != 0:
         k.fail(f"the successor pool 0x{new_id.hex()} is already initialized: the launch would revert")
@@ -884,11 +913,7 @@ def launch_batch(args, params: dict, rpc: k.Rpc, d: dict, owners: dict, checks: 
         "safeNonce": args.safe_nonce,
         "fromVault": {"backing": str(backing), "v1In": str(v1_in), "v1Held": str(custody)},
         "v2": {"cap": str(cap), "supplyBefore": str(supply), "headroom": str(headroom)},
-        "sale": {"v1In": str(p["v1In"]), "tailIn": str(p["tailIn"]), "tailLimit": str(p["tailLimit"]),
-                 "tailShare": sale["tailShare"], "quotedRaise": str(split["raised"]),
-                 "dopplerOnlyRaise": None if split["dopplerOnly"] is None else str(split["dopplerOnly"]),
-                 "quotedSplits": split["quotedSplits"],
-                 "oldPoolId": ext["oldPool"]["poolId"], "oldSqrtPriceX96Before": str(old_sqrt)},
+        "sale": sale_record(p, sale, split, ext["oldPool"]["poolId"], old_sqrt),
         "opening": {"newPoolId": "0x" + new_id.hex(), "newKey": p["newKey"], "openTick": p["openTick"],
                     "openSqrtPriceX96": str(seeds.sqrt_at(p["openTick"])), "oldTick": built["oldTick"],
                     "wethSide": built["wethSide"],

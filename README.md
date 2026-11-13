@@ -53,7 +53,8 @@ only if the committed total and the ledger match the ones it was built for. Then
 5. calls `MigrationSettler.settle`, which:
    - sells the V1 on V1's two pools, the Doppler v4 pool and the Uniswap v3 1% pool, in the split that raises
      the most WETH. The kit works that split out from both pools as they stand when the launch is signed, so
-     the v3 pool gets no V1 if it has nothing to add;
+     the v3 pool gets no V1 if it has nothing to add. It gets at most 70% of the V1 it could take then, so its
+     part of the sale still fills if others use up to the other 30% before the launch executes;
    - opens the V2/WETH pool at the opening price fixed in the launch contract: V1's price before the
      sale, as measured in the launch simulation;
    - seeds it on both sides of that price. The V2 side copies the V1 that V1's old pool (the Doppler
@@ -163,7 +164,7 @@ npm ci
 
 Green at this release: `migration` 118 tests, `migration-tools` 11, `token-v2` 42 (+2 Python),
 `pool-hook` 14 (its fork suites skip without a fork), `migration-launch` 29 (unit, fuzz and
-invariant), and the kit's 111. On the pinned fork below: `pool-hook` 22 and `migration-launch` 40
+invariant), and the kit's 120. On the pinned fork below: `pool-hook` 22 and `migration-launch` 40
 (one rehearsal-only suite skips without a rehearsal deployment).
 
 ### Fork suites
