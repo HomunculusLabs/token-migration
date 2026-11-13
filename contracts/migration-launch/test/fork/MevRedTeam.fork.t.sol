@@ -81,7 +81,7 @@ contract MevAttacker {
 /**
  * @title MEV red-team against the atomic launch batch (pinned Base fork).
  * @dev Real-searcher attack bundles sequenced around the REAL Safe batch, with the REAL signed
- *      floor from `_signed()` (0.5% under simulation). The existing suites prove the guards fire
+ *      floor from `_signed()` (3% under simulation). The existing suites prove the guards fire
  *      (front-run init -> GS013; one-wei-below floor -> SaleBelowMinimum; donation -> returned);
  *      these tests prove what a profit-seeking adversary WALKS AWAY WITH in each strategy, which
  *      is the actual MEV question. Attacker inventory: 1M v1 from a non-cohort whale plus 200
@@ -125,7 +125,7 @@ contract MevRedTeamForkTest is LaunchForkBase {
             return;
         }
 
-        // The batch survived the front-run (searcher too small to trip the 0.5% floor).
+        // The batch survived the front-run (searcher too small to trip the 3% floor).
         // LEG 3 - backrun: buy back all the front-sold v1 at the post-launch price.
         attacker.buyV1ExactOut(p.oldKey, SEARCHER_V1);
         // Round-trip PnL spans WETH AND native, signed: legs that buy pay by wrapping fresh native
@@ -228,7 +228,7 @@ contract MevRedTeamForkTest is LaunchForkBase {
         (bool ok,) = _launch(p, v2Budget);
         emit log_named_uint("M3: batch executed (0) or aborted (1)", ok ? 0 : 1);
         if (ok) {
-            // The launch absorbed a 460M-v1 pre-dump WITHOUT tripping the 0.5% floor.
+            // The launch absorbed a 460M-v1 pre-dump WITHOUT tripping the 3% floor.
             uint256 shortfall = simRaised - settler.wethRaised();
             emit log_named_uint("M3: shortfall vs simulation (wei WETH)", shortfall);
             emit log_named_uint("M3: floor margin (wei WETH)", simRaised - p.minWethOut);

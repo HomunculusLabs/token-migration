@@ -55,6 +55,8 @@ DECIDED = {
                                          "at signing (Bill, 2026-11-02, GitHub #2)"),
     "sale.tailCapacityBps": (7_000, "the v3 tail gets at most 70% of what it can take at signing, which leaves room "
                                     "for v1 that others sell on it before the launch executes (Bill, 2026-11-13)"),
+    "sale.minWethOutBps": (9_700, "the launch reverts if the sale raises more than 3% less WETH than its signed "
+                                  "simulation (Bill, 2026-11-13)"),
 }
 
 # Small reviewed kit files, including this checker; their hashes live in the separate manifest.

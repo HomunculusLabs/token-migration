@@ -34,6 +34,11 @@ def pct(part: int | Decimal, whole: int | Decimal, digits: int = 2) -> str:
     return f"{Decimal(part) * 100 / Decimal(whole):.{digits}f}%"
 
 
+def share(part: int | str, whole: int | str) -> str:
+    """part / whole to four places with no trailing zeros: the floor a run signed, 0.97 at 9700 bps."""
+    return f"{(Decimal(int(part)) / Decimal(int(whole))).quantize(Decimal('0.0001')).normalize():f}"
+
+
 def usd(amount: Decimal | float) -> str:
     return f"${Decimal(amount):,.0f}"
 
@@ -135,7 +140,8 @@ def main() -> None:
       f"{int(result['launchBatchExecGas']):,} gas, under the 2^24 per-transaction cap.")
     w("")
     w(f"- **Signed limits** (simulate, then sign): the simulation raised {tokens(result['simulatedWethRaisedWei'], 4)} "
-      f"WETH, so `minWethOut` = {tokens(result['minWethOutWei'], 4)} WETH (× 0.995). The v2 budget is "
+      f"WETH, so `minWethOut` = {tokens(result['minWethOutWei'], 4)} WETH "
+      f"(× {share(result['minWethOutWei'], result['simulatedWethRaisedWei'])}). The v2 budget is "
       f"{tokens(result['v2BudgetWei'])} (the simulated v2 side + 10 wei). Execution equalled the simulation.")
     w(f"- **Sale:** {tokens(result['v1DepositedWei'])} v1 sold for **{tokens(raised, 4)} WETH** "
       f"({usd(Decimal(raised) / WEI * eth_usd)}):")

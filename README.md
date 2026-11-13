@@ -65,7 +65,7 @@ only if the committed total and the ledger match the ones it was built for. Then
 
 Afterwards it checks that every step happened and that nothing deciding who controls the Safe changed
 (owners, threshold, modules, guard, fallback handler). If the sale raises less than `MIN_WETH_OUT`
-(99.5% of what the launch simulation raised), or any check fails, the whole launch fails and nothing
+(97% of what the launch simulation raised), or any check fails, the whole launch fails and nothing
 moves.
 
 ### 4. Claim
@@ -164,7 +164,7 @@ npm ci
 
 Green at this release: `migration` 118 tests, `migration-tools` 11, `token-v2` 42 (+2 Python),
 `pool-hook` 14 (its fork suites skip without a fork), `migration-launch` 29 (unit, fuzz and
-invariant), and the kit's 120. On the pinned fork below: `pool-hook` 22 and `migration-launch` 40
+invariant), and the kit's 121. On the pinned fork below: `pool-hook` 22 and `migration-launch` 40
 (one rehearsal-only suite skips without a rehearsal deployment).
 
 ### Fork suites

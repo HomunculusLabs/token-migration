@@ -35,7 +35,7 @@ so its depth is read at signing, never assumed. It gets at most sale.tailCapacit
 then, which leaves room for v1 that others sell on it before the launch executes.
 Simulate, then sign: a launch contract with no floor and the whole remaining cap as budget runs first, and must
 raise exactly the quoted split. Then minWethOut = raised × sale.minWethOutBps / 10 000 and budget = v2 used +
-sale.v2BudgetExtraWei (0.995 and 10 wei: the v2 side is fixed by the signed ranges, not by the sale, so it needs no
+sale.v2BudgetExtraWei (0.97 and 10 wei: the v2 side is fixed by the signed ranges, not by the sale, so it needs no
 drift margin), and the SIGNED launch contract runs from the same pre-state. It must succeed and pass every launch
 check.
 On the real chain, send launch-batch.deploy.json BEFORE the Safe transaction executes: a Safe DELEGATECALL to

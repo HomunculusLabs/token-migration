@@ -149,7 +149,7 @@ Simulate-then-sign:
    still fills if others use up to the other 30% before the launch executes.
 2. The kit runs a launch contract with that split, no floor and the whole remaining cap as budget, and records
    what it raised and used. It must raise exactly the quoted amount.
-3. It signs `minWethOut` = simulated WETH × 0.995 and the v2 budget = simulated v2 + 10 wei. The v2 side is
+3. It signs `minWethOut` = simulated WETH × 0.97 and the v2 budget = simulated v2 + 10 wei. The v2 side is
    fixed by the signed ranges, not by the sale, so the budget needs no drift margin.
 4. It deploys the launch contract with those numbers and runs the exact signed transaction, which must succeed.
 
@@ -182,12 +182,41 @@ two single-sided sides that meet at that tick (SUR-658, decided 2026-10-25):
 Every LP position is minted to the Safe; leftovers go back to the Safe.
 
 Claims and the pool go live atomically. The opening price is the simulation-time price signed in the
-batch, not a guarantee of execution-time market spot or realizable holder value. Execute promptly:
-proceeds below the signed floor revert the entire batch. Price drift cannot push the v2 side past its
-budget, because the signed ranges alone set it. The floor bounds proceeds; it is not a direct 0.5% spot-price
-guard. Re-simulate and re-sign if needed.
+batch, not a guarantee of execution-time market spot or realizable holder value.
+Proceeds below the signed floor revert the entire batch. Price drift cannot push the v2 side past its
+budget, because the signed ranges alone set it. The floor bounds proceeds; it is not a direct 3% spot-price
+guard.
 Read `rootCommittedAt()` after the real commit; activation must occur no later than
 `rootCommittedAt + EXECUTION_WINDOW`. A missed window requires cancellation/refunds, not late activation.
+
+**Executing the launch.** The last required owner executes the launch instead of signing it.
+SIGNER-CHECKLIST.md has the same steps for the signers.
+1. Owners confirm the launch in the Safe app until it is one confirmation short of the threshold. A
+   confirmation is a signature or an on-chain approval (`approveHash`). Both are public and both count. No
+   other owner confirms after that.
+2. The last required owner has not confirmed in any way. They execute from an ordinary wallet that is itself
+   an owner: an EOA with no smart-account features, for example a hardware wallet. Not a Safe, and not
+   another smart-contract or ERC-4337 account.
+3. In the Safe app (labels as of November 2026) they answer "Would you like to execute the transaction
+   immediately?" with "Yes, execute". The app remembers the last answer, so read it. If the app shows "Who
+   will pay gas fees", they choose "Connected wallet", never the sponsored option ("Sponsored by" or
+   "Sponsored gas"). Their own wallet sends the transaction and pays its gas.
+4. Why: every confirmation is public. Safe's Transaction Service serves each signature to anyone, and an
+   approval is on chain. With a complete set, anyone can execute the launch inside a transaction of their
+   own and trade around it. They can take the gap between what the sale would raise when they run it and
+   the floor: 3% of the simulated raise, and more if the price has risen since. An executing owner's
+   approval is valid only in a transaction their own address sends, so only someone who controls an owner's
+   wallet can execute the launch. A sponsored or relayed execution makes the last owner sign first, which
+   completes the public set. A Safe or smart account that executes leaves its own approvals for anyone to
+   use.
+5. Execute within minutes of the simulation. If trading moves the pools so that the sale would raise more
+   than 3% less than simulated, the launch reverts and nothing moves. In a replay of a 20.84B v1 sale on 33
+   hours of trading (12 and 13 November 2026), 1.0% of launches reverted when executed 15 minutes after
+   their simulation, 4.6% after 60 minutes and 11.4% after 120 minutes.
+6. If the sale raises more than simulated, the extra WETH only deepens the new pool's WETH side. That holds
+   only when one of the Safe's own owners executes.
+7. If the launch reverts, spend its nonce with a Safe rejection before anyone signs a new one ("Sale
+   slippage" below), then re-simulate and sign again.
 
 After execution, check (the settler exposes these):
 - `settler.wethRaised() ≥ minWethOut`
@@ -256,8 +285,9 @@ Every abort leaves every holder whole. None needs a new contract.
   state: it builds a new launch contract (a new address) and a new hash. Before anyone signs the new one,
   spend the nonce: execute a Safe rejection (an empty transaction at that nonce, "Reject" in the Safe app).
   The failed launch did not consume it (`safeTxGas` and `gasPrice` are 0, so the Safe reverts the whole
-  transaction), its signatures are still valid, and its contract stays deployed, so until the nonce is spent
-  the old launch can still be executed by anyone holding them. Then deploy the new contract and sign again.
+  transaction), its confirmations are still valid, and its contract stays deployed, so until the nonce is
+  spent the old launch can still be executed: by any owner who has not confirmed it, and by anyone once its
+  confirmations are complete. Then deploy the new contract and sign again.
   The v3 tail's LPs can withdraw at any time, so its depth falling after signing is one way to get here; the
   re-run quotes the tail again and picks a new split.
 - **The Safe never commits a root.** After `commitDeadline`, anyone calls `vault.expireCommit()`. The

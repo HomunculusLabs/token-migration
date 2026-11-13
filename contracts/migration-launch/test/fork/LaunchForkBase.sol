@@ -321,15 +321,21 @@ abstract contract LaunchForkBase is Test {
         require(vm.revertToState(snapshot), "revert to the pre-simulation state");
     }
 
-    /// @dev §4.4: minWethOut = simulated WETH × 0.995; v2 budget = the simulated v2 side + 10 wei. The v2 side is fixed
-    ///      by the signed ranges, not by the sale, so it needs no drift margin.
+    /// @dev The signed sale floor, in bps of the simulated raise: the kit's own `sale.minWethOutBps`, so these suites
+    ///      sign the floor the kit signs.
+    function _minWethOutBps() internal view returns (uint256) {
+        return vm.parseJsonUint(vm.readFile("kit/params.rehearsal.json"), ".sale.minWethOutBps");
+    }
+
+    /// @dev §4.4: minWethOut = simulated WETH × sale.minWethOutBps / 10,000; v2 budget = the simulated v2 side +
+    ///      10 wei. The v2 side is fixed by the signed ranges, not by the sale, so it needs no drift margin.
     function _signed()
         internal
         returns (MigrationSettler.Params memory p, uint256 v2Budget, uint256 simRaised, uint256 simV2)
     {
         p = _params();
         (simRaised, simV2) = _simulate(p);
-        p.minWethOut = (simRaised * 995) / 1000;
+        p.minWethOut = (simRaised * _minWethOutBps()) / 10_000;
         v2Budget = simV2 + 10;
     }
 
