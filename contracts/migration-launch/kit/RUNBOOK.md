@@ -134,6 +134,9 @@ has to hold the snapshot, a second person's rebuild, the commit-root packet and 
 decision brief proposes (A3) leave room; a few hours do not. Past the deadline, the only way out is
 `expireCommit` and refunds (abort paths below).
 
+In production, `deploy-plan` refuses a `commitDeadline` less than 3 days after `depositDeadline`
+(`MIN_COMMIT_WINDOW_SECONDS` in `kit/deploy_plan.py`): time to rebuild the claim list if the first attempt fails.
+
 #### Snapshot capacity
 
 Every depositor is a leaf, and the committed total must equal the whole ledger, so nobody can be left out.

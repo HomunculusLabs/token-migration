@@ -11,6 +11,7 @@ from unittest.mock import patch
 KIT = Path(__file__).resolve().parents[2] / "kit"
 sys.path.insert(0, str(KIT))
 import check
+import deploy_plan
 import kitlib as k
 
 
@@ -120,6 +121,29 @@ class ParameterModeTests(unittest.TestCase):
             copied.write_bytes((KIT / "params.rehearsal.json").read_bytes())
             with contextlib.redirect_stderr(io.StringIO()), self.assertRaises(SystemExit):
                 k.load_phase_params(copied)
+
+
+class CommitWindowTests(unittest.TestCase):
+    """deploy-plan refuses a production commitDeadline less than 3 days after depositDeadline."""
+
+    def params(self, window: int, mode: str = "production") -> dict:
+        params = json.loads((KIT / "params.rehearsal.json").read_text())
+        params["mode"] = mode
+        params["vault"]["commitDeadline"] = params["vault"]["depositDeadline"] + window
+        return params
+
+    def test_production_needs_three_days_to_rebuild_the_claim_list(self):
+        self.assertEqual(deploy_plan.MIN_COMMIT_WINDOW_SECONDS, 259_200)
+        deploy_plan.check_commit_window(self.params(259_200))
+        stderr = io.StringIO()
+        with contextlib.redirect_stderr(stderr), self.assertRaises(SystemExit):
+            deploy_plan.resolve(self.params(259_199), None)  # before any artifact or RPC is read
+        self.assertIn("vault.commitDeadline is 259,199 s after vault.depositDeadline", stderr.getvalue())
+        deploy_plan.check_commit_window(self.params(3_600, mode="rehearsal"))
+
+    def test_the_rehearsal_params_hold_exactly_the_minimum(self):
+        vault = json.loads((KIT / "params.rehearsal.json").read_text())["vault"]
+        self.assertEqual(vault["commitDeadline"] - vault["depositDeadline"], deploy_plan.MIN_COMMIT_WINDOW_SECONDS)
 
 
 class LoopbackTests(unittest.TestCase):

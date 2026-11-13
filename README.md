@@ -164,7 +164,7 @@ npm ci
 
 Green at this release: `migration` 118 tests, `migration-tools` 13, `token-v2` 42 (+2 Python),
 `pool-hook` 14 (its fork suites skip without a fork), `migration-launch` 29 (unit, fuzz and
-invariant), and the kit's 148. On the pinned fork below: `pool-hook` 22 and `migration-launch` 40
+invariant), and the kit's 150. On the pinned fork below: `pool-hook` 22 and `migration-launch` 40
 (one rehearsal-only suite skips without a rehearsal deployment).
 
 ### Fork suites
