@@ -30,7 +30,8 @@ class ReportTests(unittest.TestCase):
             result.update(v1SupplyWei=10**18, holders=1, oldPoolSqrtPriceBefore=2**96,
                           oldPoolSqrtPriceAfter=2**97, successorSqrtPriceX96=2**96,
                           successorLpFeePips=12_000, pushTotalTxGas=200_000, firstPositionId=7, positionCount=3,
-                          tradeWethInWei=10**18, tradeV2InWei=10**22, v2="0x" + "ff" * 20)
+                          tradeWethInWei=10**18, tradeV2InWei=10**22, v2="0x" + "ff" * 20,
+                          simulatedWethRaisedWei=10**20, minWethOutWei=97 * 10**18)
             result.update(result_overrides)
             files = {
                 run / "pin.json": {"block": 100, "hash": "0x" + "11" * 32},
@@ -87,6 +88,13 @@ class ReportTests(unittest.TestCase):
         self.assertIn("The 3 LP NFTs (#7-#9) are owned by the Safe.", text)
         self.assertNotIn("full range", text)
         self.assertNotIn("No extra single-sided liquidity", text)
+
+    def test_report_prints_the_floor_the_reported_run_signed(self):
+        raised = 138_168_600_000_000_000_000
+        for bps, shown in ((9_950, "0.995"), (9_700, "0.97"), (10_000, "1")):  # whatever the kit's params say now
+            with self.subTest(bps=bps):
+                text = self.render_report(simulatedWethRaisedWei=raised, minWethOutWei=raised * bps // 10_000)
+                self.assertIn(f" WETH (× {shown}). The v2 budget is ", text)
 
     def test_report_preserves_current_policy_without_guaranteeing_exit_value(self):
         text = self.render_report()

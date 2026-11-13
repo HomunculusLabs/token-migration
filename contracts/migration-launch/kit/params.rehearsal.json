@@ -81,11 +81,11 @@
     "tickSpacing": 60
   },
   "sale": {
-    "decision": "Bill 2026-11-02 (GitHub #2), replacing a fixed 10%: the v3 tail gets the share of the sale that raises the most WETH, quoted at signing; none when it adds nothing; tailCapacityBps decided by Bill 2026-11-13: the v3 tail gets at most 70% of what it can take at signing (7000)",
+    "decision": "Bill 2026-11-02 (GitHub #2), replacing a fixed 10%: the v3 tail gets the share of the sale that raises the most WETH, quoted at signing; none when it adds nothing; tailCapacityBps decided by Bill 2026-11-13: the v3 tail gets at most 70% of what it can take at signing (7000); minWethOutBps decided by Bill 2026-11-13, replacing 9950: the launch reverts if the sale raises more than 3% less WETH than its signed simulation (9700)",
     "tailShare": "maximize-raise",
     "tailCapacityBps": 7000,
     "tailSqrtPriceLimitX96": "1461446703485210103287273052203988822378723970341",
-    "minWethOutBps": 9950,
+    "minWethOutBps": 9700,
     "v2BudgetExtraWei": 10
   },
   "seed": {

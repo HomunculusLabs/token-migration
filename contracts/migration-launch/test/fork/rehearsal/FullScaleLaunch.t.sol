@@ -350,7 +350,9 @@ contract FullScaleLaunchRehearsal is Test, IUnlockCallback {
         raised = settler.wethRaised();
         used = settler.v2Seeded();
         require(vm.revertToState(snapshot), "discard the simulation");
-        p.minWethOut = (raised * 995) / 1000;
+        // The kit's own floor, so the rehearsal signs what the kit would.
+        uint256 floorBps = rvm.parseJsonUint(rvm.readFile("kit/params.rehearsal.json"), ".sale.minWethOutBps");
+        p.minWethOut = (raised * floorBps) / 10_000;
         // The v2 side is fixed by the signed ranges, not by the sale: no drift margin.
         budget = used + 10;
     }

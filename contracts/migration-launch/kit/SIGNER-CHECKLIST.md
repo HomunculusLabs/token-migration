@@ -68,7 +68,7 @@ one short transaction.
   creation only, so it can never act on a swap), and it reads `INITIALIZER()` = the settler,
   `LP_FEE()` = 12000 and `TICK_SPACING()` = 60. The settler reverts `WrongHook` on any other flags or
   initializer, and the kit's deploy dry run checks all of it before anyone signs.
-- **The limits follow the rule.** `signed.minWethOut` = `unconstrained.wethRaised` × 0.995 and
+- **The limits follow the rule.** `signed.minWethOut` = `unconstrained.wethRaised` × 0.97 and
   `signed.v2Budget` = `unconstrained.v2Seeded` + 10 wei. The signed run in
   `simulation.json` succeeded, raised the same WETH as the unconstrained run, and is recorded at
   `forkBlock`.
@@ -82,12 +82,39 @@ one short transaction.
   past which the cap cannot matter. The other 30% is room for others to trade on the tail before execution.
 - **The actual deadline.** Read the confirmed `rootCommittedAt()` and `EXECUTION_WINDOW()`. Activation
   must land at or before their sum; the separate `COMMIT_DEADLINE()` is not the activation clock.
-- **Execute soon after the last signature.** If the old pool's price moves first, so that the sale would
-  raise more than 0.5% less (below `minWethOut`), the launch reverts and nothing moves. Raising more only
-  deepens the WETH side; the v2 side is fixed by the signed ranges. Rerun `safe-txs launch-batch`: it builds a
-  new launch contract, at a new address, and a new hash to sign. Do not sign it until the old nonce has been
-  spent with a Safe rejection: the reverted launch kept its nonce and its signatures, so two signed launches
-  would be live at once (RUNBOOK, "Sale slippage").
+- **The last required owner executes the launch instead of signing it.**
+  1. Owners confirm the launch in the Safe app until it is one confirmation short of the threshold. A
+     confirmation is a signature or an on-chain approval (`approveHash`). Both are public and both count.
+     No other owner confirms after that.
+  2. The last required owner has not confirmed in any way. They execute from an ordinary wallet that is
+     itself an owner: an EOA with no smart-account features, for example a hardware wallet. Not a Safe,
+     and not another smart-contract or ERC-4337 account.
+  3. In the Safe app (labels as of November 2026) they answer "Would you like to execute the transaction
+     immediately?" with "Yes, execute". The app remembers the last answer, so read it. If the app shows "Who
+     will pay gas fees", they choose "Connected wallet", never the sponsored option ("Sponsored by" or
+     "Sponsored gas"). Their own wallet sends the transaction and pays its gas.
+  4. They check every line above first. Their device shows no safeTxHash, because they send a transaction
+     instead of signing a message. They compare the safeTxHash in the Safe app's transaction details with
+     `launch-batch.safeTxHash.txt`. On the device they check that the transaction goes to the Safe's address
+     with value 0. The Safe runs only a transaction the other owners confirmed and reverts any other.
+  5. Why: every confirmation is public. Safe's Transaction Service serves each signature to anyone, and an
+     approval is on chain. With a complete set, anyone can execute the launch inside a transaction of their
+     own and trade around it. They can take the gap between what the sale would raise when they run it and
+     `minWethOut`: 3% of the simulated raise, and more if the price has risen since. An executing owner's
+     approval is valid only in a transaction their own address sends, so only someone who controls an
+     owner's wallet can execute the launch. A sponsored or relayed execution makes the last owner sign
+     first, which completes the public set. A Safe or smart account that executes leaves its own approvals
+     for anyone to use.
+  6. Execute within minutes of the simulation. If prices move first, so that the sale would raise more than
+     3% less (below `minWethOut`), the launch reverts and nothing moves. In a replay of a 20.84B v1 sale on
+     33 hours of trading (12 and 13 November 2026), 1.0% of launches reverted when executed 15 minutes
+     after their simulation, 4.6% after 60 minutes and 11.4% after 120 minutes.
+  7. Raising more only deepens the WETH side; the v2 side is fixed by the signed ranges. That is true only
+     when one of the Safe's own owners executes.
+  8. After a revert, rerun `safe-txs launch-batch`: it builds a new launch contract, at a new address, and a
+     new hash to sign. Do not sign it until the old nonce has been spent with a Safe rejection: the reverted
+     launch kept its nonce and its signatures, so two signed launches would be live at once (RUNBOOK, "Sale
+     slippage").
 
 ## After execution
 
