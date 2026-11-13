@@ -4,8 +4,8 @@ pragma solidity 0.8.28;
 /**
  * @dev A deliberately tiny stand-in for `forge-std`'s `Test`, following contracts/migration's Base.t.sol and
  *      for the same reason: no vendored forge-std and no git submodule in this monorepo. This copy adds the
- *      cheatcodes the settler's fork suite needs (etch, sign, state snapshots, env). Assertions revert on
- *      failure, which is how `forge test` detects a failing test.
+ *      cheatcodes the settler's fork suite needs (etch, sign, state snapshots, env, reading the kit's
+ *      params). Assertions revert on failure, which is how `forge test` detects a failing test.
  */
 interface Vm {
     function prank(address sender) external;
@@ -22,6 +22,8 @@ interface Vm {
     function snapshotState() external returns (uint256 snapshotId);
     function revertToState(uint256 snapshotId) external returns (bool success);
     function expectRevert(bytes calldata revertData) external;
+    function readFile(string calldata path) external view returns (string memory);
+    function parseJsonUint(string calldata json, string calldata key) external pure returns (uint256);
 }
 
 contract Test {

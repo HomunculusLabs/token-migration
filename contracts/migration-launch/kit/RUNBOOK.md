@@ -79,6 +79,27 @@ fails (it serves 10-block pages; `evidence/kit/snapshot-plan.txt`). The kit send
 User-Agent, which most public Base RPCs, `mainnet.base.org` included, refuse with HTTP 403; the probe's
 first call shows that.
 
+**Every day of the deposit window,** count the depositors with the launch RPC. `D` is the vault's deploy
+block, recorded in step 1:
+
+```bash
+python3.14 kit/launch.py snapshot-plan --vault <vault> --from-block D
+```
+
+Until the deadline it runs the snapshot's depositor scan up to the newest finalized block and prints the
+distinct depositors against the kit's capacity. It exits:
+- 3: not yet. The count is at most half the capacity.
+- 4: tripped. The count is more than half the capacity.
+- 2, with a `KIT STOP` line. It is a trip too when the line says the count is past the capacity, that the RPC
+  refused a single block, or that it refused more than `MAX_REFUSED_PAGES` requests. Any other line names a
+  problem with the command or the RPC (`KIT STOP: rpc ...` is a request that failed): fix it and run the check
+  again that day.
+
+When the RPC refused any page of logs, the check also says how many requests on stderr. Write that number down
+each day: one that grows from day to day is a trip too.
+
+After a trip, read what it printed and follow "Snapshot capacity" below that day.
+
 **After `depositDeadline`:**
 
 ```bash
@@ -102,12 +123,78 @@ The snapshot reads every depositor from the vault's own logs and each one's ledg
 sum equals the vault's on-chain total. It builds the tree, then verifies it three ways (VerifyTree,
 VerifyTreeBulk, an independent Python rebuild).
 
-It reads each depositor's ledger twice, one call at a time: at the 130–150 ms per call measured on Base
-(2026-10-24), 6,000 depositors take about an hour. `safe-txs commit-root` and every `push-plan` run read
-each leaf again, about half as long. `commitRoot` must execute before `commitDeadline`, so the commit window
+It reads each depositor's ledger twice, in JSON-RPC batch requests of 100 calls (`--read-batch`; 1 sends one
+call per request). `snapshot-plan` times a batch on the RPC and prints how long the reads take. A request the
+RPC rate-limits, a batch or a single call, is sent again after a wait (1, 2, 4, 8, 16, then 32 seconds); if it
+is still refused, the phase stops, and a lower `--read-batch` is the fix. The printed time assumes the RPC keeps
+the pace of the five sample batches, so a plan that rate-limits takes longer. `safe-txs
+commit-root` and every `push-plan` run read each leaf again, about half as long; both take `--read-batch` too.
+`commitRoot` must execute before `commitDeadline`, so the commit window
 has to hold the snapshot, a second person's rebuild, the commit-root packet and signing. The 7 days the
 decision brief proposes (A3) leave room; a few hours do not. Past the deadline, the only way out is
 `expireCommit` and refunds (abort paths below).
+
+In production, `deploy-plan` refuses a `commitDeadline` less than 3 days after `depositDeadline`
+(`MIN_COMMIT_WINDOW_SECONDS` in `kit/deploy_plan.py`): time to rebuild the claim list if the first attempt fails.
+
+#### Snapshot capacity
+
+Every depositor is a leaf, and the committed total must equal the whole ledger, so nobody can be left out.
+`deposit` takes any amount above zero, so filling the vault with tiny depositors is cheap: about 126,500 gas
+each. The tree steps run inside forge's EVM, and the kit sets their memory and gas limits itself
+(`TREE_LIMITS` in `kit/snapshot.py`), whatever the shell sets.
+
+The kit's capacity is 131,072 distinct depositors (`MAX_DEPOSITORS` in `kit/snapshot.py`). That many leaves
+built and passed all three verifiers in 22 minutes on an Apple M2 Ultra: 3 minutes in forge, then 19 minutes in
+the Python verifier, which `safe-txs commit-root` and every `push-plan` run repeat. Peak memory was 3.0 GB in
+forge and 3.2 GB in Python. The snapshot, and the daily check, stop as soon as the scan finds one depositor
+more, before any ledger read. Past the capacity this kit cannot build the tree. Passing it takes about 0.083 ETH
+of gas at a 0.005 gwei base fee (131,073 depositors × 126,500 gas).
+
+These numbers come from one machine, the M2 Ultra. Each forge step has a 590 s limit, and BuildTree took about
+150 s at the capacity there. On a machine too slow for that, the snapshot stops with `KIT STOP: forge script
+script/BuildTree.s.sol did not finish within its 590 s limit` (or VerifyTree, or VerifyTreeBulk) and says to run
+the snapshot on a faster machine. Do that: the tree depends only on the ledger, so it is the same on any
+machine. The kit has no tool to measure a machine.
+
+The scan reads each page of logs with one `eth_getLogs`, and an RPC caps one reply (at 10,000 logs on some, at a
+response size on others). A page the RPC refuses is read again as two halves, down to single blocks. When
+anything was refused, the scan says how many requests on stderr and goes on. Only the RPC's own refusal is
+read that way. A request that fails any other way (a timeout, a bad key, a rate limit that outlasts the waits)
+stops the scan with `KIT STOP: rpc eth_getLogs: ...`: that is a problem with the RPC, not a flood.
+
+A flood still stops the scan in two cases. The prices below are for an RPC that caps a reply at 10,000 logs.
+There, 10,001 events cost the attacker about 11,229 gas each (repeat deposits in one transaction): about
+0.00056 ETH at 0.005 gwei.
+- A single block the RPC refuses. The scan stops there, naming the block and the RPC's reason. One block holds
+  at most about 3,560 of these events: Base's block gas limit was 40,000,000 on 2026-11-13. So an RPC that
+  returns 10,000 logs in one reply can always serve a single block, and deposits cannot cause this stop there.
+  They can if the launch RPC returns fewer logs than one block can hold, or if Base raises its gas limit past
+  about 112,000,000 (the gas of 10,001 events). Before deposits open, read the gas limit
+  (`cast block --field gasLimit --rpc-url "$BASE_RPC_URL"`), divide it by 11,229, and compare the result with
+  the reply limit the RPC's provider documents. An RPC that serves bigger replies is the fix.
+- `MAX_REFUSED_PAGES` in `kit/snapshot.py`: the scan stops after 10,000 refused requests. Each 10,001 events
+  cost the scan at most about log2(page size) + 1 refusals: 12 for 2,000-block pages. So reaching the limit
+  takes at least 834 sets of 10,001 events, roughly 0.47 ETH. That is more than passing the capacity costs.
+  When the scan stops on it, use an RPC with a bigger reply limit, which removes these refusals, or pass a
+  smaller `--log-chunk` (no smaller than the scan's blocks divided by 10,000), which lowers the refusals for
+  each stuffed page. Raising the constant is a kit change: the constant and its manifest pin.
+
+When the daily check trips:
+1. Tell the Safe signers that day. Nothing stops deposits before `depositDeadline`; the vault has no pause.
+2. Keep running the check every day, and compare each count with the last.
+3. If the count can pass the capacity by the deadline, decide before the deadline. Decide from these facts:
+   - The capacity is a constant. Raising `MAX_DEPOSITORS` is a kit change: the constant, this section's numbers
+     and their manifest pins. It first needs a measurement on the launch machine. On the M2 Ultra, 262,144
+     leaves built and passed all three verifiers in 43 minutes: forge took 377 s, of which BuildTree took 321 s
+     of its 590 s step limit, and the Python verifier took 37 minutes. It used 7 GB of memory.
+   - Past what the machine can build, there is no tool today. Without a root by `commitDeadline`, anyone calls
+     `expireCommit()`. The Safe can also call the vault's `cancel()` while the vault is still Open. Either way
+     every depositor gets their exact v1 back (abort paths below). No funds are lost; the launch is.
+   - The check reads the newest finalized block once a day, so a flood on the last day shows only after the
+     deadline. Decide the response before deposits open.
+4. After the deadline the count is final. Up to the capacity the snapshot still builds: `--run` refuses while
+   the check is tripped, so run the printed snapshot command yourself.
 
 Output: `kit/output/snapshot/N/` with `tree.json`/`tree.csv`, the root, the total and the `commitRoot`
 calldata. Any second person should rebuild it and compare the root and sha256s; the result is
@@ -149,7 +236,7 @@ Simulate-then-sign:
    still fills if others use up to the other 30% before the launch executes.
 2. The kit runs a launch contract with that split, no floor and the whole remaining cap as budget, and records
    what it raised and used. It must raise exactly the quoted amount.
-3. It signs `minWethOut` = simulated WETH × 0.995 and the v2 budget = simulated v2 + 10 wei. The v2 side is
+3. It signs `minWethOut` = simulated WETH × 0.97 and the v2 budget = simulated v2 + 10 wei. The v2 side is
    fixed by the signed ranges, not by the sale, so the budget needs no drift margin.
 4. It deploys the launch contract with those numbers and runs the exact signed transaction, which must succeed.
 
@@ -182,12 +269,41 @@ two single-sided sides that meet at that tick (SUR-658, decided 2026-10-25):
 Every LP position is minted to the Safe; leftovers go back to the Safe.
 
 Claims and the pool go live atomically. The opening price is the simulation-time price signed in the
-batch, not a guarantee of execution-time market spot or realizable holder value. Execute promptly:
-proceeds below the signed floor revert the entire batch. Price drift cannot push the v2 side past its
-budget, because the signed ranges alone set it. The floor bounds proceeds; it is not a direct 0.5% spot-price
-guard. Re-simulate and re-sign if needed.
+batch, not a guarantee of execution-time market spot or realizable holder value.
+Proceeds below the signed floor revert the entire batch. Price drift cannot push the v2 side past its
+budget, because the signed ranges alone set it. The floor bounds proceeds; it is not a direct 3% spot-price
+guard.
 Read `rootCommittedAt()` after the real commit; activation must occur no later than
 `rootCommittedAt + EXECUTION_WINDOW`. A missed window requires cancellation/refunds, not late activation.
+
+**Executing the launch.** The last required owner executes the launch instead of signing it.
+SIGNER-CHECKLIST.md has the same steps for the signers.
+1. Owners confirm the launch in the Safe app until it is one confirmation short of the threshold. A
+   confirmation is a signature or an on-chain approval (`approveHash`). Both are public and both count. No
+   other owner confirms after that.
+2. The last required owner has not confirmed in any way. They execute from an ordinary wallet that is itself
+   an owner: an EOA with no smart-account features, for example a hardware wallet. Not a Safe, and not
+   another smart-contract or ERC-4337 account.
+3. In the Safe app (labels as of November 2026) they answer "Would you like to execute the transaction
+   immediately?" with "Yes, execute". The app remembers the last answer, so read it. If the app shows "Who
+   will pay gas fees", they choose "Connected wallet", never the sponsored option ("Sponsored by" or
+   "Sponsored gas"). Their own wallet sends the transaction and pays its gas.
+4. Why: every confirmation is public. Safe's Transaction Service serves each signature to anyone, and an
+   approval is on chain. With a complete set, anyone can execute the launch inside a transaction of their
+   own and trade around it. They can take the gap between what the sale would raise when they run it and
+   the floor: 3% of the simulated raise, and more if the price has risen since. An executing owner's
+   approval is valid only in a transaction their own address sends, so only someone who controls an owner's
+   wallet can execute the launch. A sponsored or relayed execution makes the last owner sign first, which
+   completes the public set. A Safe or smart account that executes leaves its own approvals for anyone to
+   use.
+5. Execute within minutes of the simulation. If trading moves the pools so that the sale would raise more
+   than 3% less than simulated, the launch reverts and nothing moves. In a replay of a 20.84B v1 sale on 33
+   hours of trading (12 and 13 November 2026), 1.0% of launches reverted when executed 15 minutes after
+   their simulation, 4.6% after 60 minutes and 11.4% after 120 minutes.
+6. If the sale raises more than simulated, the extra WETH only deepens the new pool's WETH side. That holds
+   only when one of the Safe's own owners executes.
+7. If the launch reverts, spend its nonce with a Safe rejection before anyone signs a new one ("Sale
+   slippage" below), then re-simulate and sign again.
 
 After execution, check (the settler exposes these):
 - `settler.wethRaised() ≥ minWethOut`
@@ -256,8 +372,9 @@ Every abort leaves every holder whole. None needs a new contract.
   state: it builds a new launch contract (a new address) and a new hash. Before anyone signs the new one,
   spend the nonce: execute a Safe rejection (an empty transaction at that nonce, "Reject" in the Safe app).
   The failed launch did not consume it (`safeTxGas` and `gasPrice` are 0, so the Safe reverts the whole
-  transaction), its signatures are still valid, and its contract stays deployed, so until the nonce is spent
-  the old launch can still be executed by anyone holding them. Then deploy the new contract and sign again.
+  transaction), its confirmations are still valid, and its contract stays deployed, so until the nonce is
+  spent the old launch can still be executed: by any owner who has not confirmed it, and by anyone once its
+  confirmations are complete. Then deploy the new contract and sign again.
   The v3 tail's LPs can withdraw at any time, so its depth falling after signing is one way to get here; the
   re-run quotes the tail again and picks a new split.
 - **The Safe never commits a root.** After `commitDeadline`, anyone calls `vault.expireCommit()`. The

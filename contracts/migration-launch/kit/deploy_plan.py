@@ -34,6 +34,17 @@ NEEDED = (
     "vault.depositDeadline", "vault.commitDeadline", "vault.executionWindowSeconds", "vault.claimPeriodSeconds",
     "vault.rateBps", "vault.proRata", "operators.deployer",
 )
+# A production commitDeadline is at least this long after depositDeadline: time to rebuild the claim list if the
+# first attempt fails.
+MIN_COMMIT_WINDOW_SECONDS = 3 * 86_400
+
+
+def check_commit_window(params: dict) -> None:
+    v = params["vault"]
+    if params.get("mode") == "production" and v["commitDeadline"] - v["depositDeadline"] < MIN_COMMIT_WINDOW_SECONDS:
+        k.fail(f"vault.commitDeadline is {v['commitDeadline'] - v['depositDeadline']:,} s after vault.depositDeadline; "
+               f"production needs at least {MIN_COMMIT_WINDOW_SECONDS:,} s (3 days, MIN_COMMIT_WINDOW_SECONDS) to "
+               "rebuild the claim list if the first attempt fails")
 
 
 def parse_args() -> argparse.Namespace:
@@ -47,6 +58,7 @@ def parse_args() -> argparse.Namespace:
 
 def resolve(params: dict, hook_artifact: Path | None) -> dict:
     k.need(params, *NEEDED)
+    check_commit_window(params)
     ext = params["external"]
     governance = params["governance"]
     if governance.get("existingSafe"):

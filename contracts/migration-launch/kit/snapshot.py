@@ -3,10 +3,12 @@
 independent verifications → the numbers for commitRoot.
 
     python3.14 kit/snapshot.py --block N --vault 0x… --rpc <fork or archive RPC>
-                               [--params kit/params.json | --rehearsal] [--log-chunk 10]
+                               [--params kit/params.json | --rehearsal] [--log-chunk 10] [--read-batch 100]
 
 1. Every account that ever deposited is read from the vault's own DepositIssued events up to block N.
-   Each account's NET ledger credit (credited − withdrawn) is then read AT block N. Σ net must equal the
+   More than MAX_DEPOSITORS distinct depositors stops the phase there, before any ledger read: the tree
+   steps below are measured up to that many leaves. Each account's NET ledger credit (credited − withdrawn)
+   is then read AT block N, --read-batch eth_calls per JSON-RPC batch request. Σ net must equal the
    vault's on-chain `totalDepositedV1 − totalLedgerWithdrawnV1` at N. That proves no depositor was missed
    (a missed log would leave a gap) and none was invented.
 2. deposits.csv: one row per account with net > 0, amount = net × rateBps / 10 000 (the vault's
@@ -33,6 +35,18 @@ import kitlib as k  # noqa: E402
 
 TOOLS = k.CONTRACTS / "migration-tools"
 DEPOSIT_ISSUED = "0x" + k.keccak(b"DepositIssued(address,uint256,uint256)").hex()
+# The kit's depositor capacity: its tree steps (BuildTree, VerifyTree and VerifyTreeBulk in forge's EVM under
+# TREE_LIMITS, then verify_tree_py) were measured to build and verify this many leaves. RUNBOOK.md, "Snapshot capacity".
+MAX_DEPOSITORS = 131_072
+# forge's EVM caps memory at 128 MiB by default; the kit sets the tree steps' limits itself, over any environment.
+TREE_LIMITS = {"FOUNDRY_MEMORY_LIMIT": str(4 << 30), "FOUNDRY_GAS_LIMIT": str((1 << 63) - 1)}
+# What to do when a tree step runs past its time limit: the tree depends only on deposits.csv.
+TREE_TOO_SLOW = ("This machine is too slow for a tree this size: run the snapshot on a faster machine. The result is "
+                 "the same on any machine (RUNBOOK.md, \"Snapshot capacity\")")
+READ_BATCH = 100  # eth_calls per JSON-RPC batch request for the per-depositor ledger reads (--read-batch)
+# Refused eth_getLogs requests one depositor scan accepts. A refused page is read again as its two halves, so without
+# a bound an RPC that refuses every wide range would turn a 10,000-page scan into millions of requests.
+MAX_REFUSED_PAGES = 10_000
 
 
 def parse_args() -> argparse.Namespace:
@@ -44,7 +58,12 @@ def parse_args() -> argparse.Namespace:
     ap.add_argument("--rehearsal", action="store_true")
     ap.add_argument("--from-block", type=int, help="first block to scan (default: the vault's deploy block)")
     ap.add_argument("--log-chunk", type=int, default=10, help="blocks per eth_getLogs (free-tier RPCs cap at 10)")
-    return ap.parse_args()
+    ap.add_argument("--read-batch", type=int, default=READ_BATCH,
+                    help="eth_calls per JSON-RPC batch request for the ledger reads (1: one call per request)")
+    args = ap.parse_args()
+    if args.read_batch < 1:
+        ap.error("--read-batch must be at least 1")
+    return args
 
 
 def load(args) -> dict:
@@ -52,10 +71,39 @@ def load(args) -> dict:
 
 
 def call_uint(rpc: k.Rpc, to: str, data: bytes, block: int | str) -> int:
-    value = rpc.eth_call(to, "0x" + data.hex(), block)
+    return abi_uint(rpc.eth_call(to, "0x" + data.hex(), block))
+
+
+def abi_uint(value) -> int:
     if not isinstance(value, str) or not re.fullmatch(r"0x[0-9a-fA-F]{64}", value):
         k.fail("ledger RPC returned a malformed ABI word")
     return int(value, 16)
+
+
+def read_uints(rpc: k.Rpc, to: str, datas: list[bytes], block: int, batch: int) -> list[int]:
+    """call_uint for each of `datas`, in order: `batch` eth_calls per JSON-RPC batch request, or one call per
+    request at batch 1. A missing or failed reply stops the phase."""
+    if batch < 1:
+        k.fail("the read batch must be at least 1")
+    if batch == 1:
+        return [call_uint(rpc, to, data, block) for data in datas]
+    tag = hex(block) if isinstance(block, int) else block
+    values = []
+    for start in range(0, len(datas), batch):
+        calls = [("eth_call", [{"to": to, "data": "0x" + data.hex()}, tag]) for data in datas[start:start + batch]]
+        results = rpc.batch(calls)
+        if not isinstance(results, list) or len(results) != len(calls):
+            k.fail("ledger RPC returned a short batch")
+        values += [abi_uint(value) for value in results]
+    return values
+
+
+def read_ledger(rpc: k.Rpc, vault: str, accounts: list[str], block: int, batch: int) -> list[tuple[int, int]]:
+    """(credited, withdrawn) of each account at `block`, in order."""
+    datas = [k.selector(signature) + k.addr_word(account)
+             for account in accounts for signature in ("credited(address)", "withdrawn(address)")]
+    values = read_uints(rpc, vault, datas, block, batch)
+    return list(zip(values[0::2], values[1::2]))
 
 
 def check_block(rpc: k.Rpc, block: int, block_hash: str, *, rehearsal: bool) -> dict:
@@ -80,7 +128,7 @@ def check_block(rpc: k.Rpc, block: int, block_hash: str, *, rehearsal: bool) -> 
 
 
 def verify_snapshot(tree_path: Path, rpc: k.Rpc, vault: str, params: dict, *, rehearsal: bool,
-                    finality_rpc: k.Rpc | None = None) -> dict:
+                    finality_rpc: k.Rpc | None = None, batch: int = READ_BATCH) -> dict:
     """Authenticate metadata against the chain, then re-read every entitlement; saved verdicts are not evidence."""
     path = tree_path.parent / "snapshot.json"
     if not path.is_file():
@@ -118,7 +166,7 @@ def verify_snapshot(tree_path: Path, rpc: k.Rpc, vault: str, params: dict, *, re
                 or call_uint(ledger, vault, k.selector("claimsEverActive()"), block) != 0
                 or call_uint(ledger, vault, k.selector("totalClaimedAmount()"), block) != 0):
             k.fail("snapshot must precede commitment and all payouts")
-        verified = verify_tree_py(tree_path, ledger, vault, block, rate)
+        verified = verify_tree_py(tree_path, ledger, vault, block, rate, batch)
         if (s["root"].lower() != verified["root"] or int(s["totalClaimable"]) != int(verified["total"])
                 or s["leaves"] != verified["leaves"] or int(s["netLedgerV1"]) != int(verified["netLedgerV1"])):
             k.fail("snapshot root/total/leaves/net ledger differ from verified tree")
@@ -150,20 +198,36 @@ def deploy_block(rpc: k.Rpc, vault: str, block: int) -> int:
 
 
 def depositors(rpc: k.Rpc, vault: str, start: int, end: int, chunk: int) -> list[str]:
+    """Every distinct DepositIssued account in blocks [start, end], in first-seen order, read in at most 10,000 pages
+    of `chunk` blocks. A page the RPC refuses (one reply may hold only so many logs) is read as its two halves,
+    first half first, down to single blocks. Only the RPC's own refusal is read that way (kitlib.Rpc.call_or_refusal):
+    a request that fails any other way stops the scan. The scan also stops at a single block the RPC refuses, at the
+    refusal after MAX_REFUSED_PAGES and at the first account beyond MAX_DEPOSITORS; within those bounds one account
+    may emit any number of events. When anything was refused, one line on stderr gives the count and the first
+    reason."""
     if not 0 <= start <= end or not 1 <= chunk <= 10_000 or (end - start + chunk) // chunk > 10_000:
         k.fail("depositor scan exceeds bounded pagination; check --from-block/--log-chunk")
     seen: dict[str, None] = {}
-    block = start
-    count = 0
-    while block <= end:
-        last = min(block + chunk - 1, end)
-        logs = rpc.call("eth_getLogs", [{"address": vault, "fromBlock": hex(block), "toBlock": hex(last),
-                                          "topics": [DEPOSIT_ISSUED]}])
+    refused, first_reason = 0, ""
+    pages = [(first, min(first + chunk - 1, end)) for first in reversed(range(start, end + 1, chunk))]
+    while pages:
+        block, last = pages.pop()
+        ok, logs, reason = rpc.call_or_refusal("eth_getLogs", [{"address": vault, "fromBlock": hex(block),
+                                                                 "toBlock": hex(last), "topics": [DEPOSIT_ISSUED]}])
+        if not ok:
+            refused += 1
+            first_reason = first_reason or reason
+            if block == last:
+                k.fail(f"the RPC refused the DepositIssued logs of block {block:,} on its own: {reason}. RUNBOOK.md, "
+                       "\"Snapshot capacity\"")
+            if refused > MAX_REFUSED_PAGES:
+                k.fail(f"the RPC refused {refused:,} log requests in this scan, more than snapshot.MAX_REFUSED_PAGES "
+                       f"({MAX_REFUSED_PAGES:,}). The latest refusal: {reason}")
+            middle = (block + last) // 2
+            pages += [(middle + 1, last), (block, middle)]  # the first half is read first
+            continue
         if not isinstance(logs, list):
             k.fail("malformed depositor log response")
-        count += len(logs)
-        if count > 1_000_000:
-            k.fail("depositor logs exceed bounded event limit")
         for log in logs:
             try:
                 topics = log["topics"]
@@ -176,7 +240,13 @@ def depositors(rpc: k.Rpc, vault: str, start: int, end: int, chunk: int) -> list
                 seen["0x" + topics[1][-40:].lower()] = None
             except (KeyError, TypeError, ValueError, AttributeError) as error:
                 k.fail(f"malformed depositor RPC result: {error}")
-        block = last + 1
+            if len(seen) > MAX_DEPOSITORS:
+                k.fail(f"more than {MAX_DEPOSITORS:,} distinct depositors by block {int(log['blockNumber'], 16):,}: "
+                       "above the kit's measured tree capacity (snapshot.MAX_DEPOSITORS), so this kit cannot build "
+                       "the tree. RUNBOOK.md, \"Snapshot capacity\"")
+    if refused:
+        print(f"depositor scan: the RPC refused {refused:,} log requests, and each refused range was read again in "
+              f"halves. The first refusal: {first_reason}", file=sys.stderr)
     return list(seen)
 
 
@@ -219,10 +289,9 @@ def main() -> None:
 
     start = args.from_block if args.from_block is not None else deploy_block(rpc, vault, args.block)
     accounts = depositors(rpc, vault, start, args.block, args.log_chunk)
+    ledger = read_ledger(rpc, vault, accounts, args.block, args.read_batch)
     rows, net_sum = [], 0
-    for account in accounts:
-        credited = call_uint(rpc, vault, k.selector("credited(address)") + k.addr_word(account), args.block)
-        withdrawn = call_uint(rpc, vault, k.selector("withdrawn(address)") + k.addr_word(account), args.block)
+    for account, (credited, withdrawn) in zip(accounts, ledger):
         net = credited - withdrawn
         net_sum += net
         if net > 0:
@@ -250,7 +319,7 @@ def main() -> None:
     (out / "deposits.csv").write_text(buf.getvalue())
 
     root, checks = build_and_verify(out)
-    py = verify_tree_py(out / "tree.json", rpc, vault, args.block, rate)
+    py = verify_tree_py(out / "tree.json", rpc, vault, args.block, rate, args.read_batch)
     checks["python"] = py
     if root != py["root"]:
         k.fail(f"python root {py['root']} != BuildTree root {root}")
@@ -285,7 +354,7 @@ def main() -> None:
 
 def build_and_verify(out: Path) -> tuple[str, dict]:
     """Runs BuildTree, VerifyTree and VerifyTreeBulk in migration-tools (their fs sandbox is input/ and
-    output/), then copies the tree back. Any failing check stops the phase."""
+    output/) under TREE_LIMITS, then copies the tree back. Any failing check stops the phase."""
     inp, tools_out = TOOLS / "input", TOOLS / "output"
     inp.mkdir(exist_ok=True)
     tools_out.mkdir(exist_ok=True)
@@ -293,11 +362,13 @@ def build_and_verify(out: Path) -> tuple[str, dict]:
         stale.unlink(missing_ok=True)
     shutil.copyfile(out / "deposits.csv", inp / "deposits.csv")
     checks = {}
-    k.run_tool(["forge", "script", "script/BuildTree.s.sol", "--tc", "BuildTree"], TOOLS, timeout=590)
+    k.run_tool(["forge", "script", "script/BuildTree.s.sol", "--tc", "BuildTree"], TOOLS, TREE_LIMITS, timeout=590,
+               on_timeout=TREE_TOO_SLOW)
     for name, script, contract in (("VerifyTree", "script/VerifyTree.s.sol", "VerifyTree"),
                                    ("VerifyTreeBulk", "script/VerifyTreeBulk.s.sol", "VerifyTreeBulk")):
         # The scripts report through `Log` events, which forge prints only in the -vvvv trace.
-        trace = k.run_tool(["forge", "script", script, "--tc", contract, "-vvvv"], TOOLS, timeout=590)
+        trace = k.run_tool(["forge", "script", script, "--tc", contract, "-vvvv"], TOOLS, TREE_LIMITS, timeout=590,
+                           on_timeout=TREE_TOO_SLOW)
         log = [m.group(1) for m in re.finditer(r'emit Log\(message: "([^"]*)"\)', trace)]
         if not any(line.startswith("OK:") for line in log):
             k.fail(f"{name} did not report OK")
@@ -308,9 +379,10 @@ def build_and_verify(out: Path) -> tuple[str, dict]:
     return root, checks
 
 
-def verify_tree_py(tree_path: Path, rpc: k.Rpc, vault: str, block: int, rate: int) -> dict:
+def verify_tree_py(tree_path: Path, rpc: k.Rpc, vault: str, block: int, rate: int, batch: int = READ_BATCH) -> dict:
     """Third check, sharing no code with forge: pure-Python leaf/node hashing, the root, every stored proof
-    folded, and every leaf tied back to the vault's own ledger at `block` (net × rate / 10 000)."""
+    folded, and every leaf tied back to the vault's own ledger at `block` (net × rate / 10 000), read with
+    `batch` eth_calls per request once every leaf's order is checked."""
     tree = json.loads(tree_path.read_text())
     leaves = tree["leaves"]
     if not leaves or len(leaves) != tree["leafCount"]:
@@ -322,20 +394,22 @@ def verify_tree_py(tree_path: Path, rpc: k.Rpc, vault: str, block: int, rate: in
     def node(a: bytes, b: bytes) -> bytes:
         return k.keccak(a + b if a < b else b + a)
 
-    hashes, total, net_sum, previous = [], 0, 0, ""
+    accounts, previous = [], ""
     for i, entry in enumerate(leaves):
         account, amount = entry["account"].lower(), int(entry["amount"])
         if (entry["index"] != i or account <= previous or amount <= 0
                 or not re.fullmatch(r"0x[0-9a-f]{40}", account)):
             k.fail(f"python: leaf {i} out of order")
-        credited = call_uint(rpc, vault, k.selector("credited(address)") + k.addr_word(account), block)
-        withdrawn = call_uint(rpc, vault, k.selector("withdrawn(address)") + k.addr_word(account), block)
+        accounts.append(account)
+        previous = account
+    hashes, total, net_sum = [], 0, 0
+    for i, (credited, withdrawn) in enumerate(read_ledger(rpc, vault, accounts, block, batch)):
+        account, amount = accounts[i], int(leaves[i]["amount"])
         if credited < withdrawn or amount != (credited - withdrawn) * rate // 10_000:
             k.fail(f"python: leaf {i} ({account}) amount {amount} != ledger at block {block}")
         net_sum += credited - withdrawn
         hashes.append(leaf(i, account, amount))
         total += amount
-        previous = account
     net = (call_uint(rpc, vault, k.selector("totalDepositedV1()"), block)
            - call_uint(rpc, vault, k.selector("totalLedgerWithdrawnV1()"), block))
     if net_sum != net:

@@ -9,8 +9,9 @@
 #   2. allow_paths — adds ../migration so the parity suite can import the REAL MigrationVault
 #      (and its MockERC20/TestMerkle doubles) instead of copying them.
 #   3. gas_limit — the scripts run inside the EVM, which prices memory quadratically, so a
-#      real-size tree needs far more than the 2^30 default gas. Local computation only; the
-#      default 128 MiB EVM memory cap stays the real bound.
+#      real-size tree needs far more than the 2^30 default gas. Local computation only. The launch
+#      kit runs these scripts with its own limits (kit/snapshot.py TREE_LIMITS); a manual run keeps
+#      this gas_limit and forge's default 128 MiB EVM memory cap.
 
 [profile.default]
 src = "src"

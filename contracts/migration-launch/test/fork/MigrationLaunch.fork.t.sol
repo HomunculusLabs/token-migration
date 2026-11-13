@@ -194,7 +194,7 @@ contract MigrationLaunchForkTest is LaunchForkBase {
         simRaised = settler.wethRaised();
         uint256 simV2 = settler.v2Seeded();
         require(vm.revertToState(snapshot), "revert to the pre-simulation state");
-        p.minWethOut = (simRaised * 995) / 1000;
+        p.minWethOut = (simRaised * _minWethOutBps()) / 10_000;
         v2Budget = simV2 + 10;
     }
 

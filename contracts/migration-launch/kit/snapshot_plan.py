@@ -3,8 +3,8 @@
 then print or run the exact snapshot command.
 
     python3.14 kit/snapshot_plan.py --vault 0x… [--block N] [--from-block S] [--log-chunk C] [--run]
-                                    [--params kit/params.json | --rehearsal] [--rpc R]
-    python3.14 kit/snapshot_plan.py --probe [--window-days 30] [--rpc R]
+                                    [--params kit/params.json | --rehearsal] [--rpc R] [--read-batch 100]
+    python3.14 kit/snapshot_plan.py --probe [--window-days 30] [--rpc R] [--read-batch 100]
 
 The snapshot finds depositors through eth_getLogs pages of --log-chunk blocks and stops past 10,000 pages.
 Its default page, 10 blocks, therefore covers 100,000 blocks: about 2.3 days of Base's 2-second blocks. A
@@ -14,9 +14,15 @@ Launch day (--vault): the snapshot block is the newest finalized block, which mu
 DEPOSIT_DEADLINE (or --block). The scan starts at the vault's deploy block, found the way snapshot.py finds
 it (or --from-block). The page size is the smallest that fits 10,000 pages, raised to 2,000 blocks when the
 RPC serves that (or --log-chunk). The snapshot's own depositor scan then runs over the whole range at that
-size, so a page the RPC refuses stops here, not an hour into the snapshot. It prints the snapshot command,
+size, so anything that would stop it (a single block the RPC refuses, say) stops here, not an hour
+into the snapshot. It prints the snapshot command,
 how long the snapshot and the later ledger re-reads take, and the time left before COMMIT_DEADLINE. --run
 then runs that command. Exit status 3: no finalized block is past the deposit deadline yet.
+
+Every --vault run prints the distinct depositors so far against the kit's capacity (snapshot.MAX_DEPOSITORS),
+during the deposit window too: before the deadline it scans up to the newest finalized block, then exits 3.
+Exit status 4, which takes the place of 0 and 3 and never runs the snapshot: more depositors than half the
+capacity (RUNBOOK.md, "Snapshot capacity"). Past the capacity itself the scan stops, as the snapshot's does.
 
 Before launch (--probe): the same checks for a candidate RPC against Base today, over the most recent
 --window-days of finalized blocks: the widest page it serves, the full-window scan (on v1, which never emits
@@ -26,13 +32,12 @@ page size. Exit status 1: the RPC cannot serve that window.
 Nothing is written and nothing is sent. The RPC URL is never printed.
 """
 import argparse
-import json
+import contextlib
+import io
 import os
 import statistics
 import sys
 import time
-import urllib.error
-import urllib.request
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -48,6 +53,7 @@ SNAPSHOT_CALLS_PER_DEPOSITOR = 4  # credited + withdrawn per depositor, then bot
 RECHECK_CALLS_PER_LEAF = 2  # safe-txs commit-root and every push-plan run re-read each leaf (verify_snapshot)
 NOT_SERVED = 1
 NOT_READY = 3
+CROWDED = 4  # more distinct depositors than half of snapshot.MAX_DEPOSITORS
 
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
@@ -62,12 +68,16 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     ap.add_argument("--rpc")
     ap.add_argument("--params")
     ap.add_argument("--rehearsal", action="store_true")
+    ap.add_argument("--read-batch", type=int, default=snapshot.READ_BATCH,
+                    help="eth_calls per JSON-RPC batch request for the ledger reads, as the snapshot's --read-batch")
     args = ap.parse_args(argv)
     if bool(args.vault) == args.probe:
         ap.error("pass exactly one of --vault (launch day) and --probe (before launch)")
     if args.probe and (args.run or args.rehearsal
                        or any(v is not None for v in (args.block, args.from_block, args.log_chunk))):
-        ap.error("--probe takes only --window-days, --rpc and --params")
+        ap.error("--probe takes only --window-days, --read-batch, --rpc and --params")
+    if args.read_batch < 1:
+        ap.error("--read-batch must be at least 1")
     return args
 
 
@@ -80,50 +90,16 @@ def page_count(start: int, end: int, chunk: int) -> int:
     return (end - start + chunk) // chunk  # snapshot.depositors' own count
 
 
-def provider_reason(raw: bytes) -> str:
-    """The provider's own words for a refused request, scrubbed of URLs."""
-    text = raw.decode(errors="replace")
-    try:
-        message = json.loads(text)["error"]["message"]
-        if isinstance(message, str):
-            text = message
-    except (ValueError, KeyError, TypeError):
-        pass
-    return k.scrub(" ".join(text.split()))[:240]
-
-
-def try_call(url: str, method: str, params: list) -> tuple[bool, object, str]:
-    """One JSON-RPC call on kitlib's transport that reports a refusal instead of stopping: (served, result, the
-    provider's reason). kitlib's Rpc stops on a refusal and drops the reason, which providers put in the HTTP
-    error body (free tiers refuse wide log ranges with a 400, partial-archive nodes old state with a 403)."""
-    request = urllib.request.Request(url, json.dumps({"jsonrpc": "2.0", "id": 1, "method": method,
-                                                      "params": params}).encode(), {"Content-Type": "application/json"})
-    try:
-        with urllib.request.urlopen(request, timeout=120) as response:
-            raw = response.read()
-    except urllib.error.HTTPError as error:
-        return False, None, f"HTTP {error.code}: {provider_reason(error.read())}"
-    except Exception as error:  # noqa: BLE001 — any transport failure means the call was not served
-        return False, None, k.scrub(str(error))
-    try:
-        reply = json.loads(raw)
-    except ValueError:
-        return False, None, provider_reason(raw)
-    if isinstance(reply, dict) and "result" in reply and "error" not in reply:
-        return True, reply["result"], ""
-    return False, None, provider_reason(raw)
-
-
-def logs_served(url: str, address: str, first: int, last: int) -> tuple[bool, str]:
+def logs_served(rpc: k.Rpc, address: str, first: int, last: int) -> tuple[bool, str]:
     """Whether the RPC serves one DepositIssued page [first, last] for `address`, and why not."""
-    ok, result, reason = try_call(url, "eth_getLogs", [{"address": address, "fromBlock": hex(first),
-                                                         "toBlock": hex(last), "topics": [snapshot.DEPOSIT_ISSUED]}])
+    ok, result, reason = rpc.try_call("eth_getLogs", [{"address": address, "fromBlock": hex(first),
+                                                       "toBlock": hex(last), "topics": [snapshot.DEPOSIT_ISSUED]}])
     return (True, "") if ok and isinstance(result, list) else (False, reason or "malformed eth_getLogs result")
 
 
-def state_served(url: str, address: str, block: int) -> tuple[bool, str]:
+def state_served(rpc: k.Rpc, address: str, block: int) -> tuple[bool, str]:
     """Whether the RPC still holds state at `block`, and why not."""
-    ok, result, reason = try_call(url, "eth_getCode", [address, hex(block)])
+    ok, result, reason = rpc.try_call("eth_getCode", [address, hex(block)])
     return (True, "") if ok and isinstance(result, str) else (False, reason or "malformed eth_getCode result")
 
 
@@ -139,14 +115,33 @@ def widest_page(served, end: int) -> tuple[int, str]:
     return 0, refusal
 
 
-def call_seconds(rpc: k.Rpc, to: str, data: bytes, block: int, samples: int = 5) -> float:
-    """Median seconds for one eth_call: the unit of the snapshot's sequential ledger reads."""
+def batch_seconds(rpc: k.Rpc, to: str, data: bytes, block: int, batch: int, samples: int = 5) -> float:
+    """Median seconds for one JSON-RPC batch of `batch` eth_calls, read the way the snapshot reads the ledger:
+    the unit of its ledger reads. An RPC that refuses or garbles the batch stops here."""
     times = []
     for _ in range(samples):
         started = time.monotonic()
-        rpc.eth_call(to, "0x" + data.hex(), block)
+        snapshot.read_uints(rpc, to, [data] * batch, block, batch)
         times.append(time.monotonic() - started)
     return statistics.median(times)
+
+
+def batches(calls: int, batch: int) -> int:
+    return -(-calls // batch)
+
+
+def capacity_line(count: int) -> str:
+    return (f"  depositors        {count:,} distinct; the kit's capacity is {snapshot.MAX_DEPOSITORS:,} "
+            f"(snapshot.MAX_DEPOSITORS), and this check trips above half of it, {snapshot.MAX_DEPOSITORS // 2:,}")
+
+
+def crowded(count: int) -> bool:
+    """More distinct depositors than half the kit's capacity, the early warning. Says so when it is."""
+    if count <= snapshot.MAX_DEPOSITORS // 2:
+        return False
+    print(f"DEPOSITOR CHECK TRIPPED: {count:,} distinct depositors is more than half the kit's capacity. "
+          "Follow RUNBOOK.md, \"Snapshot capacity\".")
+    return True
 
 
 def utc(timestamp: int) -> str:
@@ -174,7 +169,8 @@ def canonical_client(rpc: k.Rpc, *, rehearsal: bool) -> str:
 def plan(args, params: dict, rpc: k.Rpc, served, state) -> dict:
     """The checked inputs of the snapshot command. `served(first, last)` reports whether the RPC serves a
     DepositIssued page for the vault and `state(block)` whether it still holds state there. Stops (or exits
-    NOT_READY) rather than plan a snapshot that would fail."""
+    NOT_READY or CROWDED after the depositor count, before the deadline) rather than plan a snapshot that would
+    fail."""
     if rpc.chain_id() != params["chainId"]:
         k.fail(f"RPC chainId {rpc.chain_id()} != params.chainId {params['chainId']}")
     client = canonical_client(rpc, rehearsal=args.rehearsal)
@@ -197,15 +193,16 @@ def plan(args, params: dict, rpc: k.Rpc, served, state) -> dict:
     if head is None:
         k.fail(f"block {args.block} not found")
     block, block_time = int(head["number"], 16), int(head["timestamp"], 16)
-    if block_time <= deadline:
-        if args.block is not None:
-            k.fail(f"block {block} ({utc(block_time)}) is not after DEPOSIT_DEADLINE ({utc(deadline)})")
-        print(f"not yet: DEPOSIT_DEADLINE is {utc(deadline)} and the newest finalized block, {block:,}, is from "
-              f"{utc(block_time)}. Finality runs {duration(now - block_time)} behind the head, so the first "
-              "usable block finalizes about that long after the deadline. Run this again then.")
-        sys.exit(NOT_READY)
+    if block_time <= deadline and args.block is not None:
+        k.fail(f"block {block} ({utc(block_time)}) is not after DEPOSIT_DEADLINE ({utc(deadline)})")
     if not args.rehearsal and block > int(finalized["number"], 16):
         k.fail(f"block {block} is not finalized yet (finalized head {int(finalized['number'], 16)})")
+    if block_time <= deadline and ((args.from_block or 0) > block
+                                   or rpc.call("eth_getCode", [vault, hex(block)]) in ("0x", "0x0")):
+        print(f"depositor check: no deposits yet, the vault's deployment is not finalized (newest finalized "
+              f"block {block:,})")
+        print(capacity_line(0))
+        sys.exit(NOT_READY)
     if args.from_block is None:
         ok, reason = state(block // 2)  # where snapshot.deploy_block's bisection starts
         if not ok:
@@ -217,14 +214,19 @@ def plan(args, params: dict, rpc: k.Rpc, served, state) -> dict:
     if not 0 <= start <= block:
         k.fail(f"--from-block {start} is not at or before the snapshot block {block}")
     need = min_chunk(start, block)
-    if args.log_chunk is not None and need <= args.log_chunk:
+    explicit = args.log_chunk is not None and need <= args.log_chunk
+    # The width probes read pages that end just before the scan: the vault had no code there, so the reply is
+    # empty and only the RPC's range limit can refuse it. A page ending at the snapshot block can be full of events,
+    # so it is probed only when the widest probe does not fit before the scan.
+    probe_end = start - 1 if start >= (args.log_chunk if explicit else SPANS[0]) else block
+    if explicit:
         # An explicit page size that fits the window is probed directly: widest_page() only samples
         # SPANS, so a provider serving 150-block pages would be declared capable of only the
         # largest sampled span below 150 — a false rejection for a requested chunk between them.
-        ok, refusal = served(max(0, block - args.log_chunk + 1), block)
+        ok, refusal = served(max(0, probe_end - args.log_chunk + 1), probe_end)
         widest = args.log_chunk if ok else 0
     else:
-        widest, refusal = widest_page(served, block)
+        widest, refusal = widest_page(served, probe_end)
     if widest < need:
         k.fail(f"the scan covers {block - start + 1:,} blocks, so its pages must be at least {need:,} blocks to stay "
                f"within {MAX_PAGES:,} pages, but this RPC serves {widest:,}-block pages at most ({refusal}). "
@@ -235,13 +237,21 @@ def plan(args, params: dict, rpc: k.Rpc, served, state) -> dict:
     started = time.monotonic()
     accounts = snapshot.depositors(rpc, vault, start, block, chunk)
     scan_seconds = time.monotonic() - started
+    if block_time <= deadline:
+        print(f"depositor check: vault {vault}, blocks {start:,} to {block:,} (the newest finalized block)")
+        print(capacity_line(len(accounts)))
+        print(f"not yet: DEPOSIT_DEADLINE is {utc(deadline)} and the newest finalized block, {block:,}, is from "
+              f"{utc(block_time)}. Finality runs {duration(now - block_time)} behind the head, so the first "
+              "usable block finalizes about that long after the deadline. Run this again then.")
+        sys.exit(CROWDED if crowded(len(accounts)) else NOT_READY)
     first_time = int(rpc.block(start)["timestamp"], 16)
     return {"chainId": params["chainId"], "client": client, "vault": vault, "deadline": deadline,
             "commitDeadline": commit_deadline, "now": now, "block": block, "blockTime": block_time,
             "start": start, "secondsPerBlock": (block_time - first_time) / max(1, block - start),
             "need": need, "widest": widest, "chunk": chunk, "pages": page_count(start, block, chunk),
             "depositors": len(accounts), "scanSeconds": scan_seconds,
-            "callSeconds": call_seconds(rpc, vault, k.selector("credited(address)") + k.addr_word(vault), block)}
+            "batchSeconds": batch_seconds(rpc, vault, k.selector("credited(address)") + k.addr_word(vault), block,
+                                          args.read_batch)}
 
 
 def snapshot_command(p: dict, args) -> list[str]:
@@ -251,6 +261,8 @@ def snapshot_command(p: dict, args) -> list[str]:
         command.append("--rehearsal")
     elif args.params:
         command += ["--params", args.params]
+    if args.read_batch != snapshot.READ_BATCH:
+        command += ["--read-batch", str(args.read_batch)]
     return command
 
 
@@ -263,8 +275,9 @@ def push_plan_line(widest: int, seconds_per_block: float) -> str:
 
 def print_plan(p: dict, args) -> list[str]:
     command = snapshot_command(p, args)
-    ledger = SNAPSHOT_CALLS_PER_DEPOSITOR * p["depositors"] * p["callSeconds"]
-    recheck = RECHECK_CALLS_PER_LEAF * p["depositors"] * p["callSeconds"]
+    reads = SNAPSHOT_CALLS_PER_DEPOSITOR * p["depositors"]
+    ledger = batches(reads, args.read_batch) * p["batchSeconds"]
+    recheck = batches(RECHECK_CALLS_PER_LEAF * p["depositors"], args.read_batch) * p["batchSeconds"]
     took = p["scanSeconds"] + ledger
     finality = "private rehearsal, finality not checked" if args.rehearsal else "finalized"
     origin = "--from-block" if args.from_block is not None else "the vault's deploy block"
@@ -276,9 +289,9 @@ def print_plan(p: dict, args) -> list[str]:
     print(f"  page size         {p['chunk']:,} blocks ({MAX_PAGES:,} pages need at least {p['need']:,}; this RPC "
           f"serves {p['widest']:,}-block pages)")
     print(f"  dry-run scan      {p['pages']:,} pages in {duration(p['scanSeconds'])}: {p['depositors']:,} depositors")
-    print(f"  snapshot time     about {duration(took)}: the scan, then "
-          f"{SNAPSHOT_CALLS_PER_DEPOSITOR * p['depositors']:,} sequential ledger reads at "
-          f"{p['callSeconds'] * 1000:.0f} ms")
+    print(capacity_line(p["depositors"]))
+    print(f"  snapshot time     about {duration(took)}: the scan, then {reads:,} ledger reads, "
+          f"{args.read_batch} per batch request, at {p['batchSeconds'] * 1000:.0f} ms a batch")
     print(f"  later re-reads    safe-txs commit-root and every push-plan run re-read each leaf: about "
           f"{duration(recheck)} each")
     print(f"  push-plan         {push_plan_line(p['widest'], p['secondsPerBlock'])}")
@@ -336,9 +349,21 @@ def probe(args, params: dict, rpc: k.Rpc, served, state) -> list[str]:
         print(f"  deploy-block      the search found v1's deploy block, {found:,}, in "
               f"{duration(time.monotonic() - started)}")
     print(f"  push-plan         {push_plan_line(widest, seconds_per_block)}")
-    per_call = call_seconds(rpc, v1, k.selector("totalSupply()"), end)
-    print(f"  eth_call          {per_call * 1000:.0f} ms each; the snapshot makes {SNAPSHOT_CALLS_PER_DEPOSITOR} per "
-          f"depositor, about {duration(SNAPSHOT_CALLS_PER_DEPOSITOR * 1_000 * per_call)} per 1,000 depositors")
+    try:
+        # A failed ledger read stops the phase; here that is one problem among the others, in its own words.
+        with contextlib.redirect_stderr(io.StringIO()) as stop:
+            per_batch = batch_seconds(rpc, v1, k.selector("totalSupply()"), end, args.read_batch)
+    except SystemExit:
+        reason = stop.getvalue().strip().removeprefix("KIT STOP: ")
+        read = f"{args.read_batch:,} eth_call{'s' if args.read_batch > 1 else ''} per request"
+        problems.append(f"a ledger read of {read} failed ({reason})"
+                        + (": try a smaller --read-batch" if args.read_batch > 1 else ""))
+        print(f"  eth_call          a read of {read} failed: {reason}")
+    else:
+        print(f"  eth_call          {per_batch * 1000:.0f} ms a batch request of {args.read_batch}; the snapshot "
+              f"makes {SNAPSHOT_CALLS_PER_DEPOSITOR} per depositor, about "
+              f"{duration(batches(SNAPSHOT_CALLS_PER_DEPOSITOR * 1_000, args.read_batch) * per_batch)} per 1,000 "
+              "depositors")
     print(("NOT OK: " + "; ".join(problems)) if problems else
           f"OK: this RPC can serve the snapshot of a {args.window_days:g}-day deposit window")
     return problems
@@ -347,15 +372,16 @@ def probe(args, params: dict, rpc: k.Rpc, served, state) -> list[str]:
 def main() -> None:
     args = parse_args()
     params = k.load_phase_params(args.params, rehearsal=args.rehearsal)
-    url = k.rpc_url(args.rpc)
-    rpc = k.Rpc(url)
+    rpc = k.Rpc(k.rpc_url(args.rpc))
     if args.probe:
         v1 = k.checksum(params["external"]["v1"])
-        problems = probe(args, params, rpc, lambda a, b: logs_served(url, v1, a, b), lambda b: state_served(url, v1, b))
+        problems = probe(args, params, rpc, lambda a, b: logs_served(rpc, v1, a, b), lambda b: state_served(rpc, v1, b))
         sys.exit(NOT_SERVED if problems else 0)
     vault = k.checksum(args.vault)
-    command = print_plan(plan(args, params, rpc, lambda a, b: logs_served(url, vault, a, b),
-                              lambda b: state_served(url, vault, b)), args)
+    p = plan(args, params, rpc, lambda a, b: logs_served(rpc, vault, a, b), lambda b: state_served(rpc, vault, b))
+    command = print_plan(p, args)
+    if crowded(p["depositors"]):
+        sys.exit(CROWDED)
     if args.run:
         sys.stdout.flush()
         os.execv(sys.executable, [sys.executable, str(k.KIT / "snapshot.py"), *command,
