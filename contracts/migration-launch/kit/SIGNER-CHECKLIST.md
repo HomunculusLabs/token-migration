@@ -76,6 +76,10 @@ one short transaction.
   `forkBlock`, rounded to the 60 grid) and `settleParams.v2Ranges` = `opening.v2Side.ranges`. The signed run
   used `opening.v2Side.need` v2, at most `copySlack` wei short of `opening.v2Side.v1AboveOldPrice`, the v1
   the old pool held above its price.
+- **The v3 tail gets at most 70% of what it can take.** `V1_SOLD_ON_V3_TAIL()` equals `sale.tailIn` in
+  `simulation.json`, `sale.tailCapacityBps` is 7000, and `sale.tailIn` is at most `sale.tailCapacity` × 7000 /
+  10 000. `sale.tailCapacity` is the most v1 the tail could take at `forkBlock`, measured up to `sale.v1In` / 0.7,
+  past which the cap cannot matter. The other 30% is room for others to trade on the tail before execution.
 - **The actual deadline.** Read the confirmed `rootCommittedAt()` and `EXECUTION_WINDOW()`. Activation
   must land at or before their sum; the separate `COMMIT_DEADLINE()` is not the activation clock.
 - **Execute soon after the last signature.** If the old pool's price moves first, so that the sale would

@@ -145,7 +145,8 @@ Simulate-then-sign:
 1. The kit chooses how much v1 to sell on the v3 1% tail. It quotes each leg of the sale on a fork of the latest
    block (`src/SaleQuoter.sol`, run inside `eth_call`; nothing is deployed) and takes the split that raises the
    most WETH. The tail is a third-party pool, so this reads its depth at signing; when it adds nothing, it gets
-   nothing.
+   nothing. The tail gets at most 70% of what it can take then (`sale.tailCapacityBps`), so its part of the sale
+   still fills if others use up to the other 30% before the launch executes.
 2. The kit runs a launch contract with that split, no floor and the whole remaining cap as budget, and records
    what it raised and used. It must raise exactly the quoted amount.
 3. It signs `minWethOut` = simulated WETH × 0.995 and the v2 budget = simulated v2 + 10 wei. The v2 side is

@@ -2,24 +2,24 @@
   "schema": "surplus-v2-launch-kit-manifest/1",
   "note": "sha256 of every kit artifact. `python3.14 kit/check.py` verifies it; --write rewrites it.",
   "committed": {
-    "params.json": "6b6939e8aaf051dceacca42f18bd63af573dd6efe03cce9ae3d52a8f06b7f845",
-    "params.rehearsal.json": "b443fb34ecc20e337ab8d27e5cfdae02946dffc01e26cf7becbfec12dbd6912c",
+    "params.json": "0896908fc5e989051bb948a4a3daee8bb97da728c5c80e8f184642baebd1e14f",
+    "params.rehearsal.json": "7d4c5b0104724fd6bdb3f44753479d94a9c8b45e01c1647068dc0237e6ef2cc2",
     "kitlib.py": "c2da1ba6490449666016bbf5d5984d040ddfd756ef054189330941f98555ca13",
     "launch.py": "16134ffe6f94c0a39c5f8b4f0f062baf12f0b36ea30a7dcbcf948285f210b1ae",
     "snapshot.py": "1613ed8d45da341a4f025526a5230c7eb7c003aee25aa3f9d19e93e17a65769c",
     "deploy_plan.py": "454643167c14b690c8e799b554b9ba3035f7817544a81cdb59e353e564578eac",
-    "check.py": "97736f83dfd091a284d7c78f2747829e6e4af627740210541ad319f777f976bc",
-    "safe_txs.py": "29efb64dc756b2c1cdb6c812796ec306b31fbc1f324fa11ac9ffbfec092524f0",
+    "check.py": "2596f1c5addd273f2a78b760385b8d1c74a17bb350889a13f7714dd2eb5f155a",
+    "safe_txs.py": "7f44acfde2a1760eed563a6634d6e5f8c1f8dfc9add67c6377b828557d5eb9bf",
     "push_plan.py": "fed6e73d8225cba9ccfe90f0e71bc27f129b098b85a7d60f26759d5ad0f0bea7",
     "rehearse.py": "60bfa3b5fe26d0c44ddf97eef56e6ef98755535e81e4241f84316e8d170b0e9c",
     "rehearsal_gate.py": "9d1c12c3c21a32abc6e7be18d5596c5b4e5f84e2ec579f091e74ac44c952da73",
     "report.py": "5050bb41825974e7e8a676eed08c2ec3daf196e826ab19462ab864efb226b3e9",
     "snapshot_plan.py": "e2b1f43bbfc3866a5d496163ac325a03088f901db3c0d3edada3666350cadb7e",
     "README.md": "adf2dfe1c4d55c9fa88a7e05c6cc49b64ccb73744b903d627d8eea7009cef376",
-    "RUNBOOK.md": "ff438df82b64a13f0b06ff2ce14f3c74a8c9b9d34aaf44fee3a346081ce57fb6",
+    "RUNBOOK.md": "bdcad8d2db352c73baf51671b3fb0e19b4eeb618d070882de2cb098c1dede733",
     "HOLDERS.md": "f5dce9808a60a6d08c3a823e58df027805a8df4986853c458f340a03fc9b713a",
     "REPORT.md": "a275eb671928e268d0e9cdc5f75c839854c4155bd27d54cf372d1d2f49ffaac6",
-    "SIGNER-CHECKLIST.md": "47173def45d1321e42885fbc4bd689dfe8ba9b43c7024c0017d5e5afa81b1469",
+    "SIGNER-CHECKLIST.md": "a0b771bfe342c2e9fcd561fd17300abed91e14534440b55cf70c77dd45a2a144",
     "seed.py": "c4e65d973037fbef7eea2c55261076f52adfd761b7bf56f1f02d928d93683ffc"
   },
   "evidence": {
@@ -490,6 +490,10 @@
     "sale.tailShare": {
       "value": "maximize-raise",
       "why": "the v3 tail gets the share of the sale that raises the most WETH, quoted at signing (Bill, 2026-11-02, GitHub #2)"
+    },
+    "sale.tailCapacityBps": {
+      "value": 7000,
+      "why": "the v3 tail gets at most 70% of what it can take at signing, which leaves room for v1 that others sell on it before the launch executes (Bill, 2026-11-13)"
     }
   }
 }

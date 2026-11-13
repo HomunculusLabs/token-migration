@@ -171,10 +171,15 @@ class FakeChain:
         return {"result": "0x" + (k.word(out) + k.word(paid)).hex()}
 
 
+def quote_split(chain: FakeChain, bps: int) -> dict:
+    """sale_split on the fake chain, the tail capped at bps / 10 000 of what it can take."""
+    with mock.patch.object(safe_txs, "quoter_code", return_value="0x6000"):
+        return safe_txs.sale_split(chain, {"poolManager": POOL_MANAGER, "v3Tail": V3_TAIL}, OLD_KEY, V1_IN, LIMIT, bps)
+
+
 class SaleSplitTests(unittest.TestCase):
     def split(self, chain: FakeChain) -> dict:
-        with mock.patch.object(safe_txs, "quoter_code", return_value="0x6000"):
-            return safe_txs.sale_split(chain, {"poolManager": POOL_MANAGER, "v3Tail": V3_TAIL}, OLD_KEY, V1_IN, LIMIT)
+        return quote_split(chain, 10_000)  # no cap, so these tests check the search itself (TailCapacityTests: the cap)
 
     def test_each_quote_runs_the_quoter_code_at_the_quoter_address_on_the_latest_block(self):
         chain = FakeChain()
@@ -231,6 +236,104 @@ class SaleSplitTests(unittest.TestCase):
         chain._request = lambda method, params: {"error": {"code": -32602, "message": "invalid params"}}
         with contextlib.redirect_stderr(io.StringIO()), self.assertRaises(SystemExit):
             self.split(chain)
+
+
+# About what the real tail could take at block 56,952,081 (236.6M v1), plus 3 wei so that 70% of it rounds down.
+CAPACITY = 236_621_422_516 * 10**15 + 3
+
+
+class TailCapacityTests(unittest.TestCase):
+    """sale.tailCapacityBps: the tail gets at most that share of the most it can take at signing."""
+
+    def test_a_tail_that_cannot_take_the_best_share_gets_exactly_70_percent_of_its_capacity(self):
+        split = quote_split(FakeChain(tail_fills=CAPACITY), 7_000)
+        self.assertEqual((split["tailIn"], split["tailCapacity"]), (CAPACITY * 7_000 // 10_000, CAPACITY))
+        self.assertEqual(split["raised"], DOPPLER(V1_IN - split["tailIn"]) + TAIL(split["tailIn"]))
+
+    def test_with_no_cap_the_same_tail_gets_all_it_can_take(self):
+        split = quote_split(FakeChain(tail_fills=CAPACITY), 10_000)
+        self.assertEqual((split["tailIn"], split["tailCapacity"]), (CAPACITY, CAPACITY))
+
+    def test_a_tail_that_takes_everything_keeps_the_best_split(self):
+        capped, uncapped = quote_split(FakeChain(), 7_000), quote_split(FakeChain(), 10_000)
+        self.assertEqual(capped["tailIn"], safe_txs.best_tail(sale(), V1_IN))
+        self.assertEqual({key: value for key, value in capped.items() if key != "tailCapacity"},
+                         {key: value for key, value in uncapped.items() if key != "tailCapacity"})
+        self.assertEqual(capped["tailCapacity"], -(-V1_IN * 10_000 // 7_000))  # it took the whole probe
+
+    def test_a_capacity_between_the_sale_and_the_sale_over_0_7_caps_the_search_below_the_whole_sale(self):
+        capacity = V1_IN * 12 // 10
+        for bps, measured, hi in ((10_000, V1_IN, V1_IN - 1), (7_000, capacity, capacity * 7_000 // 10_000)):
+            with self.subTest(bps=bps), mock.patch.object(safe_txs, "best_tail", wraps=safe_txs.best_tail) as search:
+                self.assertEqual(quote_split(FakeChain(tail_fills=capacity), bps)["tailCapacity"], measured)
+                self.assertEqual(search.call_args.args[3], hi)
+        self.assertLess(capacity * 7_000 // 10_000, V1_IN - 1)
+
+    def test_a_doppler_pool_that_cannot_take_what_the_cap_leaves_stops_the_kit(self):
+        # The Doppler pool takes all but 200M v1: the tail can take that, but not within 70% of its capacity.
+        chain = FakeChain(doppler_fills=V1_IN - 200_000_000 * E18, tail_fills=CAPACITY)
+        self.assertEqual(quote_split(chain, 10_000)["tailIn"], CAPACITY)
+        with contextlib.redirect_stderr(io.StringIO()) as err, self.assertRaises(SystemExit):
+            quote_split(chain, 7_000)
+        self.assertIn(f"capped at {CAPACITY * 7_000 // 10_000} (sale.tailCapacityBps 7000 of its measured capacity, "
+                      f"{CAPACITY}). The cap is what stops it", err.getvalue())
+
+    def test_the_stop_says_when_the_cap_is_not_what_stops_the_sale(self):
+        # The Doppler pool takes all but 400M v1, more than the tail can take at all: no cap would fill the sale.
+        chain = FakeChain(doppler_fills=V1_IN - 400_000_000 * E18, tail_fills=CAPACITY)
+        for bps in (7_000, 10_000):
+            with self.subTest(bps=bps), contextlib.redirect_stderr(io.StringIO()) as err, \
+                    self.assertRaises(SystemExit):
+                quote_split(chain, bps)
+            self.assertIn(f"The cap is not what stops it: with no cap the tail could take {CAPACITY}.", err.getvalue())
+
+    def test_the_signed_record_carries_what_the_signer_checklist_compares(self):
+        split = quote_split(FakeChain(tail_fills=CAPACITY), 7_000)
+        params = k.load_params()
+        record = safe_txs.sale_record({"v1In": V1_IN, "tailIn": split["tailIn"], "tailLimit": LIMIT}, params["sale"],
+                                      split, "0x" + "ab" * 32, 2**96)
+        self.assertEqual((record["tailIn"], record["tailCapacity"]), (str(split["tailIn"]), str(CAPACITY)))
+        self.assertIs(type(record["tailCapacityBps"]), int)
+        self.assertEqual(record["tailCapacityBps"], 7_000)
+        # SIGNER-CHECKLIST: sale.tailIn is at most sale.tailCapacity × sale.tailCapacityBps / 10 000
+        self.assertLessEqual(int(record["tailIn"]), int(record["tailCapacity"]) * record["tailCapacityBps"] // 10_000)
+        self.assertEqual((record["v1In"], record["tailShare"], record["quotedRaise"]),
+                         (str(V1_IN), "maximize-raise", str(split["raised"])))
+
+    def test_v1_sold_on_the_tail_before_execution_leaves_the_signed_amount_filling_up_to_the_margin(self):
+        def fills(signed: int, sold_first: int) -> bool:
+            # v1 sold on the tail first leaves it able to take that much less.
+            data = safe_txs.encode("quoteV3(address,uint256,uint160)", k.addr_word(V3_TAIL), k.word(signed),
+                                   k.word(LIMIT))
+            quoted = safe_txs.quote(FakeChain(tail_fills=CAPACITY - sold_first), "0x6000", data)
+            return quoted is not None and quoted[1] == signed
+
+        margin = CAPACITY - CAPACITY * 7_000 // 10_000  # the 30% the cap leaves
+        signed = quote_split(FakeChain(tail_fills=CAPACITY), 7_000)["tailIn"]
+        self.assertTrue(fills(signed, margin // 2) and fills(signed, margin))
+        self.assertFalse(fills(signed, margin + 1))
+        uncapped = quote_split(FakeChain(tail_fills=CAPACITY), 10_000)["tailIn"]
+        self.assertFalse(fills(uncapped, 1))  # with no cap, one wei sold first leaves signed v1 unsold
+
+    def test_the_cap_is_a_required_integer_from_1_to_10000(self):
+        class Validated(Exception):
+            pass
+
+        d = {"v2": "0x" + "22" * 20, "hook": "0x" + "20" * 20}
+        for value, ok in ((1, True), (7_000, True), (10_000, True), (0, False), (10_001, False), (-7_000, False),
+                          (7_000.0, False), ("7000", False), (True, False), (None, False), ("TBD", False)):
+            params = k.load_params()
+            params["sale"]["tailCapacityBps"] = value
+            with self.subTest(value=value), contextlib.redirect_stderr(io.StringIO()) as err, \
+                    mock.patch.object(safe_txs.seeds, "build", side_effect=Validated), \
+                    self.assertRaises(Validated if ok else SystemExit):
+                safe_txs.settle_params(params, None, d, V1_IN)  # the seed is read only after the params are checked
+            if not ok:
+                self.assertIn(f"params sale.tailCapacityBps is {value!r}", err.getvalue())
+        del params["sale"]["tailCapacityBps"]
+        with contextlib.redirect_stderr(io.StringIO()) as err, self.assertRaises(SystemExit):
+            safe_txs.settle_params(params, None, d, V1_IN)
+        self.assertIn("missing key sale.tailCapacityBps", err.getvalue())
 
 
 if __name__ == "__main__":
