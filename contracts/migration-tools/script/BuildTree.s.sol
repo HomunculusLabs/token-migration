@@ -20,16 +20,18 @@ import {TreeIO} from "./TreeIO.sol";
  *
  * @dev    Failure is LOUD: any malformed row (bad address, bad amount, zero amount, duplicate
  *         account) reverts the whole script — a half-parsed deposit list must never reach a root.
- *         Duplicate detection uses open addressing over a power-of-two memory table (migration
- *         scale is ≪ table size, so chains are short; the table is allocated once per run).
+ *         Duplicate detection uses open addressing over a power-of-two storage table (the kit's
+ *         depositor capacity is ≪ table size, so chains are short).
  *
  *         Output is streamed a line at a time. EVM memory is never freed, so assembling the
  *         document with repeated string.concat costs memory quadratic in the leaf count and runs
  *         out at real holder counts (thousands of leaves).
  */
 contract BuildTree is TreeIO {
-    /// @dev Open-addressing table for duplicate-account detection (see _insert).
-    uint256 private constant _TABLE_SIZE = 1 << 16;
+    /// @dev Open-addressing table for duplicate-account detection (see _insert). It is storage, so
+    ///      slots cost nothing until written. 2^20 keeps it at most a quarter full up to 262,144
+    ///      rows, more than the launch kit's depositor capacity (kit/snapshot.py MAX_DEPOSITORS).
+    uint256 private constant _TABLE_SIZE = 1 << 20;
 
     address[_TABLE_SIZE] private _dupTable;
 
@@ -158,13 +160,13 @@ contract BuildTree is TreeIO {
 
     // -----------------------------------------------------------------------------------------
     // Duplicate detection: open addressing, power-of-two table. Never full by construction
-    // (input size ≪ 65,536 at migration scale; guard reverts loudly if that assumption breaks).
+    // (input size ≪ 2^20 at the kit's capacity; guard reverts loudly if that assumption breaks).
     // -----------------------------------------------------------------------------------------
 
     error DuplicateAccount(address account, uint256 row);
     error TableFull();
 
-    function _insert(address a, uint256 row) private {
+    function _insert(address a, uint256 row) internal {
         uint256 mask = _TABLE_SIZE - 1;
         uint256 slot = uint256(keccak256(abi.encodePacked(a))) & mask;
         for (uint256 probe; probe < _TABLE_SIZE; ++probe) {

@@ -4,7 +4,7 @@ private anvil fork before anyone signs.
 
     python3.14 kit/safe_txs.py commit-root  --tree <tree.json> --deployment <deployment.json> --safe-nonce K
                                             --rpc <private anvil> [--params kit/params.json | --rehearsal]
-                                            [--execute-on-private-fork]
+                                            [--execute-on-private-fork] [--read-batch 100]
     python3.14 kit/safe_txs.py launch-batch --deployment <deployment.json> --safe-nonce K
                                             --rpc <private anvil> [--params kit/params.json | --rehearsal]
                                             [--execute-on-private-fork]
@@ -123,7 +123,12 @@ def parse_args() -> argparse.Namespace:
     ap.add_argument("--rehearsal", action="store_true")
     ap.add_argument("--execute-on-private-fork", action="store_true",
                     help="keep the executed transaction on the private anvil (rehearsal)")
-    return ap.parse_args()
+    ap.add_argument("--read-batch", type=int, default=snapshots.READ_BATCH,
+                    help="eth_calls per JSON-RPC batch request for commit-root's ledger re-read (1: one per request)")
+    args = ap.parse_args()
+    if args.read_batch < 1:
+        ap.error("--read-batch must be at least 1")
+    return args
 
 
 # ---------------------------------------------------------------------------------------------------------
@@ -481,7 +486,8 @@ def commit_root(args, params: dict, rpc: k.Rpc, d: dict, owners: dict, checks: l
     if not args.rehearsal and not canonical_url:
         k.fail("live commit-root requires --canonical-rpc for finalized snapshot verification")
     authority = k.Rpc(canonical_url) if canonical_url else rpc
-    s = snapshots.verify_snapshot(args.tree, rpc, vault, params, rehearsal=args.rehearsal, finality_rpc=authority)
+    s = snapshots.verify_snapshot(args.tree, rpc, vault, params, rehearsal=args.rehearsal, finality_rpc=authority,
+                                  batch=getattr(args, "read_batch", snapshots.READ_BATCH))
     if (s["verification"]["root"] != "0x" + root.hex() or int(s["verification"]["total"]) != total
             or s["verification"]["leaves"] != leaves):
         k.fail("loaded signing root/total differs from ledger-verified snapshot")

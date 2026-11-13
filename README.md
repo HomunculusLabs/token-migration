@@ -162,9 +162,9 @@ npm ci
 (cd contracts/migration-launch && python3 -m unittest discover -s __tests__/kit -p 'test_*.py')
 ```
 
-Green at this release: `migration` 118 tests, `migration-tools` 11, `token-v2` 42 (+2 Python),
+Green at this release: `migration` 118 tests, `migration-tools` 13, `token-v2` 42 (+2 Python),
 `pool-hook` 14 (its fork suites skip without a fork), `migration-launch` 29 (unit, fuzz and
-invariant), and the kit's 121. On the pinned fork below: `pool-hook` 22 and `migration-launch` 40
+invariant), and the kit's 148. On the pinned fork below: `pool-hook` 22 and `migration-launch` 40
 (one rehearsal-only suite skips without a rehearsal deployment).
 
 ### Fork suites

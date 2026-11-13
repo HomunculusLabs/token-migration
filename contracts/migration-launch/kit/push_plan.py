@@ -2,7 +2,7 @@
 """Launch kit, phase "push-plan": the relayer's Multicall3 batches that push every unclaimed v2 claim.
 
     python3.14 kit/push_plan.py --tree <tree.json> --rpc <RPC> [--params kit/params.json | --rehearsal]
-                                [--deployment kit/output/deploy/deployment.json]
+                                [--deployment kit/output/deploy/deployment.json] [--read-batch 100]
                                 [--execute-first N --on-private-anvil]   (rehearsal: send N batches, then replan)
 
 1. Authenticates the adjacent snapshot against the ledger, then reconciles ClaimPaid and ProRataClaimed
@@ -207,7 +207,8 @@ def plan(args, params: dict, rpc: k.Rpc) -> dict:
     relayer_value = k.need(params, "operators.relayer")
     relayer = k.checksum(str(relayer_value))
     ext = params["external"]
-    frozen = snapshot.verify_snapshot(Path(args.tree), rpc, vault, params, rehearsal=args.rehearsal)
+    frozen = snapshot.verify_snapshot(Path(args.tree), rpc, vault, params, rehearsal=args.rehearsal,
+                                      batch=getattr(args, "read_batch", snapshot.READ_BATCH))
     state = reconcile(rpc, ext["multicall3"], vault, tree, frozen, head, getattr(args, "log_chunk", 1000))
     leaves = tree["leaves"]
     flags = [lf["account"].lower() in state["paid"] for lf in leaves]
@@ -299,7 +300,8 @@ def execute_first(args, rpc: k.Rpc, result: dict, count: int) -> dict:
             or k.sha256_file(tree_path.parent / "snapshot.json") != result["snapshotSha256"]):
         k.fail("execution tree/snapshot differs from plan")
     frozen = snapshot.verify_snapshot(tree_path, rpc, result["vault"], result["verificationParams"],
-                                      rehearsal=result["rehearsal"])
+                                      rehearsal=result["rehearsal"],
+                                      batch=getattr(args, "read_batch", snapshot.READ_BATCH))
     tree = json.loads(tree_path.read_text())
     journal = OUT / "executions" / directory.name
     outcomes = []
@@ -399,7 +401,11 @@ def main() -> None:
     ap.add_argument("--resume-plan", type=Path, help="resume an immutable plans/<id>/plan.json and recover its journal")
     ap.add_argument("--on-private-anvil", action="store_true")
     ap.add_argument("--log-chunk", type=int, default=1000, help="bounded payout-event page size in blocks")
+    ap.add_argument("--read-batch", type=int, default=snapshot.READ_BATCH,
+                    help="eth_calls per JSON-RPC batch request for the snapshot's ledger re-read (1: one per request)")
     args = ap.parse_args()
+    if args.read_batch < 1:
+        ap.error("--read-batch must be at least 1")
     params = k.load_phase_params(args.params, rehearsal=args.rehearsal)
     args.rpc = k.rpc_url(args.rpc)
     rpc = k.Rpc(args.rpc)

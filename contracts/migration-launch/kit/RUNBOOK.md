@@ -79,6 +79,27 @@ fails (it serves 10-block pages; `evidence/kit/snapshot-plan.txt`). The kit send
 User-Agent, which most public Base RPCs, `mainnet.base.org` included, refuse with HTTP 403; the probe's
 first call shows that.
 
+**Every day of the deposit window,** count the depositors with the launch RPC. `D` is the vault's deploy
+block, recorded in step 1:
+
+```bash
+python3.14 kit/launch.py snapshot-plan --vault <vault> --from-block D
+```
+
+Until the deadline it runs the snapshot's depositor scan up to the newest finalized block and prints the
+distinct depositors against the kit's capacity. It exits:
+- 3: not yet. The count is at most half the capacity.
+- 4: tripped. The count is more than half the capacity.
+- 2, with a `KIT STOP` line. It is a trip too when the line says the count is past the capacity, that the RPC
+  refused a single block, or that it refused more than `MAX_REFUSED_PAGES` requests. Any other line names a
+  problem with the command or the RPC (`KIT STOP: rpc ...` is a request that failed): fix it and run the check
+  again that day.
+
+When the RPC refused any page of logs, the check also says how many requests on stderr. Write that number down
+each day: one that grows from day to day is a trip too.
+
+After a trip, read what it printed and follow "Snapshot capacity" below that day.
+
 **After `depositDeadline`:**
 
 ```bash
@@ -102,12 +123,75 @@ The snapshot reads every depositor from the vault's own logs and each one's ledg
 sum equals the vault's on-chain total. It builds the tree, then verifies it three ways (VerifyTree,
 VerifyTreeBulk, an independent Python rebuild).
 
-It reads each depositor's ledger twice, one call at a time: at the 130–150 ms per call measured on Base
-(2026-10-24), 6,000 depositors take about an hour. `safe-txs commit-root` and every `push-plan` run read
-each leaf again, about half as long. `commitRoot` must execute before `commitDeadline`, so the commit window
+It reads each depositor's ledger twice, in JSON-RPC batch requests of 100 calls (`--read-batch`; 1 sends one
+call per request). `snapshot-plan` times a batch on the RPC and prints how long the reads take. A request the
+RPC rate-limits, a batch or a single call, is sent again after a wait (1, 2, 4, 8, 16, then 32 seconds); if it
+is still refused, the phase stops, and a lower `--read-batch` is the fix. The printed time assumes the RPC keeps
+the pace of the five sample batches, so a plan that rate-limits takes longer. `safe-txs
+commit-root` and every `push-plan` run read each leaf again, about half as long; both take `--read-batch` too.
+`commitRoot` must execute before `commitDeadline`, so the commit window
 has to hold the snapshot, a second person's rebuild, the commit-root packet and signing. The 7 days the
 decision brief proposes (A3) leave room; a few hours do not. Past the deadline, the only way out is
 `expireCommit` and refunds (abort paths below).
+
+#### Snapshot capacity
+
+Every depositor is a leaf, and the committed total must equal the whole ledger, so nobody can be left out.
+`deposit` takes any amount above zero, so filling the vault with tiny depositors is cheap: about 126,500 gas
+each. The tree steps run inside forge's EVM, and the kit sets their memory and gas limits itself
+(`TREE_LIMITS` in `kit/snapshot.py`), whatever the shell sets.
+
+The kit's capacity is 131,072 distinct depositors (`MAX_DEPOSITORS` in `kit/snapshot.py`). That many leaves
+built and passed all three verifiers in 22 minutes on an Apple M2 Ultra: 3 minutes in forge, then 19 minutes in
+the Python verifier, which `safe-txs commit-root` and every `push-plan` run repeat. Peak memory was 3.0 GB in
+forge and 3.2 GB in Python. The snapshot, and the daily check, stop as soon as the scan finds one depositor
+more, before any ledger read. Past the capacity this kit cannot build the tree. Passing it takes about 0.083 ETH
+of gas at a 0.005 gwei base fee (131,073 depositors × 126,500 gas).
+
+These numbers come from one machine, the M2 Ultra. Each forge step has a 590 s limit, and BuildTree took about
+150 s at the capacity there. On a machine too slow for that, the snapshot stops with `KIT STOP: forge script
+script/BuildTree.s.sol did not finish within its 590 s limit` (or VerifyTree, or VerifyTreeBulk) and says to run
+the snapshot on a faster machine. Do that: the tree depends only on the ledger, so it is the same on any
+machine. The kit has no tool to measure a machine.
+
+The scan reads each page of logs with one `eth_getLogs`, and an RPC caps one reply (at 10,000 logs on some, at a
+response size on others). A page the RPC refuses is read again as two halves, down to single blocks. When
+anything was refused, the scan says how many requests on stderr and goes on. Only the RPC's own refusal is
+read that way. A request that fails any other way (a timeout, a bad key, a rate limit that outlasts the waits)
+stops the scan with `KIT STOP: rpc eth_getLogs: ...`: that is a problem with the RPC, not a flood.
+
+A flood still stops the scan in two cases. The prices below are for an RPC that caps a reply at 10,000 logs.
+There, 10,001 events cost the attacker about 11,229 gas each (repeat deposits in one transaction): about
+0.00056 ETH at 0.005 gwei.
+- A single block the RPC refuses. The scan stops there, naming the block and the RPC's reason. One block holds
+  at most about 3,560 of these events: Base's block gas limit was 40,000,000 on 2026-11-13. So an RPC that
+  returns 10,000 logs in one reply can always serve a single block, and deposits cannot cause this stop there.
+  They can if the launch RPC returns fewer logs than one block can hold, or if Base raises its gas limit past
+  about 112,000,000 (the gas of 10,001 events). Before deposits open, read the gas limit
+  (`cast block --field gasLimit --rpc-url "$BASE_RPC_URL"`), divide it by 11,229, and compare the result with
+  the reply limit the RPC's provider documents. An RPC that serves bigger replies is the fix.
+- `MAX_REFUSED_PAGES` in `kit/snapshot.py`: the scan stops after 10,000 refused requests. Each 10,001 events
+  cost the scan at most about log2(page size) + 1 refusals: 12 for 2,000-block pages. So reaching the limit
+  takes at least 834 sets of 10,001 events, roughly 0.47 ETH. That is more than passing the capacity costs.
+  When the scan stops on it, use an RPC with a bigger reply limit, which removes these refusals, or pass a
+  smaller `--log-chunk` (no smaller than the scan's blocks divided by 10,000), which lowers the refusals for
+  each stuffed page. Raising the constant is a kit change: the constant and its manifest pin.
+
+When the daily check trips:
+1. Tell the Safe signers that day. Nothing stops deposits before `depositDeadline`; the vault has no pause.
+2. Keep running the check every day, and compare each count with the last.
+3. If the count can pass the capacity by the deadline, decide before the deadline. Decide from these facts:
+   - The capacity is a constant. Raising `MAX_DEPOSITORS` is a kit change: the constant, this section's numbers
+     and their manifest pins. It first needs a measurement on the launch machine. On the M2 Ultra, 262,144
+     leaves built and passed all three verifiers in 43 minutes: forge took 377 s, of which BuildTree took 321 s
+     of its 590 s step limit, and the Python verifier took 37 minutes. It used 7 GB of memory.
+   - Past what the machine can build, there is no tool today. Without a root by `commitDeadline`, anyone calls
+     `expireCommit()`. The Safe can also call the vault's `cancel()` while the vault is still Open. Either way
+     every depositor gets their exact v1 back (abort paths below). No funds are lost; the launch is.
+   - The check reads the newest finalized block once a day, so a flood on the last day shows only after the
+     deadline. Decide the response before deposits open.
+4. After the deadline the count is final. Up to the capacity the snapshot still builds: `--run` refuses while
+   the check is tripped, so run the printed snapshot command yourself.
 
 Output: `kit/output/snapshot/N/` with `tree.json`/`tree.csv`, the root, the total and the `commitRoot`
 calldata. Any second person should rebuild it and compare the root and sha256s; the result is
