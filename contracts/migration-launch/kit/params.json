@@ -90,7 +90,8 @@
     "v2Side": "old-pool-ladder-copy",
     "wethSide": "full-range",
     "mergeBps": 100,
-    "note": "openTick: v1's pre-sale tick on the old pool, rounded half up to the successor grid. v2Side: the v1 the old pool holds above its price, copied as v2 range by range (boundaries on the successor grid; adjacent segments within mergeBps of liquidity merge). wethSide: one position from the opening tick to the end of the range, holding what the sale raised."
+    "dustFloorWei": 1000000000000000000,
+    "note": "openTick: v1's pre-sale tick on the old pool, rounded half up to the successor grid. v2Side: the v1 the old pool holds above its price, copied as v2 range by range (boundaries on the successor grid; adjacent segments within mergeBps of liquidity merge; blocks copying less than dustFloorWei of v1 drop as dust, never the seam block - hostile micro-positions cost their creator ~30 wei each and exist only to multiply the copied ranges at ~134k gas each, while the pool's real blocks carry 6.9e24 and 1.0e27 wei, so 1 v1 separates them by 24 orders). wethSide: one position from the opening tick to the end of the range, holding what the sale raised."
   },
   "operators": {
     "decision": "\u00a76.7",

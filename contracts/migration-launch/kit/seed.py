@@ -6,8 +6,9 @@ The successor pool opens with two single-sided sides that meet at the opening ti
       old pool quotes v1 per WETH; when v2 sorts before WETH the successor quotes the inverse, so the tick is negated);
     - the v2 side: the v1 the old pool holds above its price, copied as v2 range by range. The old pool's liquidity
       is read from PoolManager storage, adjacent segments within seed.mergeBps of the block's first segment merge,
-      every boundary is rounded to the successor grid, the block nearest the price ends at the seam, and each range's
-      liquidity is the largest its block's v1 pays for (one exact floor);
+      blocks copying less than seed.dustFloorWei of v1 drop as dust (never the seam block, which must meet the
+      opening tick), every boundary is rounded to the successor grid, the block nearest the price ends at the seam,
+      and each range's liquidity is the largest its block's v1 pays for (one exact floor);
     - the WETH side: built by the settler itself, from the opening tick to the end of the range, from what the sale
       raised.
 
@@ -92,9 +93,13 @@ def read_ladder(rpc: k.Rpc, pool_manager: str, pool_id: bytes, spacing: int) -> 
             "ticks": ticks}
 
 
-def ladder_blocks(ladder: dict, merge_bps: int) -> tuple[list[dict], int]:
+def ladder_blocks(ladder: dict, merge_bps: int, dust_floor_wei: int) -> tuple[list[dict], int]:
     """The v1 below the old pool's price (WETH/v1, so v1 sits at lower ticks), merged into blocks. Also checks the
-    walk: the segment holding the price must carry exactly the pool's active liquidity."""
+    walk: the segment holding the price must carry exactly the pool's active liquidity. Blocks copying less than
+    dust_floor_wei of v1 drop as dust - except the seam block, which must meet the opening tick (a dust block is
+    noise, not liquidity: hostile micro-positions cost their creator ~30 wei each and exist only to multiply the
+    copied ranges, and each copied range costs the launch batch ~134k gas against Base's 2^24 per-tx cap;
+    LadderMirror.sol mirrors this rule, and safe_txs.py caps the range count and the batch gas on top)."""
     sqrt_p, ticks = ladder["sqrtPriceX96"], ladder["ticks"]
     blocks: list[dict] = []
     liquidity, gap, total, walked = 0, True, 0, None
@@ -127,6 +132,11 @@ def ladder_blocks(ladder: dict, merge_bps: int) -> tuple[list[dict], int]:
         # Ending the copy at the opening tick would then move v1 toward the price instead of copying it.
         k.fail(f"the old pool holds no v1 at its price (its v1 stops at tick {blocks[-1]['upper']}, the price is at "
                f"{ladder['tick']}): the copy cannot meet the opening tick, so decide the seed by hand")
+    dust = [i for i in range(len(blocks) - 1) if blocks[i]["amount"] < dust_floor_wei]
+    if dust:
+        total -= sum(blocks[i]["amount"] for i in dust)
+        drop = set(dust)
+        blocks = [b for i, b in enumerate(blocks) if i not in drop]
     return blocks, total
 
 
@@ -179,7 +189,7 @@ def build(rpc: k.Rpc, params: dict, v2_first: bool) -> dict:
     ladder = read_ladder(rpc, ext["poolManager"], bytes.fromhex(old["poolId"][2:]), old["tickSpacing"])
     if ladder["sqrtPriceX96"] == 0:
         k.fail("the old pool is not initialized on this fork")
-    blocks, v1_above = ladder_blocks(ladder, seed["mergeBps"])
+    blocks, v1_above = ladder_blocks(ladder, seed["mergeBps"], seed["dustFloorWei"])
     seam_old = to_grid(ladder["tick"], pool["tickSpacing"])
     ranges = v2_ranges(blocks, seam_old, pool["tickSpacing"], v2_first)
     e = edge(pool["tickSpacing"])

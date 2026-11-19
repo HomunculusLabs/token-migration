@@ -123,7 +123,7 @@ contract RehearsalLaunch {
         (, int24 oldTick) = LadderMirror.slot0(POOL_MANAGER, OLD_POOL_ID);
         int24 seamOld = LadderMirror.toGrid(oldTick, 60);
         p.openTick = v2First ? -seamOld : seamOld;
-        (p.v2Ranges,) = LadderMirror.mirror(POOL_MANAGER, OLD_POOL_ID, 200, 60, seamOld, v2First, 100);
+        (p.v2Ranges,) = LadderMirror.mirror(POOL_MANAGER, OLD_POOL_ID, 200, 60, seamOld, v2First, 100, 1e18);
     }
 
     function _batch(

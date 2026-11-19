@@ -18,9 +18,11 @@ interface IExtsloadView {
  *         in the segments below the current tick (the one holding the price only up to the price).
  *      2. Merge adjacent segments whose liquidity is within `mergeBps` of the block's first segment. A segment with
  *         no liquidity is a gap and is never merged across.
- *      3. Round every boundary to the successor's grid, half up. The block nearest the price ends at the seam, so the
- *         v2 side meets the WETH side at the opening tick.
- *      4. Size each block's liquidity to hold exactly the block's v1 over its rounded range (rounding down), and
+ *      3. Drop blocks that copy less than `dustFloorWei` of v1 - dust, not liquidity (the kit's seed.dustFloorWei).
+ *         The last block (the seam, nearest the price) is never dropped: the copy must meet the opening tick.
+ *      4. Round every boundary to the successor's grid, half up. The block nearest the price ends at the seam, so
+ *         the v2 side meets the WETH side at the opening tick.
+ *      5. Size each block's liquidity to hold exactly the block's v1 over its rounded range (rounding down), and
  *         negate the ticks when v2 sorts before WETH (the successor then quotes the inverse price).
  */
 library LadderMirror {
@@ -49,10 +51,12 @@ library LadderMirror {
         int24 newSpacing,
         int24 seamOld,
         bool v2First,
-        uint256 mergeBps
+        uint256 mergeBps,
+        uint256 dustFloorWei
     ) internal view returns (MigrationSettler.V2Range[] memory ranges, uint256 v1Total) {
         Block[] memory blocks;
         (blocks, v1Total) = ladderBlocks(pm, oldPoolId, oldSpacing, mergeBps);
+        v1Total -= _dropDust(blocks, blocks.length, dustFloorWei);
         ranges = new MigrationSettler.V2Range[](blocks.length);
         int24 edge = LaunchMath.MAX_TICK - LaunchMath.MAX_TICK % newSpacing;
         for (uint256 j; j < blocks.length; ++j) {
@@ -71,6 +75,17 @@ library LadderMirror {
                 : Math.mulDiv(blocks[j].amount, Q96, sb - sa);
             ranges[j] = MigrationSettler.V2Range(a, b, l.toUint128());
         }
+    }
+
+    /// @dev Steps 1-3: the old pool's v1 ladder below its price, merged into blocks, in the old orientation,
+    ///      with the dust floor applied (steps 1-2 as in `ladderBlocks`, then step 3).
+    function ladderBlocksDropped(address pm, bytes32 poolId, int24 spacing, uint256 mergeBps, uint256 dustFloorWei)
+        internal
+        view
+        returns (Block[] memory blocks, uint256 v1Total)
+    {
+        (blocks, v1Total) = ladderBlocks(pm, poolId, spacing, mergeBps);
+        v1Total -= _dropDust(blocks, blocks.length, dustFloorWei);
     }
 
     /// @dev Steps 1 and 2: the old pool's v1 ladder below its price, merged into blocks, in the old orientation.
@@ -112,6 +127,23 @@ library LadderMirror {
         // Ending the copy at the opening tick would otherwise move v1 toward the price instead of copying it.
         (, int24 tick) = slot0(pm, poolId);
         require(blocks[n - 1].upper > tick, "the old pool holds no v1 at its price");
+    }
+
+    /// @dev Dust floor, mirroring kit/seed.py: a non-seam block copying less than dustFloorWei of v1 is noise,
+    ///      not liquidity, and is not copied. Compacts `blocks` in place (memory arrays share their data) and
+    ///      returns the v1 dropped. The seam block (the last) is never dropped.
+    function _dropDust(Block[] memory blocks, uint256 n, uint256 dustFloorWei) private pure returns (uint256 dropped) {
+        uint256 kept;
+        for (uint256 j; j < n; ++j) {
+            if (j + 1 == n || blocks[j].amount >= dustFloorWei) {
+                blocks[kept++] = blocks[j];
+            } else {
+                dropped += blocks[j].amount;
+            }
+        }
+        assembly ("memory-safe") {
+            mstore(blocks, kept)
+        }
     }
 
     /// @dev Half-up rounding to a multiple of `spacing`.

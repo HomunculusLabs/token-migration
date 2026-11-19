@@ -61,6 +61,22 @@ class LaunchContractEncoding(unittest.TestCase):
         self.assertNotIn("output/safe-txs/launch-batch.json", check.RECORDED_OUTPUTS)
         self.assertIn("output/safe-txs/commitRoot.json", check.RECORDED_OUTPUTS)
 
+    def test_the_kit_refuses_launch_batches_base_could_not_execute(self):
+        # Rehearsed 2026-11-19: 53 hostile dust positions in the old pool's ladder made the kit sign green a
+        # batch of 16.9M gas = 100.7% of Base's per-transaction cap, which could never execute.
+        import contextlib
+        import io
+        err = io.StringIO()
+        with contextlib.redirect_stderr(err), self.assertRaises(SystemExit):
+            safe_txs.guard_gas_cap(int(safe_txs.GAS_CAP * safe_txs.GAS_HEADROOM) + 1)
+        self.assertIn("per-transaction cap", err.getvalue())
+        safe_txs.guard_gas_cap(2_465_814)  # the clean baseline (2 copied ranges) signs
+        err = io.StringIO()
+        with contextlib.redirect_stderr(err), self.assertRaises(SystemExit):
+            safe_txs.guard_range_count(safe_txs.MAX_V2_RANGES + 1)
+        self.assertIn("multi-segmented", err.getvalue())
+        safe_txs.guard_range_count(2)  # the pin's clean ladder copies 2 ranges
+
 
 if __name__ == "__main__":
     unittest.main()
