@@ -94,6 +94,7 @@
     "v2Side": "old-pool-ladder-copy",
     "wethSide": "full-range",
     "mergeBps": 100,
+    "dustFloorWei": 1000000000000000000,
     "note": "openTick: v1's pre-sale tick on the old pool, rounded half up to the successor grid. v2Side: the v1 the old pool holds above its price, copied as v2 range by range (boundaries on the successor grid; adjacent segments within mergeBps of liquidity merge). wethSide: one position from the opening tick to the end of the range, holding what the sale raised."
   },
   "operators": {

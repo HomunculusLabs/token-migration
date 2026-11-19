@@ -109,6 +109,29 @@ RECEIPT = ("wethRaised", "wethSeeded", "v2Seeded", "firstPositionId", "positionC
 EXECUTOR = k.checksum("0x" + k.keccak(b"surplus launch kit: simulation executor")[12:].hex())
 POOLS_SLOT = 6  # v4 PoolManager: mapping(PoolId => Pool.State) _pools; slot0 is the struct's first word
 PHASE_COMMITTED = 1
+# Base caps one transaction at 2^24 gas, and the launch batch is one transaction. The kit refuses to sign a batch
+# that could not execute there (rehearsed 2026-11-19: 53 hostile dust positions in the old pool's ladder made a
+# green-signing batch of 16.9M gas = 100.7% of the cap). push_plan.py already treats the same number as its cap.
+GAS_CAP = 1 << 24
+GAS_HEADROOM = 0.90  # sign nothing the chain could refuse; the 10% also absorbs small sign-to-execute drift
+# The pin's clean ladder copies 2 ranges; hostile dust multiplies them at ~2 ranges per micro-position (each
+# copied range costs ~134k gas). 64 is 32x the clean shape, still under 9M gas, and past it the ladder is
+# multi-segmented: adverse shaping or a real LP exodus, and the seed is decided by hand instead.
+MAX_V2_RANGES = 64
+
+
+def guard_range_count(count: int) -> None:
+    """Stop before signing when the copied ladder is multi-segmented (see MAX_V2_RANGES)."""
+    if count > MAX_V2_RANGES:
+        k.fail(f"the seed copies {count} v2 ranges (cap {MAX_V2_RANGES}): the old pool's ladder is "
+               "multi-segmented - adverse liquidity shaping or a real LP exodus; decide the seed by hand")
+
+
+def guard_gas_cap(gas_used: int) -> None:
+    """Stop before signing a batch that could not execute within Base's per-transaction cap (see GAS_CAP)."""
+    if gas_used > int(GAS_CAP * GAS_HEADROOM):
+        k.fail(f"the signed launch batch needs {gas_used} gas, over {int(GAS_HEADROOM * 100)}% of Base's "
+               f"{GAS_CAP} per-transaction cap: it cannot execute; re-merge the ladder, clean it, or halt")
 
 
 def parse_args() -> argparse.Namespace:
@@ -259,7 +282,8 @@ def send(rpc: k.Rpc, sender: str, to: str, data: bytes) -> dict:
     if "error" in estimate:
         k.fail(f"the transaction from {sender} to {to} reverts on the fork: {json.dumps(estimate['error'])}")
     rpc.call("anvil_impersonateAccount", [sender])
-    tx_hash = rpc.call("eth_sendTransaction", [tx | {"gas": hex(int(estimate["result"], 16) * 13 // 10)}])
+    gas = min(int(estimate["result"], 16) * 13 // 10, GAS_CAP - 1)  # never rehearse what Base would refuse
+    tx_hash = rpc.call("eth_sendTransaction", [tx | {"gas": hex(gas)}])
     receipt = None
     for _ in range(400):  # anvil can hand back the hash a moment before the block is mined
         receipt = rpc.call("eth_getTransactionReceipt", [tx_hash])
@@ -779,6 +803,7 @@ def launch_batch(args, params: dict, rpc: k.Rpc, d: dict, owners: dict, checks: 
     checks.append(f"from the vault: backing = totalClaimable() = {backing}; v1In = net ledger = {v1_in} "
                   f"(v1 held {custody})")
     p, built, split = settle_params(params, rpc, d, v1_in)
+    guard_range_count(len(p["v2Ranges"]))
     old_sqrt = built["oldSqrtPriceX96"]
     checks.append(f"seed: opens at tick {p['openTick']} (the old pool's tick {built['oldTick']} rounded to the "
                   f"{p['newKey']['tickSpacing']} grid); v2 side = {len(p['v2Ranges'])} range(s) copying the "
@@ -825,6 +850,7 @@ def launch_batch(args, params: dict, rpc: k.Rpc, d: dict, owners: dict, checks: 
     snap = rpc.call("evm_snapshot", [])
     settings = safe_settings(rpc, safe)
     tx, tx_hash, launch, signed = run_launch(rpc, d, owners, chain_id, args.safe_nonce, p, backing, budget)
+    guard_gas_cap(signed["gasUsed"])
     contract, init = launch["address"], launch["init"]
     constructor_args = launch_args(d, p, backing, budget)
     signed["oldSqrtPriceX96After"] = sqrt_price(rpc, ext["poolManager"], bytes.fromhex(ext["oldPool"]["poolId"][2:]))
@@ -885,6 +911,8 @@ def launch_batch(args, params: dict, rpc: k.Rpc, d: dict, owners: dict, checks: 
     checks.append("signed run executed through the Safe (approveHash + execTransaction, DELEGATECALL to the "
                   "launch contract's launch()) and passed:")
     checks += [f"  {label}" for label, _ in post]
+    checks.append(f"signed run gas {signed['gasUsed']:,} = {signed['gasUsed'] * 100 // GAS_CAP}% of Base's "
+                  f"{GAS_CAP:,} per-transaction cap (the kit refuses to sign over {int(GAS_HEADROOM * 100)}%)")
     if not args.execute_on_private_fork:
         rpc.call("evm_revert", [snap])
 

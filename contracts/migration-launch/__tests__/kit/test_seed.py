@@ -50,7 +50,7 @@ class SeedTests(unittest.TestCase):
             self.assertEqual(seed.to_grid(tick, spacing), want, (tick, spacing))
 
     def test_v2_side_copies_each_block_on_the_successor_grid(self):
-        blocks, total = seed.ladder_blocks(TODAY, 100)
+        blocks, total = seed.ladder_blocks(TODAY, 100, 0)
         sqrt_p = TODAY["sqrtPriceX96"]
         deep = 2356 * E21 * (seed.sqrt_at(121_000) - seed.sqrt_at(-887_200)) // seed.Q96
         near = 957 * E21 * (sqrt_p - seed.sqrt_at(121_000)) // seed.Q96
@@ -73,30 +73,53 @@ class SeedTests(unittest.TestCase):
     def test_near_equal_segments_merge_and_gaps_split(self):
         merging = ladder([(0, 1000 * L), (200, 5 * L), (400, -1005 * L), (600, 2000 * L), (1200, -1500 * L),
                           (1400, -500 * L)], 1000, 2000 * L)
-        blocks, _ = seed.ladder_blocks(merging, 100)
+        blocks, _ = seed.ladder_blocks(merging, 100, 0)
         # 1000 and 1005 are within 1% and merge; the empty [400, 600) splits; [1200, 1400) is above the price.
         self.assertEqual([(b["lower"], b["upper"]) for b in blocks], [(0, 400), (600, 1200)])
         ranges = seed.v2_ranges(blocks, seed.to_grid(1000, 60), 60, v2_first=False)
         self.assertEqual([(r["tickLower"], r["tickUpper"]) for r in ranges], [(0, 420), (600, 1020)])
-        exact, _ = seed.ladder_blocks(merging, 0)
+        exact, _ = seed.ladder_blocks(merging, 0, 0)
         self.assertEqual([(b["lower"], b["upper"]) for b in exact], [(0, 200), (200, 400), (600, 1200)])
+
+    def test_dust_blocks_drop_but_never_the_seam_block(self):
+        # A hostile micro-segment (rehearsed 2026-11-19: ~30 wei each, ~2 copied ranges apiece at ~134k gas)
+        # is noise, not liquidity: it drops out of the copy AND out of the copied total, while the seam block
+        # nearest the price survives any floor (the copy must meet the opening tick).
+        d = 10 ** 15
+        dusty = ladder([(-887_200, 2356 * E21), (-200_000, d - 2356 * E21), (-199_800, -d),
+                        (121_000, 957 * E21), (176_200, -957 * E21)], 175_894, 957 * E21)
+        blocks, total = seed.ladder_blocks(dusty, 100, 10 ** 18)
+        self.assertEqual([(b["lower"], b["upper"]) for b in blocks],
+                         [(-887_200, -200_000), (121_000, 176_200)])
+        sqrt_p = dusty["sqrtPriceX96"]
+        deep = 2356 * E21 * (seed.sqrt_at(-200_000) - seed.sqrt_at(-887_200)) // seed.Q96
+        seam = 957 * E21 * (sqrt_p - seed.sqrt_at(121_000)) // seed.Q96
+        self.assertEqual(total, deep + seam)
+
+    def test_a_dust_seam_block_is_never_dropped(self):
+        d = 10 ** 14
+        thin = ladder([(-887_200, 2356 * E21), (121_000, d - 2356 * E21), (176_200, -d)], 175_894, d)
+        blocks, _ = seed.ladder_blocks(thin, 100, 10 ** 18)
+        self.assertEqual([(b["lower"], b["upper"]) for b in blocks], [(-887_200, 121_000), (121_000, 176_200)])
+        self.assertGreater(blocks[-1]["amount"], 0)
+        self.assertLess(blocks[-1]["amount"], 10 ** 18)  # under the floor, but it is the seam: kept
 
     def test_no_v1_at_the_price_stops(self):
         gap = ladder([(0, 1000 * L), (400, -1000 * L)], 1000, 0)
-        self.assertIn("holds no v1 at its price", self.stops(seed.ladder_blocks, gap, 100))
+        self.assertIn("holds no v1 at its price", self.stops(seed.ladder_blocks, gap, 100, 0))
 
     def test_a_ladder_walk_that_disagrees_with_the_pool_stops(self):
         wrong = dict(TODAY, liquidity=TODAY["liquidity"] + 1)
-        self.assertIn("ladder walk gives", self.stops(seed.ladder_blocks, wrong, 100))
+        self.assertIn("ladder walk gives", self.stops(seed.ladder_blocks, wrong, 100, 0))
 
     def test_nothing_to_copy_stops(self):
         empty = ladder([(2000, 1000 * L), (2200, -1000 * L)], 1000, 0)
-        self.assertIn("nothing to copy", self.stops(seed.ladder_blocks, empty, 100))
+        self.assertIn("nothing to copy", self.stops(seed.ladder_blocks, empty, 100, 0))
 
     def test_a_block_that_collapses_on_the_grid_stops(self):
         # The price sits 10 ticks above a liquidity step: the near block rounds to nothing at the seam.
         step = ladder([(0, 1000 * L), (1000, 500 * L), (2000, -1500 * L)], 1010, 1500 * L)
-        blocks, _ = seed.ladder_blocks(step, 100)
+        blocks, _ = seed.ladder_blocks(step, 100, 0)
         message = self.stops(seed.v2_ranges, blocks, seed.to_grid(1010, 60), 60, False)
         self.assertIn("collapses on the 60-tick grid", message)
 

@@ -111,6 +111,7 @@ abstract contract LaunchForkBase is Test {
     int24 internal constant TICK_SPACING = 60;
     /// @dev The v2 side copies the old pool's v1 ladder; adjacent segments within 1% of liquidity merge (kit seed).
     uint256 internal constant MIRROR_MERGE_BPS = 100;
+    uint256 internal constant MIRROR_DUST_FLOOR_WEI = 1e18; // the kit's params.json seed.dustFloorWei
     uint160 internal constant V3_MAX_SQRT_MINUS_1 = 1461446703485210103287273052203988822378723970341;
     uint256 internal constant V2_CAP = 100_000_000_000 ether; // rehearsal placeholder (§6.2 TBD)
     uint256 internal constant RATE_BPS = 10_000;
@@ -292,7 +293,14 @@ abstract contract LaunchForkBase is Test {
         // The old pool prices v1 per WETH (WETH is its currency0); the successor quotes the inverse when v2 sorts first.
         p.openTick = v2First ? -seamOld : seamOld;
         (p.v2Ranges,) = LadderMirror.mirror(
-            POOL_MANAGER, OLD_POOL_ID, OLD_SPACING, TICK_SPACING, seamOld, v2First, MIRROR_MERGE_BPS
+            POOL_MANAGER,
+            OLD_POOL_ID,
+            OLD_SPACING,
+            TICK_SPACING,
+            seamOld,
+            v2First,
+            MIRROR_MERGE_BPS,
+            MIRROR_DUST_FLOOR_WEI
         );
     }
 
@@ -304,7 +312,9 @@ abstract contract LaunchForkBase is Test {
 
     /// @dev The v1 the old pool holds above its price right now: what the v2 side copies.
     function _v1AboveOldPrice() internal view returns (uint256 v1Total) {
-        (, v1Total) = LadderMirror.ladderBlocks(POOL_MANAGER, OLD_POOL_ID, OLD_SPACING, MIRROR_MERGE_BPS);
+        (, v1Total) = LadderMirror.ladderBlocksDropped(
+            POOL_MANAGER, OLD_POOL_ID, OLD_SPACING, MIRROR_MERGE_BPS, MIRROR_DUST_FLOOR_WEI
+        );
     }
 
     /// @dev What the signers do before signing (kit RUNBOOK): run the batch on a fork with no floor and the

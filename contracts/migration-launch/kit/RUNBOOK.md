@@ -120,8 +120,11 @@ Start a **fresh private simulation fork** in a separate terminal before either S
 ```bash
 # BASE_RPC_URL is supplied privately in the shell; never put its value in evidence.
 PIN=$(cast block-number --rpc-url "$BASE_RPC_URL")
-anvil --host 127.0.0.1 --port 18560 --chain-id 8453 --fork-url "$BASE_RPC_URL" --fork-block-number "$PIN" --silent
+anvil --host 127.0.0.1 --port 18560 --chain-id 8453 --fork-url "$BASE_RPC_URL" --fork-block-number "$PIN" --gas-limit 16777216 --silent
 ```
+
+The `--gas-limit 16777216` is Base parity (Base caps one transaction at 2^24 gas): the fork refuses
+here what Base would refuse at execution, so an oversized batch stops at simulation instead of after signing.
 
 Verify the fork's chain ID, block number and hash against the same Base block. Safe simulations never
 replace this independent origin check. Recreate the fork after the real root transaction confirms and
@@ -152,6 +155,11 @@ Simulate-then-sign:
 3. It signs `minWethOut` = simulated WETH × 0.995 and the v2 budget = simulated v2 + 10 wei. The v2 side is
    fixed by the signed ranges, not by the sale, so the budget needs no drift margin.
 4. It deploys the launch contract with those numbers and runs the exact signed transaction, which must succeed.
+5. It refuses to sign a batch over 90% of Base's 2^24 per-transaction gas cap (a stop naming `per-transaction
+   cap`), a seed over 64 copied v2 ranges (a stop naming `multi-segmented`), and the seed drops dust blocks under
+   `seed.dustFloorWei` outright — adverse micro-positions in the old pool's ladder are noise, not liquidity. Liquidity
+   added between the kit's run and execution can still push the signed batch past the cap, so if execution is
+   delayed, re-run `launch-batch` (it re-simulates and re-checks the gas) before the last owner executes.
 
 The launch is one contract, `src/MigrationLaunch.sol`, built for these numbers, and one Safe transaction: a
 DELEGATECALL to its `launch()`. Signers read every number on the contract itself (SIGNER-CHECKLIST.md). It
